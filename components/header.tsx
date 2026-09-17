@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
@@ -53,6 +53,13 @@ export function Header() {
 
   const { t } = useLanguage()
   const { theme, toggleTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isDark = mounted && theme === "dark"
 
   return (
     <>
@@ -60,11 +67,11 @@ export function Header() {
         <div className="flex items-center">
           <Link href="/" className="cursor-pointer">
             <Image
-              src={theme === "dark" ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
+              src={isDark ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
               alt="ARSI Events Logo"
               width={120}
               height={60}
-              className={`h-8 sm:h-12 w-auto ${theme === "dark" ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
+              className={`h-8 sm:h-12 w-auto ${isDark ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
             />
           </Link>
         </div>
@@ -77,9 +84,9 @@ export function Header() {
             size="icon"
             onClick={toggleTheme}
             className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
-            title={theme === "light" ? t.darkMode : t.lightMode}
+            title={isDark ? t.lightMode : t.darkMode}
           >
-            {theme === "light" ? <Moon className="h-4 w-4 sm:h-5 sm:w-5" /> : <Sun className="h-4 w-4 sm:h-5 sm:w-5" />}
+            {isDark ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
           </Button>
 
           {isLoggedIn ? (
