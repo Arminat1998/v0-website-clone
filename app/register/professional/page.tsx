@@ -76,6 +76,12 @@ export default function ProfessionalRegistrationPage() {
   const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>([])
   const [currentSocialMedia, setCurrentSocialMedia] = useState({ platform: "", url: "" })
 
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     const signupData = sessionStorage.getItem("professionalSignupData")
     if (signupData) {
@@ -886,11 +892,11 @@ export default function ProfessionalRegistrationPage() {
         <div className="flex items-center justify-between">
           <Link href="/">
             <Image
-              src={theme === "dark" ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
+              src={mounted && theme === "dark" ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
               alt="ARSI Events Logo"
               width={120}
               height={60}
-              className={`h-10 sm:h-12 w-auto cursor-pointer ${theme === "dark" ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
+              className={`h-10 sm:h-12 w-auto cursor-pointer ${mounted && theme === "dark" ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
             />
           </Link>
 
@@ -902,9 +908,9 @@ export default function ProfessionalRegistrationPage() {
               size="icon"
               onClick={toggleTheme}
               className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
-              title={theme === "light" ? t.darkMode : t.lightMode}
+              title={!mounted || theme === "light" ? t.darkMode : t.lightMode}
             >
-              {theme === "light" ? (
+              {!mounted || theme === "light" ? (
                 <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
                 <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
