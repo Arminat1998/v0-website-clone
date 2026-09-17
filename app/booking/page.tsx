@@ -67,6 +67,14 @@ export default function BookingPage() {
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
+  const [customerType, setCustomerType] = useState<"private" | "business">("private")
+  const [companyName, setCompanyName] = useState("")
+  const [billingStreet, setBillingStreet] = useState("")
+  const [billingHouseNumber, setBillingHouseNumber] = useState("")
+  const [billingPostalCode, setBillingPostalCode] = useState("")
+  const [billingCity, setBillingCity] = useState("")
+  const [billingCountry, setBillingCountry] = useState("Nederland")
+  const [vatNumber, setVatNumber] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<"ideal" | "card" | "invoice">("ideal")
   const [submitted, setSubmitted] = useState(false)
   
@@ -1146,13 +1154,30 @@ export default function BookingPage() {
                 <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">Persoonlijke gegevens</h2>
                 <p className="text-sm text-muted-foreground mb-6">Vul je gegevens in zodat de professional contact met je kan opnemen.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-2 text-sm font-medium text-foreground">Voornaam<input value={firstName} onChange={(event) => setFirstName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Voornaam" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">Achternaam<input value={lastName} onChange={(event) => setLastName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Achternaam" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">E-mailadres<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="jij@voorbeeld.nl" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">Telefoonnummer<input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Voornaam<input required value={firstName} onChange={(event) => setFirstName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Voornaam" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Achternaam<input required value={lastName} onChange={(event) => setLastName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Achternaam" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">E-mailadres<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="jij@voorbeeld.nl" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Telefoonnummer<input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                </div>
+                <div className="mt-6 border-t border-border pt-5">
+                  <h3 className="font-semibold text-foreground">Factuurgegevens</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Deze gegevens gebruiken we om de factuur op te stellen.</p>
+                  <div className="mt-4 flex gap-2" role="radiogroup" aria-label="Type klant">
+                    <button type="button" onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>Particulier</button>
+                    <button type="button" onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>Zakelijk</button>
+                  </div>
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">Bedrijfsnaam<input required value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Bedrijfsnaam" /></label>}
+                    <label className="space-y-2 text-sm font-medium text-foreground">Straat<input required value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Straatnaam" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">Huisnummer<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">Postcode<input required value={billingPostalCode} onChange={(event) => setBillingPostalCode(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">Plaats<input required value={billingCity} onChange={(event) => setBillingCity(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">Land<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option>Nederland</option><option>België</option><option>Duitsland</option><option>Anders</option></select></label>
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">BTW-nummer<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@")} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Naar overzicht</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Naar overzicht</Button></div>
             </div>
           )}
 
@@ -1165,6 +1190,8 @@ export default function BookingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Datum</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Locatie</span><span className="font-medium text-foreground">{eventLocation}</span></div>
+                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">Factuuradres</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
+                  {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">BTW-nummer</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">Reiskosten ({(distance ?? 0) * 2} km retour)</span><span className="font-medium text-foreground">€{(((distance ?? 0) * 2) * 0.25).toFixed(2)}</span></div>
                   <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Totaal te betalen</span><span className="font-bold text-red-500">In overleg</span></div>
                 </div>
