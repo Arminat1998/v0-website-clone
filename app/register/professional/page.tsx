@@ -9,8 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Music, Plus, X, Camera, Speaker, Mic, Lightbulb, Piano, Guitar, ChevronDown, Check } from "lucide-react"
+import { Music, Plus, X, Camera, Speaker, Mic, Lightbulb, Piano, Guitar, ChevronDown, Check, Moon, Sun } from "lucide-react"
 import { DualRangeSlider } from "@/components/dual-range-slider"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useLanguage } from "@/contexts/language-context"
+import { useTheme } from "@/contexts/theme-context"
 import { useState, useRef, useEffect } from "react" // Imported useEffect
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -53,6 +56,9 @@ export default function ProfessionalRegistrationPage() {
   const [artistType, setArtistType] = useState<string>("")
   const [bannerImage, setBannerImage] = useState<string>("")
   const [profileImage, setProfileImage] = useState<string>("")
+
+  const { t } = useLanguage()
+  const { theme, toggleTheme } = useTheme()
 
   const [fullName, setFullName] = useState<string>("")
   const [email, setEmail] = useState<string>("")
@@ -784,16 +790,34 @@ export default function ProfessionalRegistrationPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card px-4 sm:px-6 py-4 border-b border-border">
-        <div className="flex items-center">
+        <div className="flex items-center justify-between">
           <Link href="/">
             <Image
-              src="/arsi-logo.png"
+              src={theme === "dark" ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
               alt="ARSI Events Logo"
               width={120}
               height={60}
-              className="h-10 sm:h-12 w-auto cursor-pointer"
+              className={`h-10 sm:h-12 w-auto cursor-pointer ${theme === "dark" ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
             />
           </Link>
+
+          <div className="flex items-center gap-1 sm:gap-4">
+            <LanguageSwitcher />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
+              title={theme === "light" ? t.darkMode : t.lightMode}
+            >
+              {theme === "light" ? (
+                <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+              ) : (
+                <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </header>
 
