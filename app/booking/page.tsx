@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker } from "lucide-react"
+import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, CreditCard, LockKeyhole } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { artists, photographers } from "@/lib/smart-search"
@@ -61,6 +61,14 @@ export default function BookingPage() {
   const [city, setCity] = useState("")
   const [country, setCountry] = useState("")
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>(["basic"])
+
+  // Step 3 - Personal details and payment
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<"ideal" | "card" | "invoice">("ideal")
+  const [submitted, setSubmitted] = useState(false)
   
   const eventTypes = ["Birthday", "Anniversary", "Wedding", "Corporate", "Festival", "Club Night"]
   const musicGenres = ["Trance", "House", "Techno", "Punk", "Hip-Hop", "Pop", "Rock", "EDM"]
@@ -1129,6 +1137,47 @@ export default function BookingPage() {
                 </Button>
               </div>
             </div>
+          )}
+
+          {/* Step 3 - Personal Details */}
+          {currentStep === 3 && (
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">Persoonlijke gegevens</h2>
+                <p className="text-sm text-muted-foreground mb-6">Vul je gegevens in zodat de professional contact met je kan opnemen.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="space-y-2 text-sm font-medium text-foreground">Voornaam<input value={firstName} onChange={(event) => setFirstName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Voornaam" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Achternaam<input value={lastName} onChange={(event) => setLastName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Achternaam" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">E-mailadres<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="jij@voorbeeld.nl" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Telefoonnummer<input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                </div>
+              </div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@")} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Naar overzicht</Button></div>
+            </div>
+          )}
+
+          {/* Step 4 - Overview and payment */}
+          {currentStep === 4 && (
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold mb-5 text-foreground">Overzicht & betaling</h2>
+                <div className="space-y-3 text-sm border-b border-border pb-4">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Datum</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Locatie</span><span className="font-medium text-foreground">{eventLocation}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Reiskosten ({(distance ?? 0) * 2} km retour)</span><span className="font-medium text-foreground">€{(((distance ?? 0) * 2) * 0.25).toFixed(2)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Totaal te betalen</span><span className="font-bold text-red-500">In overleg</span></div>
+                </div>
+                <div className="mt-5"><h3 className="font-semibold text-foreground mb-3">Betaalmethode</h3><div className="grid gap-3 sm:grid-cols-3">{([['ideal', 'iDEAL'], ['card', 'Creditcard'], ['invoice', 'Factuur'] ] as const).map(([value, label]) => <button type="button" key={value} onClick={() => setPaymentMethod(value)} className={`rounded-md border p-3 text-left text-sm ${paymentMethod === value ? "border-red-500 bg-red-500/10" : "border-border"}`}><CreditCard className="mb-2 h-4 w-4" />{label}</button>)}</div></div>
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />Je gegevens worden veilig verwerkt.</div>
+              </div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={() => { setSubmitted(true); setCurrentStep(5) }} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Bevestig boeking</Button></div>
+            </div>
+          )}
+
+          {/* Step 5 - Confirmation */}
+          {currentStep === 5 && (
+            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">Boekingsaanvraag verzonden</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">Bedankt {firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen. Je ontvangt een bevestiging op {email || "je e-mailadres"} zodra de professional reageert.</p><Button onClick={() => router.push("/")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">Terug naar home</Button></div>
           )}
         </div>
       </div>
