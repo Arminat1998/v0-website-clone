@@ -2,40 +2,27 @@
 
 import { HeroSearch } from "./hero-search"
 import { useLanguage } from "@/contexts/language-context"
-import { useTheme } from "@/contexts/theme-context"
 
 export function HeroSection() {
   const { t } = useLanguage()
-  const { theme } = useTheme()
 
   return (
     <section className="relative min-h-[500px] sm:min-h-[600px] lg:h-[600px] flex items-center justify-center text-center text-white overflow-hidden">
       {/* Light mode background - visible when theme is light */}
       <div
-        className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out"
-        style={{
-          backgroundImage: "url('/brightmodus.png')",
-          opacity: theme === "light" ? 1 : 0,
-        }}
+        className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out opacity-100 dark:opacity-0"
+        style={{ backgroundImage: "url('/brightmodus.png')" }}
         aria-hidden="true"
       />
 
       {/* Dark mode background - visible when theme is dark */}
       <div
-        className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out"
-        style={{
-          backgroundImage: "url('/darkmodus.png')",
-          opacity: theme === "dark" ? 1 : 0,
-        }}
+        className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out opacity-0 dark:opacity-100"
+        style={{ backgroundImage: "url('/darkmodus.png')" }}
         aria-hidden="true"
       />
 
-      <div
-        className="absolute inset-0 transition-colors duration-700 ease-in-out"
-        style={{
-          backgroundColor: theme === "dark" ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.5)",
-        }}
-      />
+      <div className="absolute inset-0 transition-colors duration-700 ease-in-out bg-black/50 dark:bg-black/30" />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-0">
         <h1

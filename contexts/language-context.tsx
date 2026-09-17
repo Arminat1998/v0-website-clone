@@ -14,8 +14,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>("nl")
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     // Load saved language from localStorage
     const saved = localStorage.getItem("language") as Language
     if (saved && (saved === "nl" || saved === "en")) {
@@ -28,10 +30,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("language", lang)
   }
 
+  // Until mounted, always use the default language so the first client render
+  // matches the server-rendered HTML and hydration stays consistent.
+  const activeLanguage: Language = mounted ? language : "nl"
+
   const value = {
-    language,
+    language: activeLanguage,
     setLanguage,
-    t: translations[language],
+    t: translations[activeLanguage],
   }
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
