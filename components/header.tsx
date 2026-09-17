@@ -71,6 +71,7 @@ export function Header() {
               alt="ARSI Events Logo"
               width={120}
               height={60}
+              priority
               className="h-8 sm:h-12 w-auto dark:hidden"
             />
             <Image
@@ -78,6 +79,7 @@ export function Header() {
               alt="ARSI Events Logo"
               width={120}
               height={60}
+              priority
               className="hidden h-8 sm:h-12 w-auto scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem] dark:block"
             />
           </Link>
