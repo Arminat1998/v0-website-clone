@@ -67,11 +67,18 @@ export function Header() {
         <div className="flex items-center">
           <Link href="/" className="cursor-pointer">
             <Image
-              src={isDark ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
+              src="/arsi-logo.png"
               alt="ARSI Events Logo"
               width={120}
               height={60}
-              className={`h-8 sm:h-12 w-auto ${isDark ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
+              className="h-8 sm:h-12 w-auto dark:hidden"
+            />
+            <Image
+              src="/arsi-logo-dark.png"
+              alt="ARSI Events Logo"
+              width={120}
+              height={60}
+              className="hidden h-8 sm:h-12 w-auto scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem] dark:block"
             />
           </Link>
         </div>
@@ -86,7 +93,8 @@ export function Header() {
             className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
             title={isDark ? t.lightMode : t.darkMode}
           >
-            {isDark ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
+            <Moon className="h-4 w-4 sm:h-5 sm:w-5 dark:hidden" />
+            <Sun className="hidden h-4 w-4 sm:h-5 sm:w-5 dark:block" />
           </Button>
 
           {isLoggedIn ? (
