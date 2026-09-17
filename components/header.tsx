@@ -94,6 +94,7 @@ export function Header() {
             onClick={toggleTheme}
             className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
             title={isDark ? t.lightMode : t.darkMode}
+            suppressHydrationWarning
           >
             <Moon className="h-4 w-4 sm:h-5 sm:w-5 dark:hidden" />
             <Sun className="hidden h-4 w-4 sm:h-5 sm:w-5 dark:block" />

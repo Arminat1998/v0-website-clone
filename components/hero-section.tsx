@@ -28,12 +28,14 @@ export function HeroSection() {
         <h1
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-balance drop-shadow-lg"
           style={{ textShadow: "0 2px 8px rgba(0,0,0,0.4)" }}
+          suppressHydrationWarning
         >
           {t.heroTitle}
         </h1>
         <p
           className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/90 drop-shadow-lg text-balance mb-6 sm:mb-8"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.3)" }}
+          suppressHydrationWarning
         >
           {t.heroSubtitle}
         </p>
