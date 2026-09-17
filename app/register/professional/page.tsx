@@ -58,6 +58,11 @@ export default function ProfessionalRegistrationPage() {
   const [email, setEmail] = useState<string>("")
   const [phone, setPhone] = useState<string>("")
 
+  const [companyName, setCompanyName] = useState<string>("")
+  const [kvkNumber, setKvkNumber] = useState<string>("")
+  const [vatNumber, setVatNumber] = useState<string>("")
+  const [kvkError, setKvkError] = useState<string>("")
+
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([])
 
@@ -592,8 +597,26 @@ export default function ProfessionalRegistrationPage() {
     )
   }
 
+  const handleKvkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 8)
+    setKvkNumber(digitsOnly)
+    if (digitsOnly.length === 0) {
+      setKvkError("KVK-nummer is verplicht")
+    } else if (digitsOnly.length !== 8) {
+      setKvkError("KVK-nummer moet uit 8 cijfers bestaan")
+    } else {
+      setKvkError("")
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!/^\d{8}$/.test(kvkNumber)) {
+      setKvkError(kvkNumber.length === 0 ? "KVK-nummer is verplicht" : "KVK-nummer moet uit 8 cijfers bestaan")
+      return
+    }
+
     console.log("[v0] Professional registration submitted")
     router.push("/dashboard")
   }
@@ -932,6 +955,59 @@ export default function ProfessionalRegistrationPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
+                  />
+                </div>
+
+                {/* Company Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className="text-sm sm:text-base font-medium text-gray-900">
+                    Bedrijfsnaam / Handelsnaam
+                  </Label>
+                  <Input
+                    id="companyName"
+                    placeholder="Bedrijfsnaam"
+                    className={inputClassName}
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+
+                {/* KVK Number */}
+                <div className="space-y-2">
+                  <Label htmlFor="kvkNumber" className="text-sm sm:text-base font-medium text-gray-900">
+                    KVK-nummer
+                  </Label>
+                  <Input
+                    id="kvkNumber"
+                    inputMode="numeric"
+                    placeholder="12345678"
+                    className={inputClassName}
+                    value={kvkNumber}
+                    onChange={handleKvkChange}
+                    onKeyDown={handleNumberKeyDown}
+                    maxLength={8}
+                    aria-invalid={!!kvkError}
+                    aria-describedby="kvkNumber-error"
+                    required
+                  />
+                  {kvkError && (
+                    <p id="kvkNumber-error" className="text-sm text-red-500">
+                      {kvkError}
+                    </p>
+                  )}
+                </div>
+
+                {/* VAT Number */}
+                <div className="space-y-2">
+                  <Label htmlFor="vatNumber" className="text-sm sm:text-base font-medium text-gray-900">
+                    BTW-identificatienummer <span className="text-gray-400">(optioneel)</span>
+                  </Label>
+                  <Input
+                    id="vatNumber"
+                    placeholder="NL123456789B01"
+                    className={inputClassName}
+                    value={vatNumber}
+                    onChange={(e) => setVatNumber(e.target.value)}
                   />
                 </div>
               </div>
