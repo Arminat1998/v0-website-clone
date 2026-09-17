@@ -506,7 +506,7 @@ export default function BookingPage() {
                     </p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
-                      {t.estimatedTravelCost} €{(distance * 2 * 0.23).toFixed(2)} (round trip: {distance * 2} km)
+                      {t.estimatedTravelCost} €{(distance * 2 * 0.25).toFixed(2)} (round trip: {distance * 2} km)
                     </p>
                   </div>
                 )}
