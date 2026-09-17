@@ -57,8 +57,9 @@ export default function ProfessionalRegistrationPage() {
   const [bannerImage, setBannerImage] = useState<string>("")
   const [profileImage, setProfileImage] = useState<string>("")
 
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
+  const L = language === "nl"
 
   const [fullName, setFullName] = useState<string>("")
   const [email, setEmail] = useState<string>("")
@@ -134,211 +135,213 @@ export default function ProfessionalRegistrationPage() {
       DJ: [
         {
           id: "dj-controller",
-          name: "DJ Controller",
-          description: "Professional DJ controller (Pioneer XDJ-RX2 or higher) with DJ table",
+          name: L ? "DJ-controller" : "DJ Controller",
+          description: L
+            ? "Professionele DJ-controller (Pioneer XDJ-RX2 of hoger) met DJ-tafel"
+            : "Professional DJ controller (Pioneer XDJ-RX2 or higher) with DJ table",
           icon: Music,
-          placeholder: "e.g. Pioneer CDJ-3000 + Mixer",
+          placeholder: L ? "bijv. Pioneer CDJ-3000 + Mixer" : "e.g. Pioneer CDJ-3000 + Mixer",
         },
         {
           id: "sound-system",
-          name: "Sound System on Stands",
-          description: "At least 2 speakers for 300+ people",
+          name: L ? "Geluidssysteem op statieven" : "Sound System on Stands",
+          description: L ? "Minimaal 2 speakers voor 300+ personen" : "At least 2 speakers for 300+ people",
           icon: Speaker,
-          placeholder: "e.g. 2x JBL PRX815W Speakers",
+          placeholder: L ? "bijv. 2x JBL PRX815W speakers" : "e.g. 2x JBL PRX815W Speakers",
         },
         {
           id: "microphone",
-          name: "Professional Microphone",
-          description: "High-quality microphone for announcements",
+          name: L ? "Professionele microfoon" : "Professional Microphone",
+          description: L ? "Hoogwaardige microfoon voor aankondigingen" : "High-quality microphone for announcements",
           icon: Mic,
-          placeholder: "e.g. Shure SM58 Wireless",
+          placeholder: L ? "bijv. Shure SM58 draadloos" : "e.g. Shure SM58 Wireless",
         },
         {
           id: "lighting",
-          name: "Full Lighting Setup",
-          description: "Minimum one party light bar",
+          name: L ? "Volledige lichtset" : "Full Lighting Setup",
+          description: L ? "Minimaal één party light bar" : "Minimum one party light bar",
           icon: Lightbulb,
-          placeholder: "e.g. Chauvet DJ 4BAR Flex T",
+          placeholder: L ? "bijv. Chauvet DJ 4BAR Flex T" : "e.g. Chauvet DJ 4BAR Flex T",
         },
       ],
       Saxophonist: [
         {
           id: "saxophone",
-          name: "Professional Saxophone",
-          description: "Alto or Tenor saxophone",
+          name: L ? "Professionele saxofoon" : "Professional Saxophone",
+          description: L ? "Alt- of tenorsaxofoon" : "Alto or Tenor saxophone",
           icon: Music,
-          placeholder: "e.g. Yamaha Alto Saxophone YAS-62",
+          placeholder: L ? "bijv. Yamaha altsaxofoon YAS-62" : "e.g. Yamaha Alto Saxophone YAS-62",
         },
         {
           id: "wireless-mic",
-          name: "Wireless Microphone System",
-          description: "For saxophone amplification",
+          name: L ? "Draadloos microfoonsysteem" : "Wireless Microphone System",
+          description: L ? "Voor versterking van de saxofoon" : "For saxophone amplification",
           icon: Mic,
-          placeholder: "e.g. Shure BLX14/CVL Wireless",
+          placeholder: L ? "bijv. Shure BLX14/CVL draadloos" : "e.g. Shure BLX14/CVL Wireless",
         },
         {
           id: "pa-system",
-          name: "Portable PA System",
-          description: "With stands for amplification",
+          name: L ? "Draagbaar PA-systeem" : "Portable PA System",
+          description: L ? "Met statieven voor versterking" : "With stands for amplification",
           icon: Speaker,
-          placeholder: "e.g. Bose S1 Pro System",
+          placeholder: L ? "bijv. Bose S1 Pro-systeem" : "e.g. Bose S1 Pro System",
         },
         {
           id: "music-stand",
-          name: "Music Stand & Sheet Music",
-          description: "Professional music stand with collection",
+          name: L ? "Muziekstandaard & bladmuziek" : "Music Stand & Sheet Music",
+          description: L ? "Professionele muziekstandaard met collectie" : "Professional music stand with collection",
           icon: Music,
-          placeholder: "e.g. Manhasset Music Stand",
+          placeholder: L ? "bijv. Manhasset muziekstandaard" : "e.g. Manhasset Music Stand",
         },
       ],
       Band: [
         {
           id: "pa-system",
-          name: "Full PA System",
-          description: "With mixing console",
+          name: L ? "Volledig PA-systeem" : "Full PA System",
+          description: L ? "Met mengpaneel" : "With mixing console",
           icon: Speaker,
-          placeholder: "e.g. Yamaha Stagepas 1K System",
+          placeholder: L ? "bijv. Yamaha Stagepas 1K-systeem" : "e.g. Yamaha Stagepas 1K System",
         },
         {
           id: "microphones",
-          name: "Multiple Microphones",
-          description: "Vocal and instrument microphones",
+          name: L ? "Meerdere microfoons" : "Multiple Microphones",
+          description: L ? "Zang- en instrumentmicrofoons" : "Vocal and instrument microphones",
           icon: Mic,
-          placeholder: "e.g. 4x Shure SM58 + 2x SM57",
+          placeholder: L ? "bijv. 4x Shure SM58 + 2x SM57" : "e.g. 4x Shure SM58 + 2x SM57",
         },
         {
           id: "amplifiers",
-          name: "Instrument Amplifiers",
-          description: "For guitars and bass",
+          name: L ? "Instrumentversterkers" : "Instrument Amplifiers",
+          description: L ? "Voor gitaren en bas" : "For guitars and bass",
           icon: Music,
-          placeholder: "e.g. Fender Hot Rod Deluxe",
+          placeholder: L ? "bijv. Fender Hot Rod Deluxe" : "e.g. Fender Hot Rod Deluxe",
         },
         {
           id: "monitors",
-          name: "Monitor System",
-          description: "For band members",
+          name: L ? "Monitorsysteem" : "Monitor System",
+          description: L ? "Voor bandleden" : "For band members",
           icon: Speaker,
-          placeholder: "e.g. 4x QSC K10.2 Monitors",
+          placeholder: L ? "bijv. 4x QSC K10.2 monitors" : "e.g. 4x QSC K10.2 Monitors",
         },
       ],
       Singer: [
         {
           id: "vocal-mic",
-          name: "Professional Vocal Microphone",
-          description: "High-quality vocal microphone",
+          name: L ? "Professionele zangmicrofoon" : "Professional Vocal Microphone",
+          description: L ? "Hoogwaardige zangmicrofoon" : "High-quality vocal microphone",
           icon: Mic,
-          placeholder: "e.g. Shure SM58 or Beta 58A",
+          placeholder: L ? "bijv. Shure SM58 of Beta 58A" : "e.g. Shure SM58 or Beta 58A",
         },
         {
           id: "wireless-system",
-          name: "Wireless Microphone System",
-          description: "For freedom of movement",
+          name: L ? "Draadloos microfoonsysteem" : "Wireless Microphone System",
+          description: L ? "Voor bewegingsvrijheid" : "For freedom of movement",
           icon: Mic,
-          placeholder: "e.g. Sennheiser EW 135 G4",
+          placeholder: L ? "bijv. Sennheiser EW 135 G4" : "e.g. Sennheiser EW 135 G4",
         },
         {
           id: "monitors",
-          name: "In-ear or Stage Monitors",
-          description: "For monitoring performance",
+          name: L ? "In-ear of podiummonitors" : "In-ear or Stage Monitors",
+          description: L ? "Voor het monitoren van je optreden" : "For monitoring performance",
           icon: Speaker,
-          placeholder: "e.g. Shure SE215 In-Ears",
+          placeholder: L ? "bijv. Shure SE215 in-ears" : "e.g. Shure SE215 In-Ears",
         },
         {
           id: "pa-system",
-          name: "Portable PA System",
-          description: "For amplification",
+          name: L ? "Draagbaar PA-systeem" : "Portable PA System",
+          description: L ? "Voor versterking" : "For amplification",
           icon: Speaker,
-          placeholder: "e.g. Bose L1 Pro32",
+          placeholder: L ? "bijv. Bose L1 Pro32" : "e.g. Bose L1 Pro32",
         },
       ],
       Pianist: [
         {
           id: "piano",
-          name: "Digital Piano or Keyboard",
-          description: "88 keys, weighted action",
+          name: L ? "Digitale piano of keyboard" : "Digital Piano or Keyboard",
+          description: L ? "88 toetsen, gewogen aanslag" : "88 keys, weighted action",
           icon: Piano,
-          placeholder: "e.g. Yamaha P-125 Digital Piano",
+          placeholder: L ? "bijv. Yamaha P-125 digitale piano" : "e.g. Yamaha P-125 Digital Piano",
         },
         {
           id: "bench",
-          name: "Piano Bench",
-          description: "Adjustable piano bench",
+          name: L ? "Pianokruk" : "Piano Bench",
+          description: L ? "Verstelbare pianokruk" : "Adjustable piano bench",
           icon: Music,
-          placeholder: "e.g. Adjustable Piano Bench",
+          placeholder: L ? "bijv. verstelbare pianokruk" : "e.g. Adjustable Piano Bench",
         },
         {
           id: "amplifier",
-          name: "Keyboard Amplifier",
-          description: "Or PA system for amplification",
+          name: L ? "Keyboardversterker" : "Keyboard Amplifier",
+          description: L ? "Of PA-systeem voor versterking" : "Or PA system for amplification",
           icon: Speaker,
-          placeholder: "e.g. Roland KC-550 Amp",
+          placeholder: L ? "bijv. Roland KC-550 versterker" : "e.g. Roland KC-550 Amp",
         },
         {
           id: "music-stand",
-          name: "Music Stand",
-          description: "For sheet music",
+          name: L ? "Muziekstandaard" : "Music Stand",
+          description: L ? "Voor bladmuziek" : "For sheet music",
           icon: Music,
-          placeholder: "e.g. Manhasset Music Stand",
+          placeholder: L ? "bijv. Manhasset muziekstandaard" : "e.g. Manhasset Music Stand",
         },
       ],
       Guitarist: [
         {
           id: "guitar",
-          name: "Professional Guitar",
-          description: "Acoustic or electric guitar",
+          name: L ? "Professionele gitaar" : "Professional Guitar",
+          description: L ? "Akoestische of elektrische gitaar" : "Acoustic or electric guitar",
           icon: Guitar,
-          placeholder: "e.g. Fender Stratocaster",
+          placeholder: L ? "bijv. Fender Stratocaster" : "e.g. Fender Stratocaster",
         },
         {
           id: "amplifier",
-          name: "Guitar Amplifier",
-          description: "Professional amplifier",
+          name: L ? "Gitaarversterker" : "Guitar Amplifier",
+          description: L ? "Professionele versterker" : "Professional amplifier",
           icon: Speaker,
-          placeholder: "e.g. Fender Hot Rod Deluxe",
+          placeholder: L ? "bijv. Fender Hot Rod Deluxe" : "e.g. Fender Hot Rod Deluxe",
         },
         {
           id: "effects",
-          name: "Effects Pedals & Pedalboard",
-          description: "Complete effects setup",
+          name: L ? "Effectpedalen & pedalboard" : "Effects Pedals & Pedalboard",
+          description: L ? "Complete effectenset" : "Complete effects setup",
           icon: Music,
-          placeholder: "e.g. Boss Multi-Effects GT-1000",
+          placeholder: L ? "bijv. Boss multi-effects GT-1000" : "e.g. Boss Multi-Effects GT-1000",
         },
         {
           id: "wireless",
-          name: "Wireless System",
-          description: "For freedom of movement",
+          name: L ? "Draadloos systeem" : "Wireless System",
+          description: L ? "Voor bewegingsvrijheid" : "For freedom of movement",
           icon: Music,
-          placeholder: "e.g. Line 6 Relay G10S",
+          placeholder: L ? "bijv. Line 6 Relay G10S" : "e.g. Line 6 Relay G10S",
         },
       ],
       Violinist: [
         {
           id: "violin",
-          name: "Professional Violin",
-          description: "High-quality violin",
+          name: L ? "Professionele viool" : "Professional Violin",
+          description: L ? "Hoogwaardige viool" : "High-quality violin",
           icon: Music,
-          placeholder: "e.g. Professional Violin",
+          placeholder: L ? "bijv. professionele viool" : "e.g. Professional Violin",
         },
         {
           id: "bow",
-          name: "Bow and Rosin",
-          description: "Professional bow with rosin",
+          name: L ? "Strijkstok en hars" : "Bow and Rosin",
+          description: L ? "Professionele strijkstok met hars" : "Professional bow with rosin",
           icon: Music,
-          placeholder: "e.g. Carbon Fiber Bow",
+          placeholder: L ? "bijv. carbonvezel strijkstok" : "e.g. Carbon Fiber Bow",
         },
         {
           id: "pickup",
-          name: "Pickup/Microphone System",
-          description: "For amplification",
+          name: L ? "Pickup-/microfoonsysteem" : "Pickup/Microphone System",
+          description: L ? "Voor versterking" : "For amplification",
           icon: Mic,
-          placeholder: "e.g. Fishman V-200 Pickup",
+          placeholder: L ? "bijv. Fishman V-200 pickup" : "e.g. Fishman V-200 Pickup",
         },
         {
           id: "amplifier",
-          name: "Portable Amplifier",
-          description: "For violin amplification",
+          name: L ? "Draagbare versterker" : "Portable Amplifier",
+          description: L ? "Voor vioolversterking" : "For violin amplification",
           icon: Speaker,
-          placeholder: "e.g. Roland Cube Street EX",
+          placeholder: L ? "bijv. Roland Cube Street EX" : "e.g. Roland Cube Street EX",
         },
       ],
     }
@@ -444,7 +447,11 @@ export default function ProfessionalRegistrationPage() {
         extraFileInputRef.current.value = ""
       }
     } else {
-      alert("Please fill in Equipment Name and Rental Price before adding")
+      alert(
+        L
+          ? "Vul de apparatuurnaam en huurprijs in voordat je toevoegt"
+          : "Please fill in Equipment Name and Rental Price before adding",
+      )
     }
   }
 
@@ -461,45 +468,63 @@ export default function ProfessionalRegistrationPage() {
       switch (currentSocialMedia.platform) {
         case "instagram":
           isValid = url.includes("instagram.com")
-          errorMessage = "Please enter a valid Instagram URL (e.g., https://instagram.com/username)"
+          errorMessage = L
+            ? "Voer een geldige Instagram-URL in (bijv. https://instagram.com/gebruikersnaam)"
+            : "Please enter a valid Instagram URL (e.g., https://instagram.com/username)"
           break
         case "facebook":
           isValid = url.includes("facebook.com") || url.includes("fb.com")
-          errorMessage = "Please enter a valid Facebook URL (e.g., https://facebook.com/username)"
+          errorMessage = L
+            ? "Voer een geldige Facebook-URL in (bijv. https://facebook.com/gebruikersnaam)"
+            : "Please enter a valid Facebook URL (e.g., https://facebook.com/username)"
           break
         case "twitter":
           isValid = url.includes("twitter.com") || url.includes("x.com")
-          errorMessage =
-            "Please enter a valid Twitter/X URL (e.g., https://twitter.com/username or https://x.com/username)"
+          errorMessage = L
+            ? "Voer een geldige Twitter/X-URL in (bijv. https://twitter.com/gebruikersnaam of https://x.com/gebruikersnaam)"
+            : "Please enter a valid Twitter/X URL (e.g., https://twitter.com/username or https://x.com/username)"
           break
         case "tiktok":
           isValid = url.includes("tiktok.com")
-          errorMessage = "Please enter a valid TikTok URL (e.g., https://tiktok.com/@username)"
+          errorMessage = L
+            ? "Voer een geldige TikTok-URL in (bijv. https://tiktok.com/@gebruikersnaam)"
+            : "Please enter a valid TikTok URL (e.g., https://tiktok.com/@username)"
           break
         case "youtube":
           isValid = url.includes("youtube.com") || url.includes("youtu.be")
-          errorMessage =
-            "Please enter a valid YouTube URL (e.g., https://youtube.com/channel/... or https://youtube.com/@username)"
+          errorMessage = L
+            ? "Voer een geldige YouTube-URL in (bijv. https://youtube.com/channel/... of https://youtube.com/@gebruikersnaam)"
+            : "Please enter a valid YouTube URL (e.g., https://youtube.com/channel/... or https://youtube.com/@username)"
           break
         case "spotify":
           isValid = url.includes("spotify.com")
-          errorMessage = "Please enter a valid Spotify URL (e.g., https://open.spotify.com/artist/...)"
+          errorMessage = L
+            ? "Voer een geldige Spotify-URL in (bijv. https://open.spotify.com/artist/...)"
+            : "Please enter a valid Spotify URL (e.g., https://open.spotify.com/artist/...)"
           break
         case "soundcloud":
           isValid = url.includes("soundcloud.com")
-          errorMessage = "Please enter a valid SoundCloud URL (e.g., https://soundcloud.com/username)"
+          errorMessage = L
+            ? "Voer een geldige SoundCloud-URL in (bijv. https://soundcloud.com/gebruikersnaam)"
+            : "Please enter a valid SoundCloud URL (e.g., https://soundcloud.com/username)"
           break
         case "bandcamp":
           isValid = url.includes("bandcamp.com")
-          errorMessage = "Please enter a valid Bandcamp URL (e.g., https://username.bandcamp.com)"
+          errorMessage = L
+            ? "Voer een geldige Bandcamp-URL in (bijv. https://gebruikersnaam.bandcamp.com)"
+            : "Please enter a valid Bandcamp URL (e.g., https://username.bandcamp.com)"
           break
         case "applemusic":
           isValid = url.includes("music.apple.com")
-          errorMessage = "Please enter a valid Apple Music URL (e.g., https://music.apple.com/artist/...)"
+          errorMessage = L
+            ? "Voer een geldige Apple Music-URL in (bijv. https://music.apple.com/artist/...)"
+            : "Please enter a valid Apple Music URL (e.g., https://music.apple.com/artist/...)"
           break
         case "linkedin":
           isValid = url.includes("linkedin.com")
-          errorMessage = "Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/username)"
+          errorMessage = L
+            ? "Voer een geldige LinkedIn-URL in (bijv. https://linkedin.com/in/gebruikersnaam)"
+            : "Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/username)"
           break
         default:
           isValid = true
@@ -519,7 +544,11 @@ export default function ProfessionalRegistrationPage() {
       setSocialMediaLinks([...socialMediaLinks, newLink])
       setCurrentSocialMedia({ platform: "", url: "" })
     } else {
-      alert("Please select a platform and enter a URL before adding")
+      alert(
+        L
+          ? "Selecteer een platform en voer een URL in voordat je toevoegt"
+          : "Please select a platform and enter a URL before adding",
+      )
     }
   }
 
@@ -546,60 +575,116 @@ export default function ProfessionalRegistrationPage() {
 
   const getMinimumEquipmentRequirements = () => {
     const requirements: Record<string, string[]> = {
-      DJ: [
-        "Professional DJ controller (Pioneer XDJ-RX2 or higher) with DJ table",
-        "Sound system on stands (at least 2 speakers for 300+ people)",
-        "Professional microphone",
-        "Full lighting setup (minimum one party light bar)",
-      ],
-      Saxophonist: [
-        "Professional saxophone (Alto or Tenor)",
-        "Wireless microphone system",
-        "Portable PA system with stands",
-        "Music stand and sheet music collection",
-      ],
-      Band: [
-        "Full PA system with mixing console",
-        "Multiple microphones (vocal and instrument)",
-        "Instrument amplifiers",
-        "Monitor system for band members",
-      ],
-      Singer: [
-        "Professional vocal microphone",
-        "Wireless microphone system",
-        "In-ear monitors or stage monitors",
-        "Portable PA system",
-      ],
-      Pianist: ["Digital piano or keyboard (88 keys)", "Piano bench", "Keyboard amplifier or PA system", "Music stand"],
-      Guitarist: [
-        "Professional guitar (acoustic or electric)",
-        "Guitar amplifier",
-        "Effects pedals and pedalboard",
-        "Wireless system",
-      ],
-      Violinist: ["Professional violin", "Bow and rosin", "Pickup/microphone system", "Portable amplifier"],
+      DJ: L
+        ? [
+            "Professionele DJ-controller (Pioneer XDJ-RX2 of hoger) met DJ-tafel",
+            "Geluidssysteem op statieven (minimaal 2 speakers voor 300+ personen)",
+            "Professionele microfoon",
+            "Volledige lichtset (minimaal één party light bar)",
+          ]
+        : [
+            "Professional DJ controller (Pioneer XDJ-RX2 or higher) with DJ table",
+            "Sound system on stands (at least 2 speakers for 300+ people)",
+            "Professional microphone",
+            "Full lighting setup (minimum one party light bar)",
+          ],
+      Saxophonist: L
+        ? [
+            "Professionele saxofoon (alt of tenor)",
+            "Draadloos microfoonsysteem",
+            "Draagbaar PA-systeem met statieven",
+            "Muziekstandaard en bladmuziekcollectie",
+          ]
+        : [
+            "Professional saxophone (Alto or Tenor)",
+            "Wireless microphone system",
+            "Portable PA system with stands",
+            "Music stand and sheet music collection",
+          ],
+      Band: L
+        ? [
+            "Volledig PA-systeem met mengpaneel",
+            "Meerdere microfoons (zang en instrument)",
+            "Instrumentversterkers",
+            "Monitorsysteem voor bandleden",
+          ]
+        : [
+            "Full PA system with mixing console",
+            "Multiple microphones (vocal and instrument)",
+            "Instrument amplifiers",
+            "Monitor system for band members",
+          ],
+      Singer: L
+        ? [
+            "Professionele zangmicrofoon",
+            "Draadloos microfoonsysteem",
+            "In-ear monitors of podiummonitors",
+            "Draagbaar PA-systeem",
+          ]
+        : [
+            "Professional vocal microphone",
+            "Wireless microphone system",
+            "In-ear monitors or stage monitors",
+            "Portable PA system",
+          ],
+      Pianist: L
+        ? ["Digitale piano of keyboard (88 toetsen)", "Pianokruk", "Keyboardversterker of PA-systeem", "Muziekstandaard"]
+        : ["Digital piano or keyboard (88 keys)", "Piano bench", "Keyboard amplifier or PA system", "Music stand"],
+      Guitarist: L
+        ? [
+            "Professionele gitaar (akoestisch of elektrisch)",
+            "Gitaarversterker",
+            "Effectpedalen en pedalboard",
+            "Draadloos systeem",
+          ]
+        : [
+            "Professional guitar (acoustic or electric)",
+            "Guitar amplifier",
+            "Effects pedals and pedalboard",
+            "Wireless system",
+          ],
+      Violinist: L
+        ? ["Professionele viool", "Strijkstok en hars", "Pickup-/microfoonsysteem", "Draagbare versterker"]
+        : ["Professional violin", "Bow and rosin", "Pickup/microphone system", "Portable amplifier"],
     }
     return requirements[artistType] || requirements.DJ
   }
 
   const getPackageDescription = () => {
-    const descriptions: Record<string, string> = {
-      DJ: "Add your DJ equipment package for full-day rental. Include all essential gear like controllers, speakers, lighting, and microphones. This will be shown as one complete package with a total price.",
-      Saxophonist:
-        "Add your saxophone performance package including your instrument, sound system, and accessories. All items will be grouped into one package with a total price.",
-      Band: "Add your band's complete equipment package including PA system, instruments, and all necessary gear for a full performance. All items will be grouped into one package.",
-      Singer:
-        "Add your vocal performance package including microphones, monitors, and sound equipment. All items will be grouped into one package with a total price.",
-      Pianist:
-        "Add your piano performance package including keyboard/piano, amplification, and accessories. All items will be grouped into one package with a total price.",
-      Guitarist:
-        "Add your guitar performance package including instrument, amplifier, effects, and accessories. All items will be grouped into one package with a total price.",
-      Violinist:
-        "Add your violin performance package including instrument, amplification system, and accessories. All items will be grouped into one package with a total price.",
-    }
+    const descriptions: Record<string, string> = L
+      ? {
+          DJ: "Voeg je DJ-apparatuurpakket toe voor verhuur voor een hele dag. Inclusief alle essentiële apparatuur zoals controllers, speakers, verlichting en microfoons. Dit wordt getoond als één compleet pakket met een totaalprijs.",
+          Saxophonist:
+            "Voeg je saxofoon-optredenpakket toe inclusief je instrument, geluidssysteem en accessoires. Alle items worden gegroepeerd in één pakket met een totaalprijs.",
+          Band: "Voeg het complete apparatuurpakket van je band toe inclusief PA-systeem, instrumenten en alle benodigde apparatuur voor een volledig optreden. Alle items worden gegroepeerd in één pakket.",
+          Singer:
+            "Voeg je zang-optredenpakket toe inclusief microfoons, monitors en geluidsapparatuur. Alle items worden gegroepeerd in één pakket met een totaalprijs.",
+          Pianist:
+            "Voeg je piano-optredenpakket toe inclusief keyboard/piano, versterking en accessoires. Alle items worden gegroepeerd in één pakket met een totaalprijs.",
+          Guitarist:
+            "Voeg je gitaar-optredenpakket toe inclusief instrument, versterker, effecten en accessoires. Alle items worden gegroepeerd in één pakket met een totaalprijs.",
+          Violinist:
+            "Voeg je viool-optredenpakket toe inclusief instrument, versterkingssysteem en accessoires. Alle items worden gegroepeerd in één pakket met een totaalprijs.",
+        }
+      : {
+          DJ: "Add your DJ equipment package for full-day rental. Include all essential gear like controllers, speakers, lighting, and microphones. This will be shown as one complete package with a total price.",
+          Saxophonist:
+            "Add your saxophone performance package including your instrument, sound system, and accessories. All items will be grouped into one package with a total price.",
+          Band: "Add your band's complete equipment package including PA system, instruments, and all necessary gear for a full performance. All items will be grouped into one package.",
+          Singer:
+            "Add your vocal performance package including microphones, monitors, and sound equipment. All items will be grouped into one package with a total price.",
+          Pianist:
+            "Add your piano performance package including keyboard/piano, amplification, and accessories. All items will be grouped into one package with a total price.",
+          Guitarist:
+            "Add your guitar performance package including instrument, amplifier, effects, and accessories. All items will be grouped into one package with a total price.",
+          Violinist:
+            "Add your violin performance package including instrument, amplification system, and accessories. All items will be grouped into one package with a total price.",
+        }
     return (
       descriptions[artistType] ||
-      "Add the equipment you offer for full-day rental, including a name, price, and image. All items will be grouped into one package with a total price shown in your profile under the 'Package' section."
+      (L
+        ? "Voeg de apparatuur toe die je aanbiedt voor verhuur voor een hele dag, inclusief een naam, prijs en afbeelding. Alle items worden gegroepeerd in één pakket met een totaalprijs die in je profiel wordt getoond onder de sectie 'Pakket'."
+        : "Add the equipment you offer for full-day rental, including a name, price, and image. All items will be grouped into one package with a total price shown in your profile under the 'Package' section.")
     )
   }
 
@@ -607,9 +692,9 @@ export default function ProfessionalRegistrationPage() {
     const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 8)
     setKvkNumber(digitsOnly)
     if (digitsOnly.length === 0) {
-      setKvkError("KVK-nummer is verplicht")
+      setKvkError(L ? "KVK-nummer is verplicht" : "Chamber of Commerce (KVK) number is required")
     } else if (digitsOnly.length !== 8) {
-      setKvkError("KVK-nummer moet uit 8 cijfers bestaan")
+      setKvkError(L ? "KVK-nummer moet uit 8 cijfers bestaan" : "KVK number must be 8 digits")
     } else {
       setKvkError("")
     }
@@ -619,7 +704,15 @@ export default function ProfessionalRegistrationPage() {
     e.preventDefault()
 
     if (!/^\d{8}$/.test(kvkNumber)) {
-      setKvkError(kvkNumber.length === 0 ? "KVK-nummer is verplicht" : "KVK-nummer moet uit 8 cijfers bestaan")
+      setKvkError(
+        kvkNumber.length === 0
+          ? L
+            ? "KVK-nummer is verplicht"
+            : "Chamber of Commerce (KVK) number is required"
+          : L
+            ? "KVK-nummer moet uit 8 cijfers bestaan"
+            : "KVK number must be 8 digits",
+      )
       return
     }
 
@@ -649,14 +742,14 @@ export default function ProfessionalRegistrationPage() {
         { value: "blues", label: "Blues" },
         { value: "soul", label: "Soul" },
         { value: "funk", label: "Funk" },
-        { value: "classical", label: "Classical" },
-        { value: "contemporary", label: "Contemporary" },
+        { value: "classical", label: L ? "Klassiek" : "Classical" },
+        { value: "contemporary", label: L ? "Hedendaags" : "Contemporary" },
       ],
       Band: [
         { value: "rock", label: "Rock" },
         { value: "pop", label: "Pop" },
         { value: "indie", label: "Indie" },
-        { value: "alternative", label: "Alternative" },
+        { value: "alternative", label: L ? "Alternatief" : "Alternative" },
         { value: "metal", label: "Metal" },
         { value: "punk", label: "Punk" },
         { value: "folk", label: "Folk" },
@@ -667,13 +760,13 @@ export default function ProfessionalRegistrationPage() {
         { value: "soul", label: "Soul" },
         { value: "jazz", label: "Jazz" },
         { value: "opera", label: "Opera" },
-        { value: "musical", label: "Musical Theatre" },
+        { value: "musical", label: L ? "Musical" : "Musical Theatre" },
         { value: "country", label: "Country" },
       ],
       Pianist: [
-        { value: "classical", label: "Classical" },
+        { value: "classical", label: L ? "Klassiek" : "Classical" },
         { value: "jazz", label: "Jazz" },
-        { value: "contemporary", label: "Contemporary" },
+        { value: "contemporary", label: L ? "Hedendaags" : "Contemporary" },
         { value: "pop", label: "Pop" },
         { value: "blues", label: "Blues" },
         { value: "ragtime", label: "Ragtime" },
@@ -682,16 +775,16 @@ export default function ProfessionalRegistrationPage() {
         { value: "rock", label: "Rock" },
         { value: "blues", label: "Blues" },
         { value: "jazz", label: "Jazz" },
-        { value: "classical", label: "Classical" },
+        { value: "classical", label: L ? "Klassiek" : "Classical" },
         { value: "flamenco", label: "Flamenco" },
         { value: "folk", label: "Folk" },
         { value: "metal", label: "Metal" },
       ],
       Violinist: [
-        { value: "classical", label: "Classical" },
+        { value: "classical", label: L ? "Klassiek" : "Classical" },
         { value: "folk", label: "Folk" },
         { value: "jazz", label: "Jazz" },
-        { value: "contemporary", label: "Contemporary" },
+        { value: "contemporary", label: L ? "Hedendaags" : "Contemporary" },
         { value: "bluegrass", label: "Bluegrass" },
         { value: "celtic", label: "Celtic" },
       ],
@@ -829,9 +922,13 @@ export default function ProfessionalRegistrationPage() {
               <Music className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">Register as Professional</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">
+                {L ? "Registreer als Professional" : "Register as Professional"}
+              </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Fill out the form below to start receiving booking requests
+                {L
+                  ? "Vul het onderstaande formulier in om boekingsaanvragen te ontvangen"
+                  : "Fill out the form below to start receiving booking requests"}
               </p>
             </div>
           </div>
@@ -856,7 +953,7 @@ export default function ProfessionalRegistrationPage() {
                 <div className="flex h-full w-full flex-col items-center justify-center p-4 bg-muted group-hover:bg-accent transition-colors">
                   <Camera className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mb-2" />
                   <p className="text-sm sm:text-base text-gray-600 text-center font-medium">
-                    Klik om banner toe te voegen
+                    {L ? "Klik om banner toe te voegen" : "Click to add banner"}
                   </p>
                   <p className="text-xs sm:text-sm text-red-600 mt-1">Max. 15MB</p>
                 </div>
@@ -874,7 +971,7 @@ export default function ProfessionalRegistrationPage() {
                 className="absolute top-2 right-2 sm:top-4 sm:right-4 text-muted-foreground hover:text-foreground bg-card/90 hover:bg-card text-xs sm:text-sm z-10 shadow-sm"
               >
                 <Camera className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">Add Banner Photo</span>
+                <span className="hidden sm:inline">{L ? "Bannerfoto toevoegen" : "Add Banner Photo"}</span>
                 <span className="sm:hidden">Banner</span>
               </Button>
             </div>
@@ -932,19 +1029,24 @@ export default function ProfessionalRegistrationPage() {
                 {/* Stage Name */}
                 <div className="space-y-2">
                   <Label htmlFor="stageName" className="text-sm sm:text-base font-medium text-gray-900">
-                    Stage Name
+                    {L ? "Artiestennaam" : "Stage Name"}
                   </Label>
-                  <Input id="stageName" placeholder="DJ Example" className={inputClassName} required />
+                  <Input
+                    id="stageName"
+                    placeholder={L ? "DJ Voorbeeld" : "DJ Example"}
+                    className={inputClassName}
+                    required
+                  />
                 </div>
 
                 {/* Full Name */}
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-sm sm:text-base font-medium text-gray-900">
-                    Full Name
+                    {L ? "Volledige naam" : "Full Name"}
                   </Label>
                   <Input
                     id="fullName"
-                    placeholder="Text"
+                    placeholder={L ? "Tekst" : "Text"}
                     className={inputClassName}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -955,7 +1057,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm sm:text-base font-medium text-gray-900">
-                    Email
+                    {L ? "E-mail" : "Email"}
                   </Label>
                   <Input
                     id="email"
@@ -970,7 +1072,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* Phone */}
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-sm sm:text-base font-medium text-gray-900">
-                    Phone number
+                    {L ? "Telefoonnummer" : "Phone number"}
                   </Label>
                   <Input
                     id="phone"
@@ -985,11 +1087,11 @@ export default function ProfessionalRegistrationPage() {
                 {/* Company Name */}
                 <div className="space-y-2">
                   <Label htmlFor="companyName" className="text-sm sm:text-base font-medium text-gray-900">
-                    Bedrijfsnaam / Handelsnaam
+                    {L ? "Bedrijfsnaam / Handelsnaam" : "Company Name / Trade Name"}
                   </Label>
                   <Input
                     id="companyName"
-                    placeholder="Bedrijfsnaam"
+                    placeholder={L ? "Bedrijfsnaam" : "Company name"}
                     className={inputClassName}
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
@@ -999,7 +1101,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* KVK Number */}
                 <div className="space-y-2">
                   <Label htmlFor="kvkNumber" className="text-sm sm:text-base font-medium text-gray-900">
-                    KVK-nummer
+                    {L ? "KVK-nummer" : "Chamber of Commerce (KVK) number"}
                   </Label>
                   <Input
                     id="kvkNumber"
@@ -1024,7 +1126,8 @@ export default function ProfessionalRegistrationPage() {
                 {/* VAT Number */}
                 <div className="space-y-2">
                   <Label htmlFor="vatNumber" className="text-sm sm:text-base font-medium text-gray-900">
-                    BTW-identificatienummer <span className="text-gray-400">(optioneel)</span>
+                    {L ? "BTW-identificatienummer" : "VAT identification number"}{" "}
+                    <span className="text-gray-400">{L ? "(optioneel)" : "(optional)"}</span>
                   </Label>
                   <Input
                     id="vatNumber"
@@ -1043,7 +1146,11 @@ export default function ProfessionalRegistrationPage() {
                 </Label>
                 <Textarea
                   id="bio"
-                  placeholder="Tell us about yourself, your style, and your DJ journey..."
+                  placeholder={
+                    L
+                      ? "Vertel ons over jezelf, je stijl en je DJ-carrière..."
+                      : "Tell us about yourself, your style, and your DJ journey..."
+                  }
                   rows={5}
                   className={textareaClassName}
                   required
@@ -1054,7 +1161,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* Years of Experience */}
                 <div className="space-y-2">
                   <Label htmlFor="experience" className="text-sm sm:text-base font-medium text-gray-900">
-                    Years of Experience
+                    {L ? "Jaren ervaring" : "Years of Experience"}
                   </Label>
                   <Input
                     id="experience"
@@ -1070,7 +1177,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* Fee per hour */}
                 <div className="space-y-2">
                   <Label htmlFor="fee" className="text-sm sm:text-base font-medium text-gray-900">
-                    Fee (€ per hour)
+                    {L ? "Tarief (€ per uur)" : "Fee (€ per hour)"}
                   </Label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">€</span>
@@ -1091,12 +1198,16 @@ export default function ProfessionalRegistrationPage() {
               {/* Minimum and Maximum Booking Hours */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900">Set Your Booking Hours Range</h3>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                    {L ? "Stel je boekingsuren bereik in" : "Set Your Booking Hours Range"}
+                  </h3>
                   <p className="text-sm text-gray-600 flex items-center gap-2">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex-shrink-0">
                       ↔
                     </span>
-                    Drag the handles on the slider below to set your minimum and maximum booking hours
+                    {L
+                      ? "Sleep de handvatten op de schuifbalk hieronder om je minimum en maximum boekingsuren in te stellen"
+                      : "Drag the handles on the slider below to set your minimum and maximum booking hours"}
                   </p>
                 </div>
 
@@ -1117,7 +1228,7 @@ export default function ProfessionalRegistrationPage() {
                   {/* Minimum Booking Hours */}
                   <div className="space-y-2">
                     <Label htmlFor="minHours" className="text-sm sm:text-base font-medium text-gray-900">
-                      Minimum Booking Hours
+                      {L ? "Minimum boekingsuren" : "Minimum Booking Hours"}
                     </Label>
                     <div className="h-12 w-full rounded-md dark:bg-gray-950 border-2 border-gray-300 dark:border-gray-600 px-4 py-3 text-base font-bold text-gray-900 dark:text-white flex items-center justify-center cursor-default">
                       {minHours}
@@ -1127,7 +1238,7 @@ export default function ProfessionalRegistrationPage() {
                   {/* Maximum Booking Hours */}
                   <div className="space-y-2">
                     <Label htmlFor="maxHours" className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
-                      Maximum Booking Hours
+                      {L ? "Maximum boekingsuren" : "Maximum Booking Hours"}
                     </Label>
                     <div className="h-12 w-full rounded-md dark:bg-gray-950 border-2 border-gray-300 dark:border-gray-600 px-4 py-3 text-base font-bold text-gray-900 dark:text-white flex items-center justify-center cursor-default">
                       {maxHours}
@@ -1140,7 +1251,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* City */}
                 <div className="space-y-2">
                   <Label htmlFor="city" className="text-sm sm:text-base font-medium text-gray-900">
-                    City
+                    {L ? "Stad" : "City"}
                   </Label>
                   <Input id="city" placeholder="Amsterdam" className={inputClassName} required />
                 </div>
@@ -1148,7 +1259,7 @@ export default function ProfessionalRegistrationPage() {
                 {/* Range (km) */}
                 <div className="space-y-2">
                   <Label htmlFor="range" className="text-sm sm:text-base font-medium text-gray-900">
-                    Range (km)
+                    {L ? "Bereik (km)" : "Range (km)"}
                   </Label>
                   <Input
                     id="range"
@@ -1165,11 +1276,11 @@ export default function ProfessionalRegistrationPage() {
               {/* Artist Type selector */}
               <div className="space-y-2">
                 <Label htmlFor="artistType" className="text-sm sm:text-base font-medium text-gray-900">
-                  Artist Type
+                  {L ? "Artiest type" : "Artist Type"}
                 </Label>
                 <Select value={artistType} onValueChange={handleArtistTypeChange}>
                   <SelectTrigger className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base">
-                    <SelectValue placeholder="Select your artist type" />
+                    <SelectValue placeholder={L ? "Selecteer je artiest type" : "Select your artist type"} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="DJ">DJ</SelectItem>
@@ -1182,13 +1293,17 @@ export default function ProfessionalRegistrationPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs sm:text-sm text-gray-500">
-                  This helps clients find you based on the type of performance you offer
+                  {L
+                    ? "Dit helpt klanten je te vinden op basis van het type optreden dat je aanbiedt"
+                    : "This helps clients find you based on the type of performance you offer"}
                 </p>
               </div>
 
               {artistType && (
                 <div className="space-y-2">
-                  <Label className="text-sm sm:text-base font-medium text-foreground">Music Genres</Label>
+                  <Label className="text-sm sm:text-base font-medium text-foreground">
+                    {L ? "Muziekgenres" : "Music Genres"}
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1196,7 +1311,11 @@ export default function ProfessionalRegistrationPage() {
                         role="combobox"
                         className="h-12 w-full justify-between rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base font-normal hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
-                        {selectedGenres.length > 0 ? `${selectedGenres.length} genre(s) selected` : "Select genres"}
+                        {selectedGenres.length > 0
+                          ? `${selectedGenres.length} ${L ? "genre(s) geselecteerd" : "genre(s) selected"}`
+                          : L
+                            ? "Selecteer genres"
+                            : "Select genres"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -1240,7 +1359,9 @@ export default function ProfessionalRegistrationPage() {
               {/* Event Types */}
               {artistType && (
                 <div className="space-y-2">
-                  <Label className="text-sm sm:text-base font-medium text-foreground">Event Types</Label>
+                  <Label className="text-sm sm:text-base font-medium text-foreground">
+                    {L ? "Evenement types" : "Event Types"}
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1249,13 +1370,18 @@ export default function ProfessionalRegistrationPage() {
                         className="h-12 w-full justify-between rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base font-normal hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         {selectedEventTypes.length > 0
-                          ? `${selectedEventTypes.length} type(s) selected`
-                          : "Select event types"}
+                          ? `${selectedEventTypes.length} ${L ? "type(s) geselecteerd" : "type(s) selected"}`
+                          : L
+                            ? "Selecteer evenement types"
+                            : "Select event types"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-2 dark:bg-gray-950 border border-gray-300 dark:border-gray-600">
-                      {["Birthday", "Wedding", "Corporate", "Festival", "Club Night", "Anniversary", "Private Party"].map(
+                      {(L
+                        ? ["Verjaardag", "Bruiloft", "Zakelijk", "Festival", "Clubavond", "Jubileum", "Privéfeest"]
+                        : ["Birthday", "Wedding", "Corporate", "Festival", "Club Night", "Anniversary", "Private Party"]
+                      ).map(
                         (type) => (
                           <div
                             key={type}
@@ -1297,12 +1423,14 @@ export default function ProfessionalRegistrationPage() {
               {/* Package Equipment Section */}
               {artistType && (
                 <div className="rounded-lg p-4 sm:p-6 space-y-4 bg-gray-100 dark:!bg-gray-950">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">Package Equipment Rental</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                    {L ? "Pakket apparatuur verhuur" : "Package Equipment Rental"}
+                  </h2>
                   <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">{getPackageDescription()}</p>
 
                   <div className="space-y-3">
                     <h3 className="text-sm sm:text-base font-semibold text-foreground">
-                      Minimum equipment required to register:
+                      {L ? "Minimale apparatuur vereist om te registreren:" : "Minimum equipment required to register:"}
                     </h3>
                     <ul className="list-disc space-y-1.5 pl-5 text-sm sm:text-base leading-relaxed text-muted-foreground">
                       {getMinimumEquipmentRequirements().map((req, index) => (
@@ -1356,14 +1484,14 @@ export default function ProfessionalRegistrationPage() {
                               />
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <Input
-                                  placeholder="Rental price (e.g. €150/day)"
+                                  placeholder={L ? "Huurprijs (bijv. €150/dag)" : "Rental price (e.g. €150/day)"}
                                   value={equipment?.price || ""}
                                   onChange={(e) => updateEquipmentItem(config.id, "price", e.target.value)}
                                   className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                                   disabled={!isAccessible}
                                 />
                                 <Input
-                                  placeholder="Short description"
+                                  placeholder={L ? "Korte beschrijving" : "Short description"}
                                   value={equipment?.description || ""}
                                   onChange={(e) => updateEquipmentItem(config.id, "description", e.target.value)}
                                   className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
@@ -1384,7 +1512,13 @@ export default function ProfessionalRegistrationPage() {
                                   className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${!isAccessible ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                   <Camera className="h-4 w-4" />
-                                  {equipment?.image ? "Photo added" : "Add equipment photo"}
+                                  {equipment?.image
+                                    ? L
+                                      ? "Foto toegevoegd"
+                                      : "Photo added"
+                                    : L
+                                      ? "Apparatuurfoto toevoegen"
+                                      : "Add equipment photo"}
                                 </label>
                               </div>
                             </div>
@@ -1399,9 +1533,13 @@ export default function ProfessionalRegistrationPage() {
               {/* Extra Equipment Section */}
               {artistType && (
                 <div className="rounded-lg p-4 sm:p-6 space-y-4 bg-gray-100 dark:!bg-gray-950">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">Extra Equipment (Optional)</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                    {L ? "Extra apparatuur (optioneel)" : "Extra Equipment (Optional)"}
+                  </h2>
                   <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">
-                    Add any additional equipment you offer as optional extras for clients.
+                    {L
+                      ? "Voeg extra apparatuur toe die je aanbiedt als optionele extra's voor klanten."
+                      : "Add any additional equipment you offer as optional extras for clients."}
                   </p>
 
                   {extraEquipment.length > 0 && (
@@ -1442,20 +1580,20 @@ export default function ProfessionalRegistrationPage() {
                   <div className="space-y-4 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-950 p-4 sm:p-5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Input
-                        placeholder="Equipment name"
+                        placeholder={L ? "Apparatuur naam" : "Equipment name"}
                         value={currentExtraEquipment.name}
                         onChange={(e) => setCurrentExtraEquipment({ ...currentExtraEquipment, name: e.target.value })}
                         className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                       <Input
-                        placeholder="Rental price (e.g. €50/day)"
+                        placeholder={L ? "Huurprijs (bijv. €50/dag)" : "Rental price (e.g. €50/day)"}
                         value={currentExtraEquipment.price}
                         onChange={(e) => setCurrentExtraEquipment({ ...currentExtraEquipment, price: e.target.value })}
                         className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                       />
                     </div>
                     <Textarea
-                      placeholder="Short description of the equipment"
+                      placeholder={L ? "Korte beschrijving van de apparatuur" : "Short description of the equipment"}
                       value={currentExtraEquipment.description}
                       onChange={(e) =>
                         setCurrentExtraEquipment({ ...currentExtraEquipment, description: e.target.value })
@@ -1478,7 +1616,13 @@ export default function ProfessionalRegistrationPage() {
                           className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 w-full sm:w-auto"
                         >
                           <Camera className="h-4 w-4" />
-                          {currentExtraEquipmentImage ? "Photo added" : "Add photo"}
+                          {currentExtraEquipmentImage
+                            ? L
+                              ? "Foto toegevoegd"
+                              : "Photo added"
+                            : L
+                              ? "Foto toevoegen"
+                              : "Add photo"}
                         </label>
                       </div>
                       <Button
@@ -1489,7 +1633,7 @@ export default function ProfessionalRegistrationPage() {
                         className="h-10 border-gray-300 dark:border-gray-600 dark:bg-gray-950 dark:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 w-full sm:w-auto"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Equipment
+                        {L ? "Apparatuur toevoegen" : "Add Equipment"}
                       </Button>
                     </div>
                   </div>
@@ -1498,7 +1642,9 @@ export default function ProfessionalRegistrationPage() {
 
               {/* Social Media Links */}
               <div className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground">Social Media & Links</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                  {L ? "Social media & links" : "Social Media & Links"}
+                </h2>
 
                 {socialMediaLinks.length > 0 && (
                   <div className="space-y-3">
@@ -1531,7 +1677,7 @@ export default function ProfessionalRegistrationPage() {
                     onValueChange={(value) => setCurrentSocialMedia({ ...currentSocialMedia, platform: value })}
                   >
                     <SelectTrigger className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base">
-                      <SelectValue placeholder="Select platform" />
+                      <SelectValue placeholder={L ? "Selecteer platform" : "Select platform"} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="instagram">Instagram</SelectItem>
@@ -1549,7 +1695,7 @@ export default function ProfessionalRegistrationPage() {
 
                   <Input
                     type="url"
-                    placeholder="Paste your link here..."
+                    placeholder={L ? "Plak je link hier..." : "Paste your link here..."}
                     className={inputClassName}
                     value={currentSocialMedia.url}
                     onChange={(e) => setCurrentSocialMedia({ ...currentSocialMedia, url: e.target.value })}
@@ -1564,7 +1710,7 @@ export default function ProfessionalRegistrationPage() {
                   className="h-9 border-gray-300 dark:border-gray-600 dark:bg-gray-950 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 w-full sm:w-auto"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add social media
+                  {L ? "Social media toevoegen" : "Add social media"}
                 </Button>
               </div>
 
@@ -1573,7 +1719,7 @@ export default function ProfessionalRegistrationPage() {
                 type="submit"
                 className="h-12 w-full bg-red-700 text-base font-semibold text-white hover:bg-red-600"
               >
-                Register
+                {L ? "Registreren" : "Register"}
               </Button>
             </form>
           </div>
