@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useLanguage } from "@/contexts/language-context"
 import { useTheme } from "@/contexts/theme-context"
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,11 @@ import Link from "next/link"
 export default function DesignSystemContent() {
   const { language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   const colorSections = [
     {
@@ -237,8 +243,8 @@ export default function DesignSystemContent() {
           </div>
           <h1 className="text-xl font-bold text-foreground">Design System</h1>
           <Button variant="outline" size="sm" onClick={toggleTheme} className="gap-2 bg-transparent">
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            <span className="hidden sm:inline">{theme === "dark" ? "Light" : "Dark"}</span>
+              {hydrated && theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              <span className="hidden sm:inline">{hydrated && theme === "dark" ? "Light" : "Dark"}</span>
           </Button>
         </div>
       </header>
