@@ -7,7 +7,7 @@ export function HeroSection() {
   const { t } = useLanguage()
 
   return (
-    <section className="relative min-h-[500px] sm:min-h-[600px] lg:h-[600px] flex items-center justify-center text-center text-white overflow-hidden">
+    <section suppressHydrationWarning className="relative min-h-[500px] sm:min-h-[600px] lg:h-[600px] flex items-center justify-center text-center text-white overflow-hidden">
       {/* Light mode background - visible when theme is light */}
       <div
         className="absolute inset-0 bg-cover bg-center transition-opacity duration-700 ease-in-out opacity-100 dark:opacity-0"

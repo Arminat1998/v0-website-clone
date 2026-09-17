@@ -63,7 +63,7 @@ export function Header() {
 
   return (
     <>
-      <header className="bg-background px-3 sm:px-6 py-2 sm:py-4 flex items-center justify-between border-b border-border transition-colors overflow-hidden">
+      <header suppressHydrationWarning className="bg-background px-3 sm:px-6 py-2 sm:py-4 flex items-center justify-between border-b border-border transition-colors overflow-hidden">
         <div className="flex items-center">
           <Link href="/" className="cursor-pointer">
             <Image
@@ -93,7 +93,8 @@ export function Header() {
             size="icon"
             onClick={toggleTheme}
             className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
-            title={isDark ? t.lightMode : t.darkMode}
+            title="Toggle theme"
+            aria-label="Toggle theme"
             suppressHydrationWarning
           >
             <Moon className="h-4 w-4 sm:h-5 sm:w-5 dark:hidden" />
