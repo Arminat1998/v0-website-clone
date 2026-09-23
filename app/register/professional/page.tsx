@@ -892,11 +892,18 @@ export default function ProfessionalRegistrationPage() {
         <div className="flex items-center justify-between">
           <Link href="/">
             <Image
-              src={mounted && theme === "dark" ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
+              src="/arsi-logo.png"
               alt="ARSI Events Logo"
               width={120}
               height={60}
-              className={`h-10 sm:h-12 w-auto cursor-pointer ${mounted && theme === "dark" ? "scale-[3.3] sm:scale-[3.2] translate-x-[2.2rem] sm:translate-x-[3.35rem] translate-y-[0.2rem] sm:translate-y-[0.3rem]" : ""}`}
+              className="h-10 sm:h-12 w-auto cursor-pointer dark:hidden"
+            />
+            <Image
+              src="/arsi-logo-dark.png"
+              alt="ARSI Events Logo"
+              width={120}
+              height={60}
+              className="hidden h-10 sm:h-12 w-auto cursor-pointer dark:block"
             />
           </Link>
 

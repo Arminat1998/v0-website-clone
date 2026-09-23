@@ -17,7 +17,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
-  const { theme, toggleTheme } = useTheme()
+  const { toggleTheme } = useTheme()
   const { t } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -65,11 +65,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="p-6 pt-6 flex-shrink-0 h-24 flex items-center justify-center">
           <Link href="/" onClick={() => setMobileMenuOpen(false)}>
             <Image
-              src={theme === "dark" ? "/arsi-logo-dark.png" : "/arsi-logo.png"}
+              src="/arsi-logo.png"
               alt="ARSI Logo"
-              width={120}
-              height={40}
-              className="object-contain"
+              width={600}
+              height={185}
+              className="h-10 w-auto object-contain dark:hidden"
+            />
+            <Image
+              src="/arsi-logo-dark.png"
+              alt="ARSI Logo"
+              width={430}
+              height={158}
+              className="hidden h-10 w-auto object-contain dark:block"
             />
           </Link>
         </div>
@@ -107,9 +114,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               size="icon"
               onClick={toggleTheme}
               className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
-              title={theme === "light" ? t.darkMode : t.lightMode}
+              title="Toggle theme"
+              aria-label="Toggle theme"
             >
-              {theme === "light" ? <Moon className="h-4 w-4 sm:h-5 sm:w-5" /> : <Sun className="h-4 w-4 sm:h-5 sm:w-5" />}
+              <Moon className="h-4 w-4 sm:h-5 sm:w-5 dark:hidden" />
+              <Sun className="hidden h-4 w-4 sm:h-5 sm:w-5 dark:block" />
             </Button>
           </div>
         </div>
