@@ -1,6 +1,7 @@
 "use client"
 
-import { MapPin, Clock, CheckCircle, Speaker } from "lucide-react"
+import { MapPin, Clock, CheckCircle, Speaker, Wallet } from "lucide-react"
+import { getArtistTypeLabels } from "@/lib/artist-types"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +17,8 @@ interface ArtiestCardProps {
 
 export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardProps) {
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const typeLabels = getArtistTypeLabels(artist.artistTypes, artist.category, language)
 
   const displayedGenres = artist.musicStyles?.slice(0, 2) || []
   const remainingGenres = (artist.musicStyles?.length || 0) - 2
@@ -62,43 +64,60 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
             </div>
           </div>
 
-          <div className="flex-1 mt-12">
-            <h3 className="font-bold text-lg leading-tight mb-1 text-foreground">{artist.name}</h3>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{artist.location}</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 mt-12">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-bold text-lg leading-tight text-foreground text-balance">{artist.name}</h3>
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span className="truncate">{artist.location}</span>
+              </div>
             </div>
+            {typeLabels.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5" aria-label="Artiesttypes">
+                {typeLabels.map(({ key, label, icon: Icon }) => (
+                  <li
+                    key={key}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                  >
+                    <Icon className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
-              <span>1 - 8 hrs</span>
-            </div>
-            <div className="text-right">
-              <span className="font-bold text-base text-foreground">
-                {artist.price.replace("€", "€ ")} {t.perHour}
-              </span>
-              <span className="text-xs text-muted-foreground ml-1">({t.exVat9})</span>
-            </div>
+        <div className="flex flex-col gap-4 mb-4 mt-4">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>
+              {t.playDuration}: <span className="font-medium text-foreground">{t.hoursRange}</span>
+            </span>
           </div>
 
-          {artist.equipmentPrice && (
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Speaker className="w-3.5 h-3.5" />
-                <span>{t.equipmentPrice}</span>
-              </div>
-              <div className="text-right">
-                <span className="font-semibold text-foreground">
-                  {artist.equipmentPrice.replace("€", "€ ")} {t.perDay}
-                </span>
-                <span className="text-xs text-muted-foreground ml-1">({t.exVat21})</span>
-              </div>
+          <dl className="flex flex-col divide-y divide-border rounded-lg border border-border bg-background/40 text-sm">
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <dt className="flex items-center gap-1.5 text-muted-foreground">
+                <Wallet className="w-3.5 h-3.5" aria-hidden="true" />
+                {t.performanceFee}
+              </dt>
+              <dd className="text-right font-bold text-base text-foreground">
+                {artist.price.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perHour}</span>
+              </dd>
             </div>
-          )}
+            {artist.equipmentPrice && (
+              <div className="flex items-center justify-between gap-3 px-3 py-2">
+                <dt className="flex items-center gap-1.5 text-muted-foreground">
+                  <Speaker className="w-3.5 h-3.5" aria-hidden="true" />
+                  {t.equipmentPrice}
+                </dt>
+                <dd className="text-right font-semibold text-foreground">
+                  {artist.equipmentPrice.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perDay}</span>
+                </dd>
+              </div>
+            )}
+          </dl>
 
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">{t.musicGenresLabel}</p>

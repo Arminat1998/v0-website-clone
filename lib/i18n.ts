@@ -99,6 +99,9 @@ export interface Translations {
   exVat9: string // Added specific VAT percentage translations
   exVat21: string // Added specific VAT percentage translations
   equipmentPrice: string // Added equipment price translation
+  performanceFee: string
+  playDuration: string
+  hoursRange: string
 
   // Footer
   aboutUs: string
@@ -412,6 +415,9 @@ export const translations: Record<Language, Translations> = {
     exVat9: "ex. BTW", // Removed percentage from VAT label
     exVat21: "ex. BTW", // Removed percentage from VAT label
     equipmentPrice: "Apparatuur", // Added Dutch translation
+    performanceFee: "Gage",
+    playDuration: "Speelduur",
+    hoursRange: "1–8 uur",
 
     // Footer
     aboutUs: "Over Ons",
@@ -726,6 +732,9 @@ export const translations: Record<Language, Translations> = {
     exVat9: "ex. VAT", // Removed percentage from VAT label
     exVat21: "ex. VAT", // Removed percentage from VAT label
     equipmentPrice: "Equipment", // Added English translation
+    performanceFee: "Fee",
+    playDuration: "Duration",
+    hoursRange: "1–8 hours",
 
     // Footer
     aboutUs: "About Us",

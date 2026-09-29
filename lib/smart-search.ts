@@ -17,6 +17,7 @@ export interface Artist {
   availableDates?: string[] // Array of available dates in YYYY-MM-DD format
   unavailableDates?: string[] // Array of unavailable dates in YYYY-MM-DD format
   category?: string
+  artistTypes?: string[]
   image?: string
   equipment?: string[]
 }
