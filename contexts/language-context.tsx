@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useSyncExternalStore, type ReactNode } from "react"
 import type { Language, Translations } from "@/lib/i18n"
 import { translations } from "@/lib/i18n"
 
@@ -43,10 +43,22 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
+const subscribeNoop = () => () => {}
+
 export function useLanguage() {
   const context = useContext(LanguageContext)
+  // Segments can hydrate after the provider has already switched language (streamed/Suspense
+  // boundaries), so each consumer renders the server default until it has hydrated itself.
+  const hydrated = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  )
   if (context === undefined) {
     throw new Error("useLanguage must be used within a LanguageProvider")
+  }
+  if (!hydrated && context.language !== "nl") {
+    return { ...context, language: "nl" as Language, t: translations.nl }
   }
   return context
 }
