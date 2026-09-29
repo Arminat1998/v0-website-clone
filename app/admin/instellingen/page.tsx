@@ -2,74 +2,73 @@
 
 import { useState } from "react"
 import { Bell, Users, ShieldCheck } from "lucide-react"
+import { useAdminT } from "@/lib/admin-i18n"
 
 export default function InstellingenPage() {
+  const { t } = useAdminT()
   const [notifyNew, setNotifyNew] = useState(true)
   const [notifyInfo, setNotifyInfo] = useState(true)
   const [autoAssign, setAutoAssign] = useState(false)
 
   const team = [
-    { name: "Noor Bakker", role: "Beheerder", initials: "NB" },
-    { name: "Daan Visser", role: "Beoordelaar", initials: "DV" },
+    { name: "Noor Bakker", role: t.settings.roleAdmin, initials: "NB" },
+    { name: "Daan Visser", role: t.settings.roleReviewer, initials: "DV" },
   ]
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Instellingen</h1>
-        <p className="text-muted-foreground mt-1">Beheer meldingen, teamleden en beoordelingsvoorkeuren.</p>
+        <h1 className="text-2xl font-bold text-foreground">{t.nav.settings}</h1>
+        <p className="text-muted-foreground mt-1">{t.settings.subtitle}</p>
       </div>
 
       <div className="space-y-6">
-        {/* Notifications */}
         <section className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-lg bg-red-600/10 flex items-center justify-center">
               <Bell className="w-4 h-4 text-red-500" />
             </div>
-            <h2 className="font-semibold text-foreground">Meldingen</h2>
+            <h2 className="font-semibold text-foreground">{t.settings.notifications}</h2>
           </div>
           <div className="space-y-1">
             <ToggleRow
-              label="Nieuwe aanmeldingen"
-              description="Ontvang een melding zodra een artiest zich aanmeldt."
+              label={t.settings.newSubmissions}
+              description={t.settings.newSubmissionsDesc}
               checked={notifyNew}
               onChange={() => setNotifyNew(!notifyNew)}
             />
             <ToggleRow
-              label="Aanvullingen van artiesten"
-              description="Melding wanneer een artiest gevraagde informatie aanlevert."
+              label={t.settings.additions}
+              description={t.settings.additionsDesc}
               checked={notifyInfo}
               onChange={() => setNotifyInfo(!notifyInfo)}
             />
           </div>
         </section>
 
-        {/* Review preferences */}
         <section className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-lg bg-red-600/10 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4 text-red-500" />
             </div>
-            <h2 className="font-semibold text-foreground">Beoordeling</h2>
+            <h2 className="font-semibold text-foreground">{t.settings.review}</h2>
           </div>
           <div className="space-y-1">
             <ToggleRow
-              label="Automatisch toewijzen"
-              description="Wijs nieuwe aanmeldingen automatisch toe aan een beschikbare beoordelaar."
+              label={t.settings.autoAssign}
+              description={t.settings.autoAssignDesc}
               checked={autoAssign}
               onChange={() => setAutoAssign(!autoAssign)}
             />
           </div>
         </section>
 
-        {/* Team */}
         <section className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-9 h-9 rounded-lg bg-red-600/10 flex items-center justify-center">
               <Users className="w-4 h-4 text-red-500" />
             </div>
-            <h2 className="font-semibold text-foreground">Team</h2>
+            <h2 className="font-semibold text-foreground">{t.settings.team}</h2>
           </div>
           <ul className="divide-y divide-border">
             {team.map((member) => (

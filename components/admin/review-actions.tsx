@@ -3,26 +3,19 @@
 import { useState } from "react"
 import { CheckCircle2, XCircle, HelpCircle, Play } from "lucide-react"
 import { useAdmin, type Submission } from "@/contexts/admin-submissions-context"
-
-const missingOptions = ["Dagtarief", "Portfoliofoto's", "Videovoorbeeld", "Contactgegevens", "Beschikbaarheid", "Bio"]
-
-const rejectReasons = [
-  "Onvoldoende ervaring",
-  "Onvolledig portfolio",
-  "Past niet bij ARSI",
-  "Dubbele aanmelding",
-  "Anders",
-]
+import { useAdminT } from "@/lib/admin-i18n"
 
 export function ReviewActions({ submission }: { submission: Submission }) {
   const { startReview, approve, requestInfo, reject } = useAdmin()
+  const { t } = useAdminT()
+  const { missingOptions, rejectReasons } = t.review
   const [openDialog, setOpenDialog] = useState<null | "info" | "reject">(null)
 
   // request-info form
   const [selectedMissing, setSelectedMissing] = useState<string[]>([])
   const [infoMessage, setInfoMessage] = useState("")
   // reject form
-  const [reason, setReason] = useState(rejectReasons[0])
+  const [reasonIndex, setReasonIndex] = useState(0)
   const [rejectMessage, setRejectMessage] = useState("")
 
   const isClosed = submission.status === "goedgekeurd" || submission.status === "afgewezen"
@@ -31,21 +24,21 @@ export function ReviewActions({ submission }: { submission: Submission }) {
     setSelectedMissing((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]))
 
   const submitInfo = () => {
-    requestInfo(submission.id, infoMessage.trim() || "Graag je aanmelding aanvullen.", selectedMissing)
+    requestInfo(submission.id, infoMessage.trim() || t.review.infoDefault, selectedMissing)
     setOpenDialog(null)
     setSelectedMissing([])
     setInfoMessage("")
   }
 
   const submitReject = () => {
-    reject(submission.id, reason, rejectMessage.trim() || "Bedankt voor je aanmelding.")
+    reject(submission.id, rejectReasons[reasonIndex], rejectMessage.trim() || t.review.rejectDefault)
     setOpenDialog(null)
     setRejectMessage("")
   }
 
   return (
     <div className="bg-card border border-border rounded-xl p-5">
-      <h3 className="font-semibold text-foreground mb-4">Beoordeling</h3>
+      <h3 className="font-semibold text-foreground mb-4">{t.review.title}</h3>
 
       {isClosed ? (
         <div
@@ -55,8 +48,9 @@ export function ReviewActions({ submission }: { submission: Submission }) {
               : "bg-red-500/10 text-red-500"
           }`}
         >
-          Deze aanmelding is {submission.status === "goedgekeurd" ? "goedgekeurd" : "afgewezen"} door{" "}
-          {submission.reviewer}.
+          {submission.status === "goedgekeurd"
+            ? t.review.closedApproved(submission.reviewer ?? "")
+            : t.review.closedRejected(submission.reviewer ?? "")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -67,7 +61,7 @@ export function ReviewActions({ submission }: { submission: Submission }) {
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-foreground text-sm font-medium hover:bg-accent/70 transition-colors"
             >
               <Play className="w-4 h-4" />
-              Beoordeling starten
+              {t.review.start}
             </button>
           )}
 
@@ -77,7 +71,7 @@ export function ReviewActions({ submission }: { submission: Submission }) {
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors"
           >
             <CheckCircle2 className="w-4 h-4" />
-            Goedkeuren
+            {t.review.approve}
           </button>
 
           <button
@@ -86,7 +80,7 @@ export function ReviewActions({ submission }: { submission: Submission }) {
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-orange-500/10 text-orange-500 text-sm font-medium hover:bg-orange-500/20 transition-colors"
           >
             <HelpCircle className="w-4 h-4" />
-            Aanvulling vragen
+            {t.review.requestInfo}
           </button>
 
           <button
@@ -95,7 +89,7 @@ export function ReviewActions({ submission }: { submission: Submission }) {
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
           >
             <XCircle className="w-4 h-4" />
-            Afwijzen
+            {t.review.reject}
           </button>
         </div>
       )}
@@ -105,13 +99,13 @@ export function ReviewActions({ submission }: { submission: Submission }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpenDialog(null)} />
           <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-md">
-            <h4 className="text-lg font-semibold text-foreground">Aanvulling vragen</h4>
+            <h4 className="text-lg font-semibold text-foreground">{t.review.requestInfo}</h4>
             <p className="text-sm text-muted-foreground mt-1">
-              Selecteer wat ontbreekt en stuur een bericht aan de artiest.
+              {t.review.requestInfoDesc}
             </p>
 
             <div className="mt-4">
-              <p className="text-sm font-medium text-foreground mb-2">Ontbrekende informatie</p>
+              <p className="text-sm font-medium text-foreground mb-2">{t.review.missingInfo}</p>
               <div className="flex flex-wrap gap-2">
                 {missingOptions.map((item) => {
                   const active = selectedMissing.includes(item)
@@ -134,12 +128,13 @@ export function ReviewActions({ submission }: { submission: Submission }) {
             </div>
 
             <div className="mt-4">
-              <label className="text-sm font-medium text-foreground mb-2 block">Bericht</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">{t.review.message}</label>
               <textarea
                 value={infoMessage}
                 onChange={(e) => setInfoMessage(e.target.value)}
                 rows={4}
-                placeholder="Hoi, kun je je aanmelding aanvullen met..."
+                placeholder={t.review.infoPlaceholder}
+                aria-label={t.review.message}
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/40"
               />
             </div>
@@ -150,14 +145,14 @@ export function ReviewActions({ submission }: { submission: Submission }) {
                 onClick={() => setOpenDialog(null)}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-foreground text-sm font-medium hover:bg-accent/70 transition-colors"
               >
-                Annuleren
+                {t.review.cancel}
               </button>
               <button
                 type="button"
                 onClick={submitInfo}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors"
               >
-                Versturen
+                {t.review.send}
               </button>
             </div>
           </div>
@@ -169,18 +164,19 @@ export function ReviewActions({ submission }: { submission: Submission }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpenDialog(null)} />
           <div className="relative bg-card border border-border rounded-xl p-6 w-full max-w-md">
-            <h4 className="text-lg font-semibold text-foreground">Aanmelding afwijzen</h4>
-            <p className="text-sm text-muted-foreground mt-1">Kies een reden en licht je beslissing toe.</p>
+            <h4 className="text-lg font-semibold text-foreground">{t.review.rejectTitle}</h4>
+            <p className="text-sm text-muted-foreground mt-1">{t.review.rejectDesc}</p>
 
             <div className="mt-4">
-              <label className="text-sm font-medium text-foreground mb-2 block">Reden</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">{t.review.reason}</label>
               <select
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                value={reasonIndex}
+                onChange={(e) => setReasonIndex(Number(e.target.value))}
+                aria-label={t.review.reason}
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
               >
-                {rejectReasons.map((r) => (
-                  <option key={r} value={r}>
+                {rejectReasons.map((r, i) => (
+                  <option key={r} value={i}>
                     {r}
                   </option>
                 ))}
@@ -188,12 +184,13 @@ export function ReviewActions({ submission }: { submission: Submission }) {
             </div>
 
             <div className="mt-4">
-              <label className="text-sm font-medium text-foreground mb-2 block">Bericht aan artiest</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">{t.review.messageToArtist}</label>
               <textarea
                 value={rejectMessage}
                 onChange={(e) => setRejectMessage(e.target.value)}
                 rows={4}
-                placeholder="Bedankt voor je aanmelding. Helaas..."
+                placeholder={t.review.rejectPlaceholder}
+                aria-label={t.review.messageToArtist}
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
               />
             </div>
@@ -204,14 +201,14 @@ export function ReviewActions({ submission }: { submission: Submission }) {
                 onClick={() => setOpenDialog(null)}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-accent text-foreground text-sm font-medium hover:bg-accent/70 transition-colors"
               >
-                Annuleren
+                {t.review.cancel}
               </button>
               <button
                 type="button"
                 onClick={submitReject}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
               >
-                Afwijzen
+                {t.review.reject}
               </button>
             </div>
           </div>

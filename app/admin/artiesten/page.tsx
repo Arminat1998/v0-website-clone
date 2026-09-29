@@ -4,26 +4,24 @@ import Link from "next/link"
 import Image from "next/image"
 import { MapPin, Euro } from "lucide-react"
 import { useAdmin } from "@/contexts/admin-submissions-context"
+import { useAdminT } from "@/lib/admin-i18n"
 
 export default function ArtiestenPage() {
   const { submissions } = useAdmin()
+  const { t } = useAdminT()
   const approved = submissions.filter((s) => s.status === "goedgekeurd")
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Artiesten</h1>
-        <p className="text-muted-foreground mt-1">
-          {approved.length} goedgekeurde artiesten staan live op het platform.
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">{t.nav.artists}</h1>
+        <p className="text-muted-foreground mt-1">{t.artists.subtitle(approved.length)}</p>
       </div>
 
       {approved.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-12 text-center">
-          <p className="text-foreground font-medium">Nog geen goedgekeurde artiesten</p>
-          <p className="text-muted-foreground text-sm mt-1">
-            Goedgekeurde aanmeldingen verschijnen hier automatisch.
-          </p>
+          <p className="text-foreground font-medium">{t.artists.emptyTitle}</p>
+          <p className="text-muted-foreground text-sm mt-1">{t.artists.emptyText}</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -45,7 +43,7 @@ export default function ArtiestenPage() {
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-semibold text-foreground truncate">{s.name}</h3>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 flex-shrink-0">
-                    Live
+                    {t.artists.live}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-0.5">{s.discipline}</p>
@@ -57,7 +55,7 @@ export default function ArtiestenPage() {
                   {s.hourlyRate && (
                     <span className="flex items-center gap-1.5">
                       <Euro className="w-3.5 h-3.5" />
-                      {s.hourlyRate} p/u
+                      {s.hourlyRate} {t.artists.perHour}
                     </span>
                   )}
                 </div>

@@ -10,39 +10,42 @@ import {
   type SubmissionStatus,
   defaultFilters,
 } from "@/contexts/admin-submissions-context"
-import { statusLabels, statusClasses, formatDate } from "@/lib/admin-status"
+import { statusClasses, formatDate } from "@/lib/admin-status"
+import { useAdminT } from "@/lib/admin-i18n"
 
-const statusOptions: { value: SubmissionStatus | "alle"; label: string }[] = [
-  { value: "alle", label: "Alle statussen" },
-  { value: "nieuw", label: "Nieuw" },
-  { value: "in-beoordeling", label: "In beoordeling" },
-  { value: "wacht-op-aanvulling", label: "Wacht op aanvulling" },
-  { value: "goedgekeurd", label: "Goedgekeurd" },
-  { value: "afgewezen", label: "Afgewezen" },
+const statusValues: (SubmissionStatus | "alle")[] = [
+  "alle",
+  "nieuw",
+  "in-beoordeling",
+  "wacht-op-aanvulling",
+  "goedgekeurd",
+  "afgewezen",
 ]
 
 function AanmeldingenContent() {
   const { submissions, filters, setFilters } = useAdmin()
+  const { t, locale } = useAdminT()
   const searchParams = useSearchParams()
 
   // Sync status from the overview stat-card links (only on mount / when query changes)
   const queryStatus = searchParams.get("status")
   useEffect(() => {
-    if (queryStatus && statusOptions.some((o) => o.value === queryStatus)) {
+    if (queryStatus && statusValues.includes(queryStatus as SubmissionStatus | "alle")) {
       setFilters({ ...filters, status: queryStatus as SubmissionStatus | "alle" })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryStatus])
 
   const disciplines = ["alle", ...Array.from(new Set(submissions.map((s) => s.discipline)))]
-  const reviewers = ["alle", ...Array.from(new Set(submissions.map((s) => s.reviewer).filter(Boolean) as string[]))]
+  const reviewers = Array.from(new Set(submissions.map((s) => s.reviewer).filter(Boolean) as string[]))
 
   const filtered = submissions.filter((s) => {
+    const q = filters.search.toLowerCase()
     const matchesSearch =
       !filters.search ||
-      s.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-      s.discipline.toLowerCase().includes(filters.search.toLowerCase()) ||
-      s.city.toLowerCase().includes(filters.search.toLowerCase())
+      s.name.toLowerCase().includes(q) ||
+      s.discipline.toLowerCase().includes(q) ||
+      s.city.toLowerCase().includes(q)
     const matchesStatus = filters.status === "alle" || s.status === filters.status
     const matchesDiscipline = filters.discipline === "alle" || s.discipline === filters.discipline
     const matchesReviewer =
@@ -58,16 +61,16 @@ function AanmeldingenContent() {
     filters.discipline !== "alle" ||
     filters.reviewer !== "alle"
 
+  const selectClass =
+    "px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Aanmeldingen</h1>
-        <p className="text-muted-foreground mt-1">
-          {sorted.length} van {submissions.length} aanmeldingen
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">{t.nav.submissions}</h1>
+        <p className="text-muted-foreground mt-1">{t.list.count(sorted.length, submissions.length)}</p>
       </div>
 
-      {/* Filters */}
       <div className="bg-card border border-border rounded-xl p-4 mb-6">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
@@ -76,7 +79,8 @@ function AanmeldingenContent() {
               type="text"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              placeholder="Zoek op naam, discipline of stad..."
+              placeholder={t.list.searchPlaceholder}
+              aria-label={t.list.searchPlaceholder}
               className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
             />
           </div>
@@ -88,11 +92,12 @@ function AanmeldingenContent() {
             <select
               value={filters.status}
               onChange={(e) => setFilters({ ...filters, status: e.target.value as SubmissionStatus | "alle" })}
-              className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
+              className={selectClass}
+              aria-label={t.list.allStatuses}
             >
-              {statusOptions.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
+              {statusValues.map((v) => (
+                <option key={v} value={v}>
+                  {v === "alle" ? t.list.allStatuses : t.status[v]}
                 </option>
               ))}
             </select>
@@ -100,11 +105,12 @@ function AanmeldingenContent() {
             <select
               value={filters.discipline}
               onChange={(e) => setFilters({ ...filters, discipline: e.target.value })}
-              className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
+              className={selectClass}
+              aria-label={t.list.allDisciplines}
             >
               {disciplines.map((d) => (
                 <option key={d} value={d}>
-                  {d === "alle" ? "Alle disciplines" : d}
+                  {d === "alle" ? t.list.allDisciplines : d}
                 </option>
               ))}
             </select>
@@ -112,17 +118,16 @@ function AanmeldingenContent() {
             <select
               value={filters.reviewer}
               onChange={(e) => setFilters({ ...filters, reviewer: e.target.value })}
-              className="px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
+              className={selectClass}
+              aria-label={t.list.allReviewers}
             >
-              <option value="alle">Alle behandelaars</option>
-              <option value="geen">Niet toegewezen</option>
-              {reviewers
-                .filter((r) => r !== "alle")
-                .map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
+              <option value="alle">{t.list.allReviewers}</option>
+              <option value="geen">{t.list.unassigned}</option>
+              {reviewers.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </select>
 
             {hasActiveFilters && (
@@ -132,19 +137,18 @@ function AanmeldingenContent() {
                 className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-red-500 hover:text-red-400 transition-colors"
               >
                 <X className="w-4 h-4" />
-                Wissen
+                {t.list.clear}
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Table / list */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {sorted.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-foreground font-medium">Geen aanmeldingen gevonden</p>
-            <p className="text-muted-foreground text-sm mt-1">Pas je filters aan om meer resultaten te zien.</p>
+            <p className="text-foreground font-medium">{t.list.emptyTitle}</p>
+            <p className="text-muted-foreground text-sm mt-1">{t.list.emptyText}</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -167,17 +171,17 @@ function AanmeldingenContent() {
                       {s.discipline} &middot; {s.city}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {s.reviewer ? `Behandelaar: ${s.reviewer}` : "Nog niet toegewezen"}
+                      {s.reviewer ? t.list.reviewer(s.reviewer) : t.list.notAssigned}
                     </p>
                   </div>
                   <div className="hidden md:block text-sm text-muted-foreground flex-shrink-0 text-right">
-                    <p>Aangemeld</p>
-                    <p className="text-foreground">{formatDate(s.submittedAt)}</p>
+                    <p>{t.list.submitted}</p>
+                    <p className="text-foreground">{formatDate(s.submittedAt, locale)}</p>
                   </div>
                   <span
                     className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border flex-shrink-0 ${statusClasses[s.status]}`}
                   >
-                    {statusLabels[s.status]}
+                    {t.status[s.status]}
                   </span>
                 </Link>
               </li>
@@ -189,9 +193,14 @@ function AanmeldingenContent() {
   )
 }
 
+function LoadingFallback() {
+  const { t } = useAdminT()
+  return <div className="p-8 text-muted-foreground">{t.list.loading}</div>
+}
+
 export default function AanmeldingenPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-muted-foreground">Laden...</div>}>
+    <Suspense fallback={<LoadingFallback />}>
       <AanmeldingenContent />
     </Suspense>
   )

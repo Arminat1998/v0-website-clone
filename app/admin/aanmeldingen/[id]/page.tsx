@@ -17,21 +17,17 @@ import {
   MessageSquarePlus,
 } from "lucide-react"
 import { useAdmin, type ChecklistState } from "@/contexts/admin-submissions-context"
-import { statusLabels, statusClasses, formatDateTime } from "@/lib/admin-status"
+import { statusClasses, formatDateTime } from "@/lib/admin-status"
+import { useAdminT } from "@/lib/admin-i18n"
 import { ReviewActions } from "@/components/admin/review-actions"
-
-const checklistLabels: Record<keyof ChecklistState, string> = {
-  profielCompleet: "Profiel is compleet",
-  portfolioBekeken: "Portfolio bekeken",
-  contactGecontroleerd: "Contactgegevens gecontroleerd",
-  passendBijArsi: "Past bij ARSI",
-}
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { getSubmission, toggleChecklist, addNote } = useAdmin()
   const submission = getSubmission(id)
   const [noteText, setNoteText] = useState("")
+  const { t, locale } = useAdminT()
+  const checklistLabels = t.detail.checklistItems
 
   if (!submission) return notFound()
 
@@ -49,7 +45,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" />
-        Terug naar aanmeldingen
+        {t.detail.back}
       </Link>
 
       {/* Header */}
@@ -78,11 +74,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 <span
                   className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusClasses[submission.status]}`}
                 >
-                  {statusLabels[submission.status]}
+                  {t.status[submission.status]}
                 </span>
               </div>
               <p className="text-muted-foreground mt-1">
-                {submission.discipline} &middot; Aangemeld op {formatDateTime(submission.submittedAt)}
+                {submission.discipline} &middot; {t.detail.submittedOn(formatDateTime(submission.submittedAt, locale))}
               </p>
             </div>
           </div>
@@ -94,7 +90,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         <div className="lg:col-span-2 space-y-6">
           {/* Contact */}
           <section className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-foreground mb-4">Contactgegevens</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t.detail.contact}</h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <a
                 href={`mailto:${submission.email}`}
@@ -122,7 +118,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   className="flex items-center gap-3 text-sm text-foreground hover:text-red-500 transition-colors"
                 >
                   <Globe className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="truncate">Website</span>
+                  <span className="truncate">{t.detail.website}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               )}
@@ -147,20 +143,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
           {/* Profile */}
           <section className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-foreground mb-4">Profiel</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t.detail.profile}</h3>
             <div className="space-y-4 text-sm">
               <div>
-                <p className="text-muted-foreground mb-1">Bio</p>
+                <p className="text-muted-foreground mb-1">{t.detail.bio}</p>
                 <p className="text-foreground leading-relaxed">{submission.bio}</p>
               </div>
               <div>
-                <p className="text-muted-foreground mb-1">Ervaring</p>
+                <p className="text-muted-foreground mb-1">{t.detail.experience}</p>
                 <p className="text-foreground leading-relaxed">{submission.experience}</p>
               </div>
               <div className="flex items-start gap-3">
                 <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-muted-foreground mb-0.5">Beschikbaarheid</p>
+                  <p className="text-muted-foreground mb-0.5">{t.detail.availability}</p>
                   <p className="text-foreground">{submission.availability}</p>
                 </div>
               </div>
@@ -168,13 +164,13 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 <div className="flex items-center gap-2">
                   <Euro className="w-4 h-4 text-muted-foreground" />
                   <span className="text-foreground">
-                    {submission.hourlyRate ? `${submission.hourlyRate} p/u` : "Uurtarief onbekend"}
+                    {submission.hourlyRate ? `${submission.hourlyRate} ${t.detail.perHour}` : t.detail.hourlyUnknown}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Euro className="w-4 h-4 text-muted-foreground" />
                   <span className="text-foreground">
-                    {submission.dayRate ? `${submission.dayRate} p/d` : "Dagtarief onbekend"}
+                    {submission.dayRate ? `${submission.dayRate} ${t.detail.perDay}` : t.detail.dayUnknown}
                   </span>
                 </div>
               </div>
@@ -182,7 +178,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
             <div className="mt-5 pt-5 border-t border-border space-y-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Genres</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">{t.detail.genres}</p>
                 <div className="flex flex-wrap gap-2">
                   {submission.genres.map((g) => (
                     <span key={g} className="px-3 py-1 rounded-full bg-accent text-xs text-foreground">
@@ -193,7 +189,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
-                  Evenementtypes
+                  {t.detail.eventTypes}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {submission.eventTypes.map((t) => (
@@ -208,7 +204,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
           {/* Portfolio */}
           <section className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-foreground mb-4">Portfolio</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t.detail.portfolio}</h3>
             {submission.portfolioImages.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                 {submission.portfolioImages.map((img, i) => (
@@ -235,13 +231,13 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Geen videovoorbeelden aangeleverd.</p>
+              <p className="text-sm text-muted-foreground">{t.detail.noVideos}</p>
             )}
           </section>
 
           {/* Timeline */}
           <section className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-foreground mb-4">Tijdlijn</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t.detail.timeline}</h3>
             <ol className="relative border-l border-border ml-2">
               {submission.timeline.map((event) => (
                 <li key={event.id} className="mb-5 ml-5 last:mb-0">
@@ -249,7 +245,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   <p className="text-sm font-medium text-foreground">{event.title}</p>
                   {event.description && <p className="text-sm text-muted-foreground mt-0.5">{event.description}</p>}
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatDateTime(event.date)} &middot; {event.author}
+                    {formatDateTime(event.date, locale)} &middot; {event.author}
                   </p>
                 </li>
               ))}
@@ -263,7 +259,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
           {/* Checklist */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-foreground mb-4">Checklist</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t.detail.checklist}</h3>
             <div className="space-y-3">
               {(Object.keys(checklistLabels) as (keyof ChecklistState)[]).map((key) => (
                 <label key={key} className="flex items-center gap-3 cursor-pointer group">
@@ -287,16 +283,16 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
           {/* Notes */}
           <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold text-foreground mb-4">Interne notities</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t.detail.notes}</h3>
             <div className="space-y-3 mb-4">
               {submission.notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nog geen notities.</p>
+                <p className="text-sm text-muted-foreground">{t.detail.noNotes}</p>
               ) : (
                 submission.notes.map((note) => (
                   <div key={note.id} className="p-3 rounded-lg bg-background border border-border">
                     <p className="text-sm text-foreground leading-relaxed">{note.text}</p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      {note.author} &middot; {formatDateTime(note.date)}
+                      {note.author} &middot; {formatDateTime(note.date, locale)}
                     </p>
                   </div>
                 ))
@@ -307,7 +303,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 rows={3}
-                placeholder="Voeg een interne notitie toe..."
+                placeholder={t.detail.notePlaceholder}
+                aria-label={t.detail.notePlaceholder}
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
               />
               <button
@@ -317,7 +314,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-foreground text-sm font-medium hover:bg-accent/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <MessageSquarePlus className="w-4 h-4" />
-                Notitie toevoegen
+                {t.detail.addNote}
               </button>
             </div>
           </div>

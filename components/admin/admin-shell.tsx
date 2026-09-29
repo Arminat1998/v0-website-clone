@@ -10,17 +10,18 @@ import { useTheme } from "@/contexts/theme-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
 import { useAdmin } from "@/contexts/admin-submissions-context"
-
-const menuItems = [
-  { label: "Overzicht", href: "/admin" },
-  { label: "Aanmeldingen", href: "/admin/aanmeldingen" },
-  { label: "Artiesten", href: "/admin/artiesten" },
-  { label: "Instellingen", href: "/admin/instellingen" },
-]
+import { useAdminT } from "@/lib/admin-i18n"
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const { toggleTheme } = useTheme()
+  const { t } = useAdminT()
+  const menuItems = [
+    { label: t.nav.overview, href: "/admin" },
+    { label: t.nav.submissions, href: "/admin/aanmeldingen" },
+    { label: t.nav.artists, href: "/admin/artiesten" },
+    { label: t.nav.settings, href: "/admin/instellingen" },
+  ]
   const { submissions } = useAdmin()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -36,7 +37,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         type="button"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-card rounded-lg shadow-md border border-border"
-        aria-label="Menu openen of sluiten"
+        aria-label={t.nav.toggleMenu}
       >
         {mobileMenuOpen ? <X className="w-5 h-5 text-foreground" /> : <Menu className="w-5 h-5 text-foreground" />}
       </button>
@@ -101,8 +102,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
               size="icon"
               onClick={toggleTheme}
               className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
-              title="Thema wisselen"
-              aria-label="Thema wisselen"
+              title={t.nav.toggleTheme}
+              aria-label={t.nav.toggleTheme}
             >
               <Moon className="h-4 w-4 sm:h-5 sm:w-5 dark:hidden" />
               <Sun className="hidden h-4 w-4 sm:h-5 sm:w-5 dark:block" />
@@ -117,17 +118,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors px-4 py-2 text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Terug naar site</span>
+            <span>{t.nav.backToSite}</span>
           </Link>
         </div>
 
         <div className="p-4 flex justify-center flex-shrink-0">
           <div
             className="w-10 h-10 rounded-full bg-accent border-2 border-border flex items-center justify-center"
-            title="Noor Bakker — Beheerder"
+            title={`Noor Bakker — ${t.nav.adminRole}`}
           >
             <User className="w-5 h-5 text-muted-foreground" />
-            <span className="sr-only">Noor Bakker, Beheerder</span>
+            <span className="sr-only">{`Noor Bakker, ${t.nav.adminRole}`}</span>
           </div>
         </div>
       </aside>

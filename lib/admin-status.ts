@@ -1,13 +1,5 @@
 import type { SubmissionStatus } from "@/contexts/admin-submissions-context"
 
-export const statusLabels: Record<SubmissionStatus, string> = {
-  nieuw: "Nieuw",
-  "in-beoordeling": "In beoordeling",
-  "wacht-op-aanvulling": "Wacht op aanvulling",
-  goedgekeurd: "Goedgekeurd",
-  afgewezen: "Afgewezen",
-}
-
 // Tailwind classes for status pills, using colored /10 backgrounds like the rest of the app
 export const statusClasses: Record<SubmissionStatus, string> = {
   nieuw: "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -17,17 +9,17 @@ export const statusClasses: Record<SubmissionStatus, string> = {
   afgewezen: "bg-red-500/10 text-red-500 border-red-500/20",
 }
 
-export function formatDate(iso: string): string {
+export function formatDate(iso: string, locale = "nl-NL"): string {
   try {
-    return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
   } catch {
     return iso
   }
 }
 
-export function formatDateTime(iso: string): string {
+export function formatDateTime(iso: string, locale = "nl-NL"): string {
   try {
-    return new Intl.DateTimeFormat("nl-NL", {
+    return new Intl.DateTimeFormat(locale, {
       day: "numeric",
       month: "short",
       year: "numeric",
