@@ -5,23 +5,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useLanguage } from "@/contexts/language-context"
 import type { Language } from "@/lib/i18n"
 import { ChevronDown } from "lucide-react"
-import { useEffect, useState } from "react"
 
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const languages = [
     { code: "nl" as Language, label: "Nederlands", flag: "🇳🇱" },
     { code: "en" as Language, label: "English", flag: "🇬🇧" },
   ]
 
-  // Until mounted, render the server-default language to avoid hydration mismatch
-  const currentLanguage = languages.find((lang) => lang.code === (mounted ? language : "nl"))
+  const currentLanguage = languages.find((lang) => lang.code === language)
 
   return (
     <DropdownMenu>

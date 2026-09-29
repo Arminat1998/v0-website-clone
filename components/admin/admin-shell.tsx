@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { Menu, X, Sun, Moon, ArrowLeft, User } from "lucide-react"
+import { LayoutDashboard, Inbox, Users, Settings, Menu, X, Sun, Moon, ArrowLeft } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
@@ -17,10 +17,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { toggleTheme } = useTheme()
   const { t } = useAdminT()
   const menuItems = [
-    { label: t.nav.overview, href: "/admin" },
-    { label: t.nav.submissions, href: "/admin/aanmeldingen" },
-    { label: t.nav.artists, href: "/admin/artiesten" },
-    { label: t.nav.settings, href: "/admin/instellingen" },
+    { label: t.nav.overview, href: "/admin", icon: LayoutDashboard },
+    { label: t.nav.submissions, href: "/admin/aanmeldingen", icon: Inbox },
+    { label: t.nav.artists, href: "/admin/artiesten", icon: Users },
+    { label: t.nav.settings, href: "/admin/instellingen", icon: Settings },
   ]
   const { submissions } = useAdmin()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -74,6 +74,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <nav className="flex-1 px-4 overflow-y-auto">
           {menuItems.map((item) => {
             const active = isActive(item.href)
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -83,7 +84,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   active ? "bg-accent font-medium text-foreground" : "text-muted-foreground"
                 }`}
               >
-                <span>{item.label}</span>
+                <span className="flex items-center gap-3">
+                  <Icon className="w-4 h-4" aria-hidden="true" />
+                  {item.label}
+                </span>
                 {item.href === "/admin/aanmeldingen" && teBeoordelen > 0 && (
                   <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-semibold">
                     {teBeoordelen}
@@ -122,13 +126,16 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div className="p-4 flex justify-center flex-shrink-0">
+        <div className="p-4 border-t border-border flex-shrink-0 flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-full bg-accent border-2 border-border flex items-center justify-center"
-            title={`Noor Bakker — ${t.nav.adminRole}`}
+            className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+            aria-hidden="true"
           >
-            <User className="w-5 h-5 text-muted-foreground" />
-            <span className="sr-only">{`Noor Bakker, ${t.nav.adminRole}`}</span>
+            NB
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">Noor Bakker</p>
+            <p className="text-xs text-muted-foreground truncate">{t.nav.adminRole}</p>
           </div>
         </div>
       </aside>
