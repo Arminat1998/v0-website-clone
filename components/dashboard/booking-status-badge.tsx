@@ -1,0 +1,52 @@
+"use client"
+
+import { useBookingT } from "@/lib/booking-i18n"
+import type { BookingStatus, PaymentStatus, PayoutStatus } from "@/lib/db/schema"
+import { cn } from "@/lib/utils"
+
+const statusStyles: Record<BookingStatus, string> = {
+  pending: "bg-amber-500/10 text-amber-500",
+  accepted: "bg-green-500/10 text-green-500",
+  rejected: "bg-muted text-muted-foreground",
+  completed: "bg-blue-500/10 text-blue-500",
+  cancelled: "bg-muted text-muted-foreground",
+}
+
+export function BookingStatusBadge({ status, className }: { status: BookingStatus; className?: string }) {
+  const { t } = useBookingT()
+  return (
+    <span className={cn("inline-flex items-center rounded-md px-3 py-1 text-sm font-medium", statusStyles[status], className)}>
+      {t.status[status]}
+    </span>
+  )
+}
+
+const paymentStyles: Record<PaymentStatus, string> = {
+  unpaid: "bg-amber-500/10 text-amber-500",
+  deposit_paid: "bg-blue-500/10 text-blue-500",
+  paid: "bg-green-500/10 text-green-500",
+  refunded: "bg-muted text-muted-foreground",
+}
+
+export function PaymentStatusBadge({ status, className }: { status: PaymentStatus; className?: string }) {
+  const { t } = useBookingT()
+  return (
+    <span className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium", paymentStyles[status], className)}>
+      {t.payment[status]}
+    </span>
+  )
+}
+
+const payoutStyles: Record<PayoutStatus, string> = {
+  pending: "bg-amber-500/10 text-amber-500",
+  paid: "bg-green-500/10 text-green-500",
+}
+
+export function PayoutStatusBadge({ status, className }: { status: PayoutStatus; className?: string }) {
+  const { t } = useBookingT()
+  return (
+    <span className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium", payoutStyles[status], className)}>
+      {t.payout[status]}
+    </span>
+  )
+}

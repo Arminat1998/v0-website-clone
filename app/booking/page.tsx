@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, CreditCard, LockKeyhole } from "lucide-react"
+import useSWR from "swr"
+import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, CreditCard, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { artists, photographers } from "@/lib/smart-search"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
+import { createBooking, getBlockedDates } from "@/app/actions/bookings"
+import { calculatePricing, formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
@@ -77,6 +80,15 @@ export default function BookingPage() {
   const [vatNumber, setVatNumber] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<"ideal" | "card" | "invoice">("ideal")
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [bookingId, setBookingId] = useState<number | null>(null)
+
+  const professionalKey = artistId ?? professionalId
+  const { data: blockedDates = [] } = useSWR(
+    professionalKey ? ["blocked-dates", professionalKey] : null,
+    ([, id]) => getBlockedDates(id),
+  )
   
   const eventTypes = ["Birthday", "Anniversary", "Wedding", "Corporate", "Festival", "Club Night"]
   const musicGenres = ["Trance", "House", "Techno", "Punk", "Hip-Hop", "Pop", "Rock", "EDM"]
@@ -129,9 +141,80 @@ export default function BookingPage() {
     return day === 0 ? 6 : day - 1
   }
 
+  const toIsoDate = (year: number, month: number, day: number) =>
+    `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
+
   const isDateUnavailable = (day: number) => {
-    const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
-    return professional.unavailableDates?.includes(dateStr)
+    const dateStr = toIsoDate(currentYear, currentMonth, day)
+    return professional.unavailableDates?.includes(dateStr) || blockedDates.includes(dateStr)
+  }
+
+  const selectedIsoDate = selectedDate ? toIsoDate(currentYear, currentMonth, selectedDate) : ""
+  const effectiveEventDate = eventDate || selectedIsoDate
+
+  const pricing = calculatePricing({
+    hourlyRateCents: parseHourlyRateCents(professional.price),
+    startTime: startTime || "20:00",
+    endTime: endTime || "00:00",
+    equipment: selectedEquipment,
+    distanceKm: distance ?? 0,
+  })
+
+  const handleSubmitBooking = async () => {
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const result = await createBooking({
+        professionalId: String(professional.id),
+        professionalName: professional.name,
+        professionalType: artist ? "artist" : "photographer",
+        professionalPrice: professional.price,
+        eventName,
+        eventDate: effectiveEventDate,
+        startTime: startTime || "20:00",
+        endTime: endTime || "00:00",
+        eventTypes: selectedEventTypes,
+        musicGenres: selectedMusicGenres,
+        capacity,
+        description,
+        specialRequests,
+        dressCode,
+        playlistLink: linkOption === "playlist" ? playlistLink : "",
+        openingDanceLink: openingDanceOption === "link" ? openingDanceLink : "",
+        openingDanceFileName: openingDanceOption === "upload" ? (openingDanceFile?.name ?? "") : "",
+        lastSongLink: lastSongOption === "link" ? lastSongLink : "",
+        lastSongFileName: lastSongOption === "upload" ? (lastSongFile?.name ?? "") : "",
+        street: streetName,
+        houseNumber,
+        houseNumberExt,
+        postalCode,
+        city: city || eventLocation,
+        country,
+        distanceKm: distance ?? 0,
+        equipment: selectedEquipment,
+        firstName,
+        lastName,
+        email,
+        phone,
+        customerType,
+        companyName,
+        billingStreet,
+        billingHouseNumber,
+        billingPostalCode,
+        billingCity,
+        billingCountry,
+        vatNumber,
+        paymentMethod,
+      })
+      setBookingId(result.id)
+      setSubmitted(true)
+      setCurrentStep(5)
+    } catch (error) {
+      console.error("[v0] Booking submit failed:", error)
+      setSubmitError("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const isDateInPast = (day: number) => {
@@ -531,7 +614,10 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => {
+                    if (!eventDate && selectedIsoDate) setEventDate(selectedIsoDate)
+                    setCurrentStep(2)
+                  }}
                   disabled={!selectedDate || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
@@ -1192,19 +1278,28 @@ export default function BookingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Locatie</span><span className="font-medium text-foreground">{eventLocation}</span></div>
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">Factuuradres</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">BTW-nummer</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
-                  <div className="flex justify-between"><span className="text-muted-foreground">Reiskosten ({(distance ?? 0) * 2} km retour)</span><span className="font-medium text-foreground">€{(((distance ?? 0) * 2) * 0.25).toFixed(2)}</span></div>
-                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Totaal te betalen</span><span className="font-bold text-red-500">In overleg</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Optreden ({pricing.hours} uur x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Apparatuur</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Reiskosten ({(distance ?? 0) * 2} km retour)</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Prijsindicatie</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
+                  <p className="text-xs text-muted-foreground">Dit is een indicatie. De professional bevestigt het definitieve bedrag zodra je aanvraag is geaccepteerd. Je betaalt pas na acceptatie.</p>
                 </div>
                 <div className="mt-5"><h3 className="font-semibold text-foreground mb-3">Betaalmethode</h3><div className="grid gap-3 sm:grid-cols-3">{([['ideal', 'iDEAL'], ['card', 'Creditcard'], ['invoice', 'Factuur'] ] as const).map(([value, label]) => <button type="button" key={value} onClick={() => setPaymentMethod(value)} className={`rounded-md border p-3 text-left text-sm ${paymentMethod === value ? "border-red-500 bg-red-500/10" : "border-border"}`}><CreditCard className="mb-2 h-4 w-4" />{label}</button>)}</div></div>
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />Je gegevens worden veilig verwerkt.</div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={() => { setSubmitted(true); setCurrentStep(5) }} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Bevestig boeking</Button></div>
+              {submitError && (
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Versturen...</> : "Bevestig boeking"}</Button></div>
             </div>
           )}
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">Boekingsaanvraag verzonden</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">Bedankt {firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen. Je ontvangt een bevestiging op {email || "je e-mailadres"} zodra de professional reageert.</p><Button onClick={() => router.push("/")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">Terug naar home</Button></div>
+            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">Boekingsaanvraag verzonden</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">Bedankt {firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar {professional.name}. Je ontvangt een bevestiging op {email || "je e-mailadres"} zodra de professional reageert.</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">Aanvraagnummer <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push("/")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">Terug naar home</Button></div>
           )}
         </div>
       </div>
