@@ -1,5 +1,8 @@
 import type { Booking } from "@/lib/db/schema"
 
+// Server renders in UTC, browsers in their own zone; one fixed zone keeps SSR and client output identical.
+export const BOOKING_TIME_ZONE = "Europe/Amsterdam"
+
 export function formatEventDate(iso: string, locale: string, style: "long" | "short" = "long") {
   const [y, m, d] = iso.split("-").map(Number)
   const date = new Date(y, m - 1, d)
@@ -11,21 +14,24 @@ export function formatEventDate(iso: string, locale: string, style: "long" | "sh
 export function formatDateTime(value: Date | string | null | undefined, locale: string) {
   if (!value) return ""
   const date = typeof value === "string" ? new Date(value) : value
-  return date.toLocaleString(locale, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+  return date.toLocaleString(locale, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: BOOKING_TIME_ZONE })
 }
 
 export function formatShortDate(value: Date | string | null | undefined, locale: string) {
   if (!value) return ""
   const date = typeof value === "string" ? new Date(value) : value
-  return date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })
+  return date.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric", timeZone: BOOKING_TIME_ZONE })
+}
+
+/** Today's date as YYYY-MM-DD in the booking time zone. */
+export function todayIso() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: BOOKING_TIME_ZONE })
 }
 
 export function daysUntil(iso: string) {
   const [y, m, d] = iso.split("-").map(Number)
-  const target = new Date(y, m - 1, d)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Math.round((target.getTime() - today.getTime()) / 86_400_000)
+  const [ty, tm, td] = todayIso().split("-").map(Number)
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86_400_000)
 }
 
 export function isTodayOrPast(iso: string) {

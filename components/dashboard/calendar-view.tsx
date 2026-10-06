@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from "lucide-react
 import { useLanguage } from "@/contexts/language-context"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { CalendarBooking } from "@/app/actions/bookings"
-import { formatEventDate } from "@/lib/bookings/format"
+import { formatEventDate, todayIso } from "@/lib/bookings/format"
 
 // Dates the professional has blocked by hand (separate from bookings, which block automatically).
 const initialUnavailableDates = ["2026-12-24", "2026-12-25", "2026-12-31"]
@@ -14,9 +14,10 @@ const initialUnavailableDates = ["2026-12-24", "2026-12-25", "2026-12-31"]
 export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
   const { t } = useLanguage()
   const { t: bt, locale } = useBookingT()
-  const now = new Date()
-  const [currentMonth, setCurrentMonth] = useState(now.getMonth())
-  const [currentYear, setCurrentYear] = useState(now.getFullYear())
+  const today = todayIso()
+  const [todayYear, todayMonth] = today.split("-").map(Number)
+  const [currentMonth, setCurrentMonth] = useState(todayMonth - 1)
+  const [currentYear, setCurrentYear] = useState(todayYear)
   const [selectedDates, setSelectedDates] = useState<number[]>([])
   const [selectedUnavailableDates, setSelectedUnavailableDates] = useState<number[]>([])
   const [markedUnavailable, setMarkedUnavailable] = useState<string[]>(initialUnavailableDates)
@@ -32,8 +33,7 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
     else bookedDates.set(booking.eventDate, booking)
   }
 
-  const todayIso = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}`
-  const upcoming = bookings.filter((b) => b.status === "accepted" && b.eventDate >= todayIso).slice(0, 6)
+  const upcoming = bookings.filter((b) => b.status === "accepted" && b.eventDate >= today).slice(0, 6)
 
   const getDaysInMonth = (month: number, year: number) => new Date(year, month + 1, 0).getDate()
   const getFirstDayOfMonth = (month: number, year: number) => {
@@ -46,11 +46,7 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
   const isDateUnavailable = (day: number) => markedUnavailable.includes(getDateString(day))
   const isDateBooked = (day: number) => bookedDates.has(getDateString(day))
   const isDatePending = (day: number) => pendingDates.has(getDateString(day))
-  const isDateInPast = (day: number) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return new Date(currentYear, currentMonth, day) < today
-  }
+  const isDateInPast = (day: number) => getDateString(day) < today
 
   const toggleDateSelection = (day: number, shiftKey = false) => {
     const isUnavailable = isDateUnavailable(day)
