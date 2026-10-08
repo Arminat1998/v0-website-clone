@@ -263,7 +263,7 @@ export default function DesignSystemContent() {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-foreground"></div>
                 <span className="text-sm font-medium text-foreground">
-                  {language === "nl" ? "Huidige modus:" : "Current mode:"} {theme === "dark" ? "Dark" : "Light"}
+                  {language === "nl" ? "Huidige modus:" : "Current mode:"} {hydrated && theme === "dark" ? "Dark" : "Light"}
                 </span>
               </div>
               <span className="text-muted-foreground">|</span>
