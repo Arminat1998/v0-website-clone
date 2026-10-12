@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { bookings, notifications, type Booking, type Notification } from "@/lib/db/schema"
 import { calculatePricing, parseHourlyRateCents } from "@/lib/bookings/pricing"
+import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
 
 const DASHBOARD_PATHS = [
@@ -145,7 +146,7 @@ export async function createBooking(input: CreateBookingInput) {
     bookingId: created.id,
     type: "new_request",
     title: "Nieuwe boekingsaanvraag",
-    body: `${input.firstName.trim()} ${input.lastName.trim()} wil je boeken voor ${input.eventName.trim() || "een evenement"} op ${formatDutchDate(input.eventDate)}.`,
+    body: `${input.firstName.trim()} ${abbreviateLastName(input.lastName)} wil je boeken voor ${input.eventName.trim() || "een evenement"} op ${formatDutchDate(input.eventDate)}.`,
   })
 
   revalidateDashboard(created.id)
@@ -160,11 +161,12 @@ function formatDutchDate(iso: string) {
 export async function getBookingsByStatus(status: Booking["status"] | Booking["status"][]) {
   const professionalId = await getProfessionalId()
   const statuses = Array.isArray(status) ? status : [status]
-  return db
+  const rows = await db
     .select()
     .from(bookings)
     .where(and(eq(bookings.professionalId, professionalId), inArray(bookings.status, statuses)))
     .orderBy(status === "completed" ? desc(bookings.eventDate) : asc(bookings.eventDate))
+  return rows.map(redactContactDetails)
 }
 
 export async function getBooking(id: number) {
@@ -174,7 +176,7 @@ export async function getBooking(id: number) {
     .from(bookings)
     .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId)))
     .limit(1)
-  return booking ?? null
+  return booking ? redactContactDetails(booking) : null
 }
 
 export async function acceptBooking(id: number, message: string) {
@@ -287,7 +289,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     awaitingPayoutCents: counts?.awaitingPayoutCents ?? 0,
     earnedThisYearCents: counts?.earnedThisYearCents ?? 0,
     nextBooking: nextBooking ?? null,
-    recentRequests,
+    recentRequests: recentRequests.map(redactContactDetails),
     notifications: notificationRows,
     unreadCount: notificationRows.filter((n) => !n.read).length,
   }

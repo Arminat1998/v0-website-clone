@@ -11,6 +11,7 @@ import {
   ExternalLink,
   FileAudio,
   Link2,
+  Lock,
   Mail,
   MapPin,
   Music,
@@ -23,6 +24,7 @@ import {
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking } from "@/lib/db/schema"
 import { EQUIPMENT_OPTIONS, formatEuro } from "@/lib/bookings/pricing"
+import { isContactUnlocked } from "@/lib/bookings/privacy"
 import {
   billingAddress,
   bookingNumber,
@@ -88,7 +90,7 @@ function ExternalRef({ href, label }: { href: string; label: string }) {
 
 export function BookingDetail({ booking }: { booking: Booking }) {
   const { t, locale } = useBookingT()
-  const isActive = booking.status === "accepted" || booking.status === "completed"
+  const isActive = isContactUnlocked(booking.status)
   const address = eventAddress(booking)
   const billing = billingAddress(booking)
   const notProvided = <span className="text-muted-foreground">{t.common.notProvided}</span>
@@ -298,6 +300,12 @@ export function BookingDetail({ booking }: { booking: Booking }) {
                   <div key={line}>{line}</div>
                 ))}
               </address>
+              {!isActive && (
+                <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Lock className="h-3.5 w-3.5" aria-hidden />
+                  {t.detail.addressLocked}
+                </p>
+              )}
               <dl className="mt-4">
                 <Field label={t.detail.distance}>
                   {booking.distanceKm} {t.common.km} ({booking.distanceKm * 2} {t.common.km} {t.detail.travelDetail})
@@ -334,6 +342,28 @@ export function BookingDetail({ booking }: { booking: Booking }) {
           </div>
 
           <Section id="client" title={t.detail.client} icon={<Users className="h-4 w-4" aria-hidden />}>
+            {!isActive ? (
+              <div className="flex flex-col gap-4">
+                <dl>
+                  <Field label={t.detail.contact}>
+                    <span className="font-medium">{clientName(booking)}</span>
+                    <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Building2 className="h-3.5 w-3.5" aria-hidden />
+                      {t.customerType[booking.customerType]}
+                    </span>
+                  </Field>
+                </dl>
+                <div className="flex gap-3 rounded-md border border-dashed border-border bg-background p-3">
+                  <Lock className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="text-sm">
+                    <p className="font-medium text-foreground">{t.detail.contactLockedTitle}</p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      {booking.status === "pending" ? t.detail.contactLockedPending : t.detail.contactLockedClosed}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label={t.detail.contact}>
                 <div className="flex flex-col gap-1.5">
@@ -372,6 +402,7 @@ export function BookingDetail({ booking }: { booking: Booking }) {
               </Field>
               <Field label={t.detail.paymentMethod}>{t.paymentMethod[booking.paymentMethod]}</Field>
             </dl>
+            )}
           </Section>
         </div>
 
