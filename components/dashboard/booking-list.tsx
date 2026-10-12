@@ -2,13 +2,13 @@
 
 import { Inbox } from "lucide-react"
 import { useBookingT } from "@/lib/booking-i18n"
-import type { Booking } from "@/lib/db/schema"
+import type { BookingListItem } from "@/app/actions/bookings"
 import { BookingCard } from "./booking-card"
 import { EarningsSummary } from "./earnings-summary"
 
 type Variant = "requests" | "accepted" | "completed"
 
-export function BookingList({ variant, bookings }: { variant: Variant; bookings: Booking[] }) {
+export function BookingList({ variant, bookings }: { variant: Variant; bookings: BookingListItem[] }) {
   const { t } = useBookingT()
   const copy = variant === "requests" ? t.requests : variant === "accepted" ? t.accepted : t.completed
 

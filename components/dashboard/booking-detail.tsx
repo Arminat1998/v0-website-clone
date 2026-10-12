@@ -22,7 +22,7 @@ import {
   XCircle,
 } from "lucide-react"
 import { useBookingT } from "@/lib/booking-i18n"
-import type { Booking } from "@/lib/db/schema"
+import type { Booking, Invoice } from "@/lib/db/schema"
 import { EQUIPMENT_OPTIONS, formatEuro } from "@/lib/bookings/pricing"
 import { isContactUnlocked } from "@/lib/bookings/privacy"
 import {
@@ -35,10 +35,11 @@ import {
   mapsUrl,
   shiftTime,
 } from "@/lib/bookings/format"
-import { BookingStatusBadge, PaymentStatusBadge, PayoutStatusBadge } from "./booking-status-badge"
+import { BookingStatusBadge } from "./booking-status-badge"
 import { BookingPricingCard } from "./booking-pricing-card"
 import { BookingRespondPanel } from "./booking-respond-panel"
 import { BookingCompletePanel } from "./booking-complete-panel"
+import { BookingInvoicePanel } from "./booking-invoice-panel"
 
 function Section({ id, title, icon, children }: { id: string; title: string; icon: ReactNode; children: ReactNode }) {
   return (
@@ -88,7 +89,7 @@ function ExternalRef({ href, label }: { href: string; label: string }) {
   )
 }
 
-export function BookingDetail({ booking }: { booking: Booking }) {
+export function BookingDetail({ booking, invoice = null }: { booking: Booking; invoice?: Invoice | null }) {
   const { t, locale } = useBookingT()
   const isActive = isContactUnlocked(booking.status)
   const address = eventAddress(booking)
@@ -105,6 +106,7 @@ export function BookingDetail({ booking }: { booking: Booking }) {
       : [
           { label: t.detail.tlPaid, at: booking.paidAt, done: booking.paymentStatus === "paid" },
           { label: t.detail.tlCompleted, at: booking.completedAt, done: booking.status === "completed" },
+          { label: t.detail.tlInvoiced, at: invoice?.submittedAt ?? null, done: Boolean(invoice) },
           { label: t.detail.tlPaidOut, at: booking.paidOutAt, done: booking.payoutStatus === "paid" },
         ]),
   ]
@@ -411,32 +413,7 @@ export function BookingDetail({ booking }: { booking: Booking }) {
 
           {booking.status === "pending" && <BookingRespondPanel bookingId={booking.id} />}
           {booking.status === "accepted" && <BookingCompletePanel booking={booking} />}
-          {booking.status === "completed" && (
-            <section aria-labelledby="payout-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
-              <h2 id="payout-heading" className="text-base font-semibold text-foreground">
-                {t.accepted.paymentTitle}
-              </h2>
-              <dl className="mt-3 flex flex-col gap-3 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">{t.paymentMethod[booking.paymentMethod]}</dt>
-                  <dd>
-                    <PaymentStatusBadge status={booking.paymentStatus} />
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">{t.detail.payout}</dt>
-                  <dd>
-                    <PayoutStatusBadge status={booking.payoutStatus} />
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-3 text-xs text-muted-foreground">
-                {booking.payoutStatus === "paid" && booking.paidOutAt
-                  ? `${t.completed.paidOutOn} ${formatDateTime(booking.paidOutAt, locale)}`
-                  : t.completed.payoutExpected}
-              </p>
-            </section>
-          )}
+          {booking.status === "completed" && <BookingInvoicePanel booking={booking} invoice={invoice} />}
 
           {(booking.responseMessage || booking.rejectionReason) && (
             <section aria-labelledby="message-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">

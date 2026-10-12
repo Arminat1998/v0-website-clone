@@ -78,6 +78,11 @@
 
 @theme inline {
   --font-sans: "Inter", system-ui, sans-serif;
+  /* Invoice documents render as a white sheet regardless of the app theme, so they print correctly. */
+  --color-paper: oklch(1 0 0);
+  --color-paper-foreground: oklch(0.18 0 0);
+  --color-paper-muted: oklch(0.5 0 0);
+  --color-paper-border: oklch(0.9 0 0);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

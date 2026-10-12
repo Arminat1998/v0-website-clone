@@ -3,7 +3,7 @@
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { bookings, notifications, type Booking, type Notification } from "@/lib/db/schema"
+import { bookings, invoices, notifications, type Booking, type Invoice, type Notification } from "@/lib/db/schema"
 import { calculatePricing, parseHourlyRateCents } from "@/lib/bookings/pricing"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
@@ -158,15 +158,22 @@ function formatDutchDate(iso: string) {
   return `${d}-${m}-${y}`
 }
 
-export async function getBookingsByStatus(status: Booking["status"] | Booking["status"][]) {
+export type InvoiceSummary = Pick<Invoice, "id" | "status" | "invoiceNumber" | "method">
+export type BookingListItem = Booking & { invoice: InvoiceSummary | null }
+
+export async function getBookingsByStatus(status: Booking["status"] | Booking["status"][]): Promise<BookingListItem[]> {
   const professionalId = await getProfessionalId()
   const statuses = Array.isArray(status) ? status : [status]
   const rows = await db
-    .select()
+    .select({
+      booking: bookings,
+      invoice: { id: invoices.id, status: invoices.status, invoiceNumber: invoices.invoiceNumber, method: invoices.method },
+    })
     .from(bookings)
+    .leftJoin(invoices, eq(invoices.bookingId, bookings.id))
     .where(and(eq(bookings.professionalId, professionalId), inArray(bookings.status, statuses)))
     .orderBy(status === "completed" ? desc(bookings.eventDate) : asc(bookings.eventDate))
-  return rows.map(redactContactDetails)
+  return rows.map(({ booking, invoice }) => ({ ...redactContactDetails(booking), invoice: invoice?.id ? invoice : null }))
 }
 
 export async function getBooking(id: number) {
@@ -229,9 +236,9 @@ export async function completeBooking(id: number) {
   await db.insert(notifications).values({
     professionalId,
     bookingId: id,
-    type: "payout",
-    title: "Uitbetaling in gang gezet",
-    body: `Je verdiensten voor ${booking.eventName} worden binnen 7 dagen uitbetaald.`,
+    type: "reminder",
+    title: "Dien je factuur in",
+    body: `${booking.eventName} is afgerond. Dien je factuur in om je uitbetaling in gang te zetten.`,
   })
   revalidateDashboard(id)
 }
@@ -241,6 +248,8 @@ export interface DashboardSummary {
   upcomingCount: number
   awaitingPayoutCents: number
   earnedThisYearCents: number
+  invoicesDueCount: number
+  invoicesDueCents: number
   nextBooking: Booking | null
   recentRequests: Booking[]
   notifications: Notification[]
@@ -251,6 +260,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const professionalId = await getProfessionalId()
   const today = todayIso()
   const yearStart = `${today.slice(0, 4)}-01-01`
+  const hasNoInvoice = sql`not exists (select 1 from ${invoices} where ${invoices.bookingId} = ${bookings.id})`
 
   const [counts] = await db
     .select({
@@ -258,6 +268,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       upcomingCount: sql<number>`count(*) filter (where ${bookings.status} = 'accepted' and ${bookings.eventDate} >= ${today})`.mapWith(Number),
       awaitingPayoutCents: sql<number>`coalesce(sum(${bookings.payoutCents}) filter (where ${bookings.status} = 'completed' and ${bookings.payoutStatus} = 'pending'), 0)`.mapWith(Number),
       earnedThisYearCents: sql<number>`coalesce(sum(${bookings.payoutCents}) filter (where ${bookings.status} = 'completed' and ${bookings.eventDate} >= ${yearStart}), 0)`.mapWith(Number),
+      invoicesDueCount: sql<number>`count(*) filter (where ${bookings.status} = 'completed' and ${hasNoInvoice})`.mapWith(Number),
+      invoicesDueCents: sql<number>`coalesce(sum(${bookings.payoutCents}) filter (where ${bookings.status} = 'completed' and ${hasNoInvoice}), 0)`.mapWith(Number),
     })
     .from(bookings)
     .where(eq(bookings.professionalId, professionalId))
@@ -288,6 +300,8 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     upcomingCount: counts?.upcomingCount ?? 0,
     awaitingPayoutCents: counts?.awaitingPayoutCents ?? 0,
     earnedThisYearCents: counts?.earnedThisYearCents ?? 0,
+    invoicesDueCount: counts?.invoicesDueCount ?? 0,
+    invoicesDueCents: counts?.invoicesDueCents ?? 0,
     nextBooking: nextBooking ?? null,
     recentRequests: recentRequests.map(redactContactDetails),
     notifications: notificationRows,

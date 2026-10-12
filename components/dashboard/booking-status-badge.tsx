@@ -1,7 +1,7 @@
 "use client"
 
 import { useBookingT } from "@/lib/booking-i18n"
-import type { BookingStatus, PaymentStatus, PayoutStatus } from "@/lib/db/schema"
+import type { BookingStatus, InvoiceStatus, PaymentStatus, PayoutStatus } from "@/lib/db/schema"
 import { cn } from "@/lib/utils"
 
 const statusStyles: Record<BookingStatus, string> = {
@@ -49,4 +49,19 @@ export function PayoutStatusBadge({ status, className }: { status: PayoutStatus;
       {t.payout[status]}
     </span>
   )
+}
+
+const invoiceStyles: Record<InvoiceStatus | "missing", string> = {
+  missing: "bg-amber-500/10 text-amber-500",
+  submitted: "bg-blue-500/10 text-blue-500",
+  approved: "bg-green-500/10 text-green-500",
+  rejected: "bg-red-500/10 text-red-500",
+}
+
+/** `null` means the completed booking has no invoice yet, which is the state that needs the DJ's attention. */
+export function InvoiceStatusBadge({ status, className }: { status: InvoiceStatus | null; className?: string }) {
+  const { t } = useBookingT()
+  const key = status ?? "missing"
+  const label = key === "missing" ? t.invoice.statusMissing : key === "submitted" ? t.invoice.statusSubmitted : key === "approved" ? t.invoice.statusApproved : t.invoice.statusRejected
+  return <span className={cn("inline-flex items-center rounded-md px-2.5 py-1 text-xs font-medium", invoiceStyles[key], className)}>{label}</span>
 }

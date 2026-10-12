@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   numeric,
   pgTable,
   serial,
@@ -104,3 +105,74 @@ export const notifications = pgTable("notifications", {
 })
 
 export type Notification = typeof notifications.$inferSelect
+
+export const VAT_SCHEMES = ["standard", "kor"] as const
+export type VatScheme = (typeof VAT_SCHEMES)[number]
+
+export const billingProfiles = pgTable("billing_profiles", {
+  professionalId: text("professional_id").primaryKey(),
+  businessName: text("business_name").notNull().default(""),
+  kvkNumber: text("kvk_number"),
+  vatNumber: text("vat_number"),
+  vatScheme: text("vat_scheme").$type<VatScheme>().notNull().default("standard"),
+  performanceVatRate: integer("performance_vat_rate").notNull().default(9),
+  iban: text("iban"),
+  street: text("street"),
+  houseNumber: text("house_number"),
+  postalCode: text("postal_code"),
+  city: text("city"),
+  country: text("country").notNull().default("Nederland"),
+  invoicePrefix: text("invoice_prefix").notNull().default(""),
+  nextInvoiceNumber: integer("next_invoice_number").notNull().default(1),
+  selfBillingAcceptedAt: timestamp("self_billing_accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type BillingProfile = typeof billingProfiles.$inferSelect
+
+export const INVOICE_METHODS = ["self_billing", "upload"] as const
+export type InvoiceMethod = (typeof INVOICE_METHODS)[number]
+
+export const INVOICE_STATUSES = ["submitted", "approved", "rejected"] as const
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number]
+
+export type InvoiceLineKey = "performance" | "equipment" | "travel"
+
+/** One invoice row, snapshotted at submission so later rate changes never alter an issued invoice. */
+export interface InvoiceLine {
+  key: InvoiceLineKey
+  description: string
+  quantity: number
+  unitLabel: string
+  unitCents: number
+  vatRate: number
+  grossCents: number
+  vatCents: number
+  netCents: number
+}
+
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").notNull(),
+  professionalId: text("professional_id").notNull(),
+  method: text("method").$type<InvoiceMethod>().notNull().default("self_billing"),
+  invoiceNumber: text("invoice_number").notNull(),
+  invoiceDate: date("invoice_date").notNull(),
+  lines: jsonb("lines").$type<InvoiceLine[]>().notNull().default([]),
+  netCents: integer("net_cents").notNull().default(0),
+  vatCents: integer("vat_cents").notNull().default(0),
+  totalCents: integer("total_cents").notNull().default(0),
+  declaredTotalCents: integer("declared_total_cents"),
+  filePathname: text("file_pathname"),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  fileContentType: text("file_content_type"),
+  status: text("status").$type<InvoiceStatus>().notNull().default("submitted"),
+  note: text("note"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type Invoice = typeof invoices.$inferSelect

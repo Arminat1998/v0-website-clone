@@ -36,7 +36,8 @@ export function BookingCompletePanel({ booking }: { booking: Booking }) {
           onClick={() =>
             startTransition(async () => {
               await completeBooking(booking.id)
-              router.refresh()
+              // Invoicing is the natural next step, so land the DJ straight in that flow.
+              router.push(`/dashboard/bookings/${booking.id}/invoice`)
             })
           }
           className="mt-4 w-full bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground"

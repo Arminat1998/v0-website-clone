@@ -4,12 +4,14 @@ import Link from "next/link"
 import { ArrowRight, Calendar, Clock, MapPin, Users } from "lucide-react"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking } from "@/lib/db/schema"
+import type { InvoiceSummary } from "@/app/actions/bookings"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { clientName, daysUntil, formatEventDate, formatShortDate } from "@/lib/bookings/format"
-import { BookingStatusBadge, PayoutStatusBadge } from "./booking-status-badge"
+import { BookingStatusBadge, InvoiceStatusBadge, PayoutStatusBadge } from "./booking-status-badge"
 
-export function BookingCard({ booking }: { booking: Booking }) {
+export function BookingCard({ booking }: { booking: Booking & { invoice?: InvoiceSummary | null } }) {
   const { t, locale } = useBookingT()
+  const needsInvoice = booking.status === "completed" && booking.invoice === null
   const days = daysUntil(booking.eventDate)
   const isNew = booking.status === "pending" && Date.now() - new Date(booking.createdAt).getTime() < 48 * 3600 * 1000
 
@@ -24,8 +26,8 @@ export function BookingCard({ booking }: { booking: Booking }) {
 
   return (
     <Link
-      href={`/dashboard/bookings/${booking.id}`}
-      className="group block rounded-lg border border-border bg-card p-5 transition-colors hover:bg-accent md:p-6"
+      href={needsInvoice ? `/dashboard/bookings/${booking.id}/invoice` : `/dashboard/bookings/${booking.id}`}
+      className={`group block rounded-lg border bg-card p-5 transition-colors hover:bg-accent md:p-6 ${needsInvoice ? "border-amber-500/40" : "border-border"}`}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1">
@@ -37,7 +39,8 @@ export function BookingCard({ booking }: { booking: Booking }) {
               </span>
             )}
             {countdown && <span className="text-xs font-medium text-muted-foreground">{countdown}</span>}
-            {booking.status === "completed" && <PayoutStatusBadge status={booking.payoutStatus} />}
+            {booking.status === "completed" && booking.invoice !== undefined && <InvoiceStatusBadge status={booking.invoice?.status ?? null} />}
+            {booking.status === "completed" && !needsInvoice && <PayoutStatusBadge status={booking.payoutStatus} />}
           </div>
 
           <h3 className="mt-3 text-lg font-semibold text-foreground md:text-xl">{booking.eventName}</h3>
@@ -104,7 +107,7 @@ export function BookingCard({ booking }: { booking: Booking }) {
             )}
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-red-500 group-hover:underline">
-            {booking.status === "accepted" ? t.common.openRunSheet : booking.status === "completed" ? t.common.receipt : t.common.viewDetails}
+            {needsInvoice ? t.invoice.panelCta : booking.status === "accepted" ? t.common.openRunSheet : booking.status === "completed" ? t.common.receipt : t.common.viewDetails}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
         </div>

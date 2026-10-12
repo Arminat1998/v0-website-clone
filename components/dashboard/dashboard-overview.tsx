@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Wallet } from "lucide-react"
+import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { DashboardSummary } from "@/app/actions/bookings"
@@ -63,6 +63,29 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
   return (
     <div className="min-h-screen bg-background p-6 md:p-8 lg:p-10">
       <h1 className="mb-6 text-2xl font-bold text-foreground md:mb-8 md:text-3xl lg:text-4xl">{t.welcomeToDashboard}</h1>
+
+      {summary.invoicesDueCount > 0 && (
+        <Link
+          href="/dashboard/completed-bookings"
+          className="mb-6 flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 transition-colors hover:bg-amber-500/15 sm:flex-row sm:items-center sm:justify-between md:mb-8"
+        >
+          <div className="flex items-center gap-4">
+            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white">
+              <Receipt className="h-5 w-5" aria-hidden />
+            </span>
+            <div>
+              <div className="font-semibold text-foreground">
+                {bt.invoice.dueBannerTitle(summary.invoicesDueCount)} · {formatEuro(summary.invoicesDueCents, locale)}
+              </div>
+              <p className="text-sm text-muted-foreground">{bt.invoice.dueBannerBody}</p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-500">
+            {bt.invoice.dueBannerCta}
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </span>
+        </Link>
+      )}
 
       <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:mb-8 md:gap-6">
         {stats.map(({ label, value, icon: Icon, tone, href }) => (

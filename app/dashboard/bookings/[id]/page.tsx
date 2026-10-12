@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { BookingDetail } from "@/components/dashboard/booking-detail"
 import { getBooking } from "@/app/actions/bookings"
+import { getInvoiceForBooking } from "@/app/actions/invoices"
 
 export const dynamic = "force-dynamic"
 
@@ -12,10 +13,11 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
 
   const booking = await getBooking(bookingId)
   if (!booking) notFound()
+  const invoice = booking.status === "completed" ? await getInvoiceForBooking(bookingId) : null
 
   return (
     <DashboardLayout>
-      <BookingDetail booking={booking} />
+      <BookingDetail booking={booking} invoice={invoice} />
     </DashboardLayout>
   )
 }
