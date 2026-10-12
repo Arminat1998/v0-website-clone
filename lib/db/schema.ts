@@ -137,7 +137,7 @@ export type InvoiceMethod = (typeof INVOICE_METHODS)[number]
 export const INVOICE_STATUSES = ["submitted", "approved", "rejected"] as const
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number]
 
-export type InvoiceLineKey = "performance" | "equipment" | "travel"
+export type InvoiceLineKey = "performance" | "equipment" | "travel" | "parking" | "extra"
 
 /** One invoice row, snapshotted at submission so later rate changes never alter an issued invoice. */
 export interface InvoiceLine {

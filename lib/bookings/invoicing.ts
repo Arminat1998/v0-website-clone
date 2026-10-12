@@ -1,5 +1,5 @@
 import type { BillingProfile, Booking, Invoice, InvoiceLine } from "@/lib/db/schema"
-import { EQUIPMENT_OPTIONS, TRAVEL_RATE_CENTS_PER_KM } from "@/lib/bookings/pricing"
+import { EQUIPMENT_OPTIONS, TRAVEL_RATE_CENTS_PER_KM, platformFeeCents, travelCents } from "@/lib/bookings/pricing"
 
 /** Dutch VAT rates in percent. Equipment rental is always standard-rated; a live performance by a
  *  performing artist is reduced-rated; passed-on costs (travel) follow the rate of the main service. */
@@ -47,6 +47,52 @@ type PricedBooking = Pick<
 >
 type VatProfile = Pick<BillingProfile, "vatScheme" | "performanceVatRate">
 
+/** Costs the professional may correct or add while submitting the invoice. */
+export interface ExtraCost {
+  description: string
+  amountCents: number
+}
+export interface InvoiceAdjustments {
+  /** One-way distance in km; the invoice line bills the return trip. */
+  distanceKm: number
+  parkingCents: number
+  extras: ExtraCost[]
+}
+
+export const MAX_DISTANCE_KM = 1500
+export const MAX_PARKING_CENTS = 50_000
+export const MAX_EXTRA_CENTS = 250_000
+export const MAX_EXTRA_COSTS = 5
+
+export function defaultAdjustments(booking: Pick<Booking, "distanceKm">): InvoiceAdjustments {
+  return { distanceKm: booking.distanceKm, parkingCents: 0, extras: [] }
+}
+
+const clampInt = (value: unknown, max: number) => {
+  const n = Math.round(Number(value))
+  return Number.isFinite(n) ? Math.min(Math.max(n, 0), max) : 0
+}
+
+/** Normalises untrusted adjustment input: clamps ranges, drops empty extras, limits the list. */
+export function sanitizeAdjustments(input: Partial<InvoiceAdjustments> | undefined, booking: Pick<Booking, "distanceKm">): InvoiceAdjustments {
+  if (!input) return defaultAdjustments(booking)
+  const extras = (Array.isArray(input.extras) ? input.extras : [])
+    .map((e) => ({ description: String(e?.description ?? "").trim().slice(0, 120), amountCents: clampInt(e?.amountCents, MAX_EXTRA_CENTS) }))
+    .filter((e) => e.description && e.amountCents > 0)
+    .slice(0, MAX_EXTRA_COSTS)
+  return {
+    distanceKm: clampInt(input.distanceKm ?? booking.distanceKm, MAX_DISTANCE_KM),
+    parkingCents: clampInt(input.parkingCents, MAX_PARKING_CENTS),
+    extras,
+  }
+}
+
+/** The platform fee is a percentage of the invoiced total, so added costs raise the fee too. */
+export function payoutFor(totalCents: number) {
+  const feeCents = platformFeeCents(totalCents)
+  return { feeCents, payoutCents: totalCents - feeCents }
+}
+
 function line(
   key: InvoiceLine["key"],
   description: string,
@@ -64,12 +110,12 @@ function line(
  * Builds the invoice lines for a booking. Booking amounts are what the client pays (VAT inclusive),
  * so the invoice total always equals the booking total; VAT is extracted per line.
  */
-export function buildInvoiceLines(booking: PricedBooking, profile: VatProfile): InvoiceLine[] {
+export function buildInvoiceLines(booking: PricedBooking, profile: VatProfile, adjustments: InvoiceAdjustments = defaultAdjustments(booking)): InvoiceLine[] {
   const kor = profile.vatScheme === "kor"
   const performanceRate = kor ? 0 : profile.performanceVatRate
   const equipmentRate = kor ? 0 : STANDARD_VAT_RATE
   const hours = Number(booking.hours)
-  const performanceGross = booking.totalCents - booking.equipmentCents - booking.travelCents
+  const performanceGross = Math.round(hours * booking.hourlyRateCents)
 
   const lines: InvoiceLine[] = [
     line(
@@ -95,9 +141,17 @@ export function buildInvoiceLines(booking: PricedBooking, profile: VatProfile): 
     lines.push(line("equipment", "Huur apparatuur", 1, "stuk", equipmentRemainder, equipmentRemainder, equipmentRate))
   }
 
-  if (booking.travelCents > 0) {
-    const km = booking.distanceKm * 2
-    lines.push(line("travel", `Reiskosten ${km} km retour`, km, "km", TRAVEL_RATE_CENTS_PER_KM, booking.travelCents, performanceRate))
+  if (adjustments.distanceKm > 0) {
+    const km = adjustments.distanceKm * 2
+    lines.push(line("travel", `Reiskosten ${km} km retour`, km, "km", TRAVEL_RATE_CENTS_PER_KM, travelCents(adjustments.distanceKm), performanceRate))
+  }
+
+  if (adjustments.parkingCents > 0) {
+    lines.push(line("parking", "Parkeerkosten", 1, "stuk", adjustments.parkingCents, adjustments.parkingCents, performanceRate))
+  }
+
+  for (const extra of adjustments.extras) {
+    lines.push(line("extra", extra.description, 1, "stuk", extra.amountCents, extra.amountCents, performanceRate))
   }
 
   return lines

@@ -44,6 +44,10 @@ export function travelCents(distanceKm: number) {
   return Math.round(distanceKm * 2 * TRAVEL_RATE_CENTS_PER_KM)
 }
 
+export function platformFeeCents(totalCents: number) {
+  return Math.round(totalCents * PLATFORM_FEE_RATE)
+}
+
 export interface PricingInput {
   hourlyRateCents: number
   startTime: string
@@ -69,7 +73,7 @@ export function calculatePricing(input: PricingInput): Pricing {
   const equipment = equipmentCents(input.equipment)
   const travel = travelCents(input.distanceKm)
   const total = performance + equipment + travel
-  const fee = Math.round(total * PLATFORM_FEE_RATE)
+  const fee = platformFeeCents(total)
   return {
     hours,
     hourlyRateCents: input.hourlyRateCents,
