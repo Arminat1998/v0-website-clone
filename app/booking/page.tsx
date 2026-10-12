@@ -298,7 +298,7 @@ export default function BookingPage() {
         `https://nominatim.openstreetmap.org/search?format=json&q=${professionalLocationQuery}&limit=1`,
         {
           headers: {
-            'User-Agent': 'MyEventHub-Booking-App'
+            'User-Agent': 'ARSIEvents-Booking-App'
           }
         }
       )
@@ -310,7 +310,7 @@ export default function BookingPage() {
         `https://nominatim.openstreetmap.org/search?format=json&q=${eventLocationQuery},Netherlands&limit=1`,
         {
           headers: {
-            'User-Agent': 'MyEventHub-Booking-App'
+            'User-Agent': 'ARSIEvents-Booking-App'
           }
         }
       )

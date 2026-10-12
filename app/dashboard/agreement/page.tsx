@@ -33,7 +33,7 @@ export default function AgreementPage() {
                   1. General Terms
                 </h2>
                 <p className="leading-relaxed">
-                  By registering as a DJ on MyEventHub, you agree to the following terms and conditions.
+                  By registering as a DJ on ARSI Events, you agree to the following terms and conditions.
                   This agreement ensures clear expectations and a professional working relationship between you
                   and the platform.
                 </p>
@@ -59,7 +59,7 @@ export default function AgreementPage() {
                 <ul className="space-y-1.5 sm:space-y-2 list-disc list-inside pl-1 sm:pl-2">
                   <li>DJs set their own hourly rate via the platform.</li>
                   <li>Rates exclude equipment and travel costs unless noted.</li>
-                  <li>MyEventHub may deduct a service fee per booking.</li>
+                  <li>ARSI Events may deduct a service fee per booking.</li>
                 </ul>
               </section>
 
@@ -137,7 +137,7 @@ export default function AgreementPage() {
                   10. Account Termination
                 </h2>
                 <ul className="space-y-1.5 sm:space-y-2 list-disc list-inside pl-1 sm:pl-2">
-                  <li>MyEventHub may terminate accounts for rule violations or repeated complaints.</li>
+                  <li>ARSI Events may terminate accounts for rule violations or repeated complaints.</li>
                   <li>DJs may request account deletion at any time.</li>
                 </ul>
               </section>
@@ -155,7 +155,7 @@ export default function AgreementPage() {
                 <ul className="space-y-1.5 sm:space-y-2 list-disc list-inside pl-7 sm:pl-9 text-xs sm:text-sm text-foreground">
                   <li>You've read and understood the terms above</li>
                   <li>You agree to act professionally and ethically</li>
-                  <li>You accept the working method of MyEventHub</li>
+                  <li>You accept the working method of ARSI Events</li>
                 </ul>
               </div>
 

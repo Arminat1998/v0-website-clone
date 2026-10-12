@@ -413,7 +413,7 @@ export default function EditProfilePage() {
                     ))}
                   </ul>
                   <p className="text-xs sm:text-sm md:text-base font-medium leading-relaxed text-red-500">
-                    All equipment and its condition will be verified before your profile goes live on My Event Hub
+                    All equipment and its condition will be verified before your profile goes live on ARSI Events
                     platform.
                   </p>
                 </div>

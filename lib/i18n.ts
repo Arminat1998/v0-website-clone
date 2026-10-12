@@ -422,7 +422,7 @@ export const translations: Record<Language, Translations> = {
     // Footer
     aboutUs: "Over Ons",
     aboutUsDescription:
-      "My Event Hub is jouw alles-in-één platform voor moeiteloos evenement plannen en betrouwbare professionals.",
+      "ARSI Events is jouw alles-in-één platform voor moeiteloos evenement plannen en betrouwbare professionals.",
     quickLinks: "Snelle Links",
     howItWorks: "Hoe Het Werkt",
     findVendors: "Vind Professionals",
@@ -739,7 +739,7 @@ export const translations: Record<Language, Translations> = {
     // Footer
     aboutUs: "About Us",
     aboutUsDescription:
-      "My Event Hub is your all-in-one platform for effortless event planning and trusted professional connections.",
+      "ARSI Events is your all-in-one platform for effortless event planning and trusted professional connections.",
     quickLinks: "Quick Links",
     howItWorks: "How It Works",
     findVendors: "Find Professionals",
