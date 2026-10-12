@@ -9,7 +9,7 @@ export const EQUIPMENT_OPTIONS = [
 export type EquipmentId = (typeof EQUIPMENT_OPTIONS)[number]["id"]
 
 export const TRAVEL_RATE_CENTS_PER_KM = 25
-export const PLATFORM_FEE_RATE = 0.1
+export const PLATFORM_FEE_RATE = 0.3
 
 export function equipmentLabel(id: string) {
   return EQUIPMENT_OPTIONS.find((option) => option.id === id)?.label ?? id
