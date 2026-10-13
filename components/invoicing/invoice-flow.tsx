@@ -11,6 +11,9 @@ import { formatEuro } from "@/lib/bookings/pricing"
 import { bookingNumber, clientName, formatDateTime, formatEventDate } from "@/lib/bookings/format"
 import {
   buildInvoiceLines,
+  defaultAdjustments,
+  payoutFor,
+  type InvoiceAdjustments,
   formatIban,
   invoiceFileUrl,
   isBillingProfileComplete,
@@ -25,6 +28,7 @@ import { InvoiceSpecification } from "./invoice-specification"
 import { InvoiceDocument } from "./invoice-document"
 import { BillingProfileForm } from "./billing-profile-form"
 import { InvoiceUpload } from "./invoice-upload"
+import { InvoiceCosts } from "./invoice-costs"
 
 type Step = 0 | 1 | 2
 
@@ -50,8 +54,16 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const [isPending, startTransition] = useTransition()
 
   // VAT settings live on the profile, so the lines follow any edits made during the flow.
-  const lines = useMemo(() => buildInvoiceLines(booking, profile), [booking, profile])
+  const [adjustments, setAdjustments] = useState<InvoiceAdjustments>(() => context.invoice ? {
+    distanceKm: (context.invoice.lines.find((line) => line.key === "travel")?.quantity ?? 0) / 2,
+    parkingCents: context.invoice.lines.find((line) => line.key === "parking")?.grossCents ?? 0,
+    extras: context.invoice.lines.filter((line) => line.key === "extra").map((line) => ({ description: line.description, amountCents: line.grossCents })),
+  } : defaultAdjustments(booking))
+  const lines = useMemo(() => invoice && step === 2 ? invoice.lines : buildInvoiceLines(booking, profile, adjustments), [booking, profile, adjustments, invoice, step])
   const totals = useMemo(() => sumInvoiceLines(lines), [lines])
+  const payout = payoutFor(totals.totalCents)
+  const pricedBooking = { ...booking, platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents }
+  const costsValid = adjustments.extras.every((extra) => extra.description.trim().length > 0 && extra.amountCents > 0)
   const profileComplete = isBillingProfileComplete(profile)
   const declaredCents = parseEuroInput(declaredTotal)
   const totalMatches = declaredCents !== null && declaredCents === totals.totalCents
@@ -79,8 +91,8 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
       try {
         const result =
           method === "self_billing"
-            ? await submitSelfBillingInvoice({ bookingId: booking.id, invoiceNumber, invoiceDate })
-            : await submitUploadedInvoice({ bookingId: booking.id, invoiceNumber, invoiceDate, declaredTotalCents: declaredCents ?? 0, file: file! })
+            ? await submitSelfBillingInvoice({ bookingId: booking.id, adjustments, invoiceNumber, invoiceDate })
+            : await submitUploadedInvoice({ bookingId: booking.id, adjustments, invoiceNumber, invoiceDate, declaredTotalCents: declaredCents ?? 0, file: file! })
         setInvoice(result)
         setStep(2)
         window.scrollTo({ top: 0, behavior: "smooth" })
@@ -156,13 +168,14 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
 
         {step === 0 && (
           <div className="flex flex-col gap-6">
-            <InvoiceSpecification lines={lines} totals={totals} booking={booking} profile={profile} />
+            <InvoiceCosts value={adjustments} onChange={(value) => { setAdjustments(value); setChecked(false) }} />
+            <InvoiceSpecification lines={lines} totals={totals} booking={pricedBooking} profile={profile} />
             <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
               <label className="flex cursor-pointer items-start gap-3 text-sm text-foreground">
                 <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="mt-0.5 h-4 w-4 accent-red-600" />
                 {ti.checkedLabel}
               </label>
-              <Button disabled={!checked} onClick={() => setStep(1)} className="bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground">
+              <Button disabled={!checked || !costsValid} onClick={() => setStep(1)} className="bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground">
                 {ti.next}
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </Button>
@@ -332,11 +345,11 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-muted-foreground">{ti.serviceFee}</dt>
-                    <dd className="tabular-nums text-muted-foreground">- {formatEuro(booking.platformFeeCents, locale)}</dd>
+                    <dd className="tabular-nums text-muted-foreground">- {formatEuro(pricedBooking.platformFeeCents, locale)}</dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
                     <dt className="font-semibold text-foreground">{ti.payout}</dt>
-                    <dd className="text-2xl font-bold tabular-nums text-green-500">{formatEuro(booking.payoutCents, locale)}</dd>
+                    <dd className="text-2xl font-bold tabular-nums text-green-500">{formatEuro(pricedBooking.payoutCents, locale)}</dd>
                   </div>
                 </dl>
                 {profile.iban && (
@@ -359,7 +372,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 <h1 id="done-heading" className="text-2xl font-bold text-foreground md:text-3xl">
                   {ti.doneTitle}
                 </h1>
-                <p className="mt-2 text-pretty text-muted-foreground">{ti.doneBody(formatEuro(booking.payoutCents, locale))}</p>
+                <p className="mt-2 text-pretty text-muted-foreground">{ti.doneBody(formatEuro(pricedBooking.payoutCents, locale))}</p>
                 {profile.iban && (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {ti.doneIban} <span className="font-mono text-foreground">{formatIban(profile.iban)}</span>

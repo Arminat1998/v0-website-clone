@@ -20,6 +20,9 @@ import { getProfessionalId } from "@/lib/bookings/professional"
 import { todayIso } from "@/lib/bookings/format"
 import {
   buildInvoiceLines,
+  sanitizeAdjustments,
+  payoutFor,
+  type InvoiceAdjustments,
   invoiceBlobPrefix,
   isBillingProfileComplete,
   PERFORMANCE_VAT_RATES,
@@ -160,7 +163,7 @@ async function notifyInvoiceReceived(professionalId: string, booking: Booking, i
   })
 }
 
-export async function submitSelfBillingInvoice(input: { bookingId: number; invoiceNumber: string; invoiceDate: string }) {
+export async function submitSelfBillingInvoice(input: { bookingId: number; invoiceNumber: string; invoiceDate: string; adjustments?: InvoiceAdjustments }) {
   const professionalId = await getProfessionalId()
   const booking = await getOwnedCompletedBooking(input.bookingId, professionalId)
   if (!booking) throw new Error("Booking not found or not completed")
@@ -168,7 +171,8 @@ export async function submitSelfBillingInvoice(input: { bookingId: number; invoi
   if (!isBillingProfileComplete(profile)) throw new Error("Billing profile incomplete")
   assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
 
-  const lines = buildInvoiceLines(booking, profile)
+  if (booking.payoutStatus === "paid") throw new Error("Payout already completed")
+  const lines = buildInvoiceLines(booking, profile, sanitizeAdjustments(input.adjustments, booking))
   const totals = sumInvoiceLines(lines)
   const invoiceNumber = input.invoiceNumber.trim()
 
@@ -217,7 +221,10 @@ export async function submitSelfBillingInvoice(input: { bookingId: number; invoi
     })
     .where(eq(billingProfiles.professionalId, professionalId))
 
-  await notifyInvoiceReceived(professionalId, booking, invoiceNumber)
+  const payout = payoutFor(totals.totalCents)
+  await db.update(bookings).set({ platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents, updatedAt: new Date() })
+    .where(and(eq(bookings.id, booking.id), eq(bookings.professionalId, professionalId)))
+  await notifyInvoiceReceived(professionalId, { ...booking, payoutCents: payout.payoutCents }, invoiceNumber)
   revalidateInvoicePaths(booking.id)
   return invoice
 }
@@ -234,6 +241,7 @@ export async function submitUploadedInvoice(input: {
   invoiceNumber: string
   invoiceDate: string
   declaredTotalCents: number
+  adjustments?: InvoiceAdjustments
   file: UploadedInvoiceFile
 }) {
   const professionalId = await getProfessionalId()
@@ -243,7 +251,8 @@ export async function submitUploadedInvoice(input: {
   assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
   if (!input.file.pathname.startsWith(invoiceBlobPrefix(professionalId, booking.id))) throw new Error("Invalid file")
 
-  const lines = buildInvoiceLines(booking, profile)
+  if (booking.payoutStatus === "paid") throw new Error("Payout already completed")
+  const lines = buildInvoiceLines(booking, profile, sanitizeAdjustments(input.adjustments, booking))
   const totals = sumInvoiceLines(lines)
   if (input.declaredTotalCents !== totals.totalCents) throw new Error("TOTAL_MISMATCH")
   const invoiceNumber = input.invoiceNumber.trim()
@@ -289,7 +298,10 @@ export async function submitUploadedInvoice(input: {
     })
     .returning()
 
-  await notifyInvoiceReceived(professionalId, booking, invoiceNumber)
+  const payout = payoutFor(totals.totalCents)
+  await db.update(bookings).set({ platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents, updatedAt: new Date() })
+    .where(and(eq(bookings.id, booking.id), eq(bookings.professionalId, professionalId)))
+  await notifyInvoiceReceived(professionalId, { ...booking, payoutCents: payout.payoutCents }, invoiceNumber)
   revalidateInvoicePaths(booking.id)
   return invoice
 }

@@ -76,6 +76,10 @@ const clampInt = (value: unknown, max: number) => {
 /** Normalises untrusted adjustment input: clamps ranges, drops empty extras, limits the list. */
 export function sanitizeAdjustments(input: Partial<InvoiceAdjustments> | undefined, booking: Pick<Booking, "distanceKm">): InvoiceAdjustments {
   if (!input) return defaultAdjustments(booking)
+  const valid = (n: unknown, max: number) => typeof n === "number" && Number.isSafeInteger(n) && n >= 0 && n <= max
+  if (!valid(input.distanceKm, MAX_DISTANCE_KM) || !valid(input.parkingCents, MAX_PARKING_CENTS) || !Array.isArray(input.extras) || input.extras.length > MAX_EXTRA_COSTS || input.extras.some((e) => !e || typeof e.description !== "string" || !e.description.trim() || e.description.length > 120 || !valid(e.amountCents, MAX_EXTRA_CENTS) || e.amountCents === 0)) {
+    throw new Error("INVALID_INVOICE_COSTS")
+  }
   const extras = (Array.isArray(input.extras) ? input.extras : [])
     .map((e) => ({ description: String(e?.description ?? "").trim().slice(0, 120), amountCents: clampInt(e?.amountCents, MAX_EXTRA_CENTS) }))
     .filter((e) => e.description && e.amountCents > 0)
