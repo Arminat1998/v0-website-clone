@@ -26,7 +26,7 @@ export function BookingCard({ booking }: { booking: Booking & { invoice?: Invoic
 
   return (
     <Link
-      href={needsInvoice ? `/dashboard/bookings/${booking.id}/invoice` : `/dashboard/bookings/${booking.id}`}
+      href={booking.status === "completed" ? `/dashboard/bookings/${booking.id}/invoice` : `/dashboard/bookings/${booking.id}`}
       className={`group block rounded-lg border bg-card p-5 transition-colors hover:bg-accent md:p-6 ${needsInvoice ? "border-amber-500/40" : "border-border"}`}
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -107,7 +107,11 @@ export function BookingCard({ booking }: { booking: Booking & { invoice?: Invoic
             )}
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-red-500 group-hover:underline">
-            {needsInvoice ? t.invoice.panelCta : booking.status === "accepted" ? t.common.openRunSheet : booking.status === "completed" ? t.common.receipt : t.common.viewDetails}
+            {booking.status === "completed"
+              ? needsInvoice
+                ? (locale.startsWith("nl") ? "Factuur uploaden / indienen" : "Upload / submit invoice")
+                : (locale.startsWith("nl") ? "Factuur bekijken" : "View invoice")
+              : booking.status === "accepted" ? t.common.openRunSheet : t.common.viewDetails}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
         </div>
