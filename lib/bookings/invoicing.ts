@@ -48,15 +48,32 @@ type PricedBooking = Pick<
 type VatProfile = Pick<BillingProfile, "vatScheme" | "performanceVatRate">
 
 /** Costs the professional may correct or add while submitting the invoice. */
+export type ReceiptFile = NonNullable<InvoiceLine["receipt"]>
 export interface ExtraCost {
   description: string
   amountCents: number
+  receipt?: ReceiptFile | null
 }
 export interface InvoiceAdjustments {
   /** One-way distance in km; the invoice line bills the return trip. */
   distanceKm: number
   parkingCents: number
+  parkingReceipt?: ReceiptFile | null
   extras: ExtraCost[]
+}
+
+function cleanReceipt(receipt: unknown): ReceiptFile {
+  const r = receipt as Partial<ReceiptFile> | null | undefined
+  if (!r || typeof r.pathname !== "string" || typeof r.name !== "string" || typeof r.size !== "number" || typeof r.contentType !== "string" || !(INVOICE_FILE_TYPES as readonly string[]).includes(r.contentType) || r.size <= 0 || r.size > MAX_INVOICE_FILE_BYTES) {
+    throw new Error("RECEIPT_REQUIRED")
+  }
+  return { pathname: r.pathname, name: r.name.slice(0, 200), size: r.size, contentType: r.contentType }
+}
+
+/** Every parking and extra cost needs a receipt stored under this booking's own blob prefix. */
+export function assertReceiptsOwned(adjustments: InvoiceAdjustments, prefix: string) {
+  const receipts = [adjustments.parkingCents > 0 ? adjustments.parkingReceipt : undefined, ...adjustments.extras.map((e) => e.receipt)].filter((r) => r !== undefined)
+  if (receipts.some((r) => !r || !r.pathname.startsWith(prefix))) throw new Error("RECEIPT_REQUIRED")
 }
 
 export const MAX_DISTANCE_KM = 1500
@@ -81,12 +98,14 @@ export function sanitizeAdjustments(input: Partial<InvoiceAdjustments> | undefin
     throw new Error("INVALID_INVOICE_COSTS")
   }
   const extras = (Array.isArray(input.extras) ? input.extras : [])
-    .map((e) => ({ description: String(e?.description ?? "").trim().slice(0, 120), amountCents: clampInt(e?.amountCents, MAX_EXTRA_CENTS) }))
+    .map((e) => ({ description: String(e?.description ?? "").trim().slice(0, 120), amountCents: clampInt(e?.amountCents, MAX_EXTRA_CENTS), receipt: cleanReceipt(e?.receipt) }))
     .filter((e) => e.description && e.amountCents > 0)
     .slice(0, MAX_EXTRA_COSTS)
+  const parkingCents = clampInt(input.parkingCents, MAX_PARKING_CENTS)
   return {
     distanceKm: clampInt(input.distanceKm ?? booking.distanceKm, MAX_DISTANCE_KM),
-    parkingCents: clampInt(input.parkingCents, MAX_PARKING_CENTS),
+    parkingCents,
+    parkingReceipt: parkingCents > 0 ? cleanReceipt(input.parkingReceipt) : null,
     extras,
   }
 }
@@ -151,11 +170,13 @@ export function buildInvoiceLines(booking: PricedBooking, profile: VatProfile, a
   }
 
   if (adjustments.parkingCents > 0) {
-    lines.push(line("parking", "Parkeerkosten", 1, "stuk", adjustments.parkingCents, adjustments.parkingCents, performanceRate))
+    const parking = line("parking", "Parkeerkosten", 1, "stuk", adjustments.parkingCents, adjustments.parkingCents, performanceRate)
+    lines.push(adjustments.parkingReceipt ? { ...parking, receipt: adjustments.parkingReceipt } : parking)
   }
 
   for (const extra of adjustments.extras) {
-    lines.push(line("extra", extra.description, 1, "stuk", extra.amountCents, extra.amountCents, performanceRate))
+    const extraLine = line("extra", extra.description, 1, "stuk", extra.amountCents, extra.amountCents, performanceRate)
+    lines.push(extra.receipt ? { ...extraLine, receipt: extra.receipt } : extraLine)
   }
 
   return lines

@@ -57,13 +57,16 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const [adjustments, setAdjustments] = useState<InvoiceAdjustments>(() => context.invoice ? {
     distanceKm: (context.invoice.lines.find((line) => line.key === "travel")?.quantity ?? 0) / 2,
     parkingCents: context.invoice.lines.find((line) => line.key === "parking")?.grossCents ?? 0,
-    extras: context.invoice.lines.filter((line) => line.key === "extra").map((line) => ({ description: line.description, amountCents: line.grossCents })),
+    parkingReceipt: context.invoice.lines.find((line) => line.key === "parking")?.receipt ?? null,
+    extras: context.invoice.lines.filter((line) => line.key === "extra").map((line) => ({ description: line.description, amountCents: line.grossCents, receipt: line.receipt ?? null })),
   } : defaultAdjustments(booking))
   const lines = useMemo(() => invoice && step === 2 ? invoice.lines : buildInvoiceLines(booking, profile, adjustments), [booking, profile, adjustments, invoice, step])
   const totals = useMemo(() => sumInvoiceLines(lines), [lines])
   const payout = payoutFor(totals.totalCents)
   const pricedBooking = { ...booking, platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents }
-  const costsValid = adjustments.extras.every((extra) => extra.description.trim().length > 0 && extra.amountCents > 0)
+  const costsValid =
+    (adjustments.parkingCents === 0 || Boolean(adjustments.parkingReceipt)) &&
+    adjustments.extras.every((extra) => extra.description.trim().length > 0 && extra.amountCents > 0 && Boolean(extra.receipt))
   const profileComplete = isBillingProfileComplete(profile)
   const declaredCents = parseEuroInput(declaredTotal)
   const totalMatches = declaredCents !== null && declaredCents === totals.totalCents
@@ -168,7 +171,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
 
         {step === 0 && (
           <div className="flex flex-col gap-6">
-            <InvoiceCosts value={adjustments} onChange={(value) => { setAdjustments(value); setChecked(false) }} />
+            <InvoiceCosts bookingId={booking.id} value={adjustments} onChange={(value) => { setAdjustments(value); setChecked(false) }} />
             <InvoiceSpecification lines={lines} totals={totals} booking={pricedBooking} profile={profile} />
             <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
               <label className="flex cursor-pointer items-start gap-3 text-sm text-foreground">

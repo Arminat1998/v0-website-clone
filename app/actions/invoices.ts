@@ -23,6 +23,7 @@ import {
   sanitizeAdjustments,
   payoutFor,
   type InvoiceAdjustments,
+  assertReceiptsOwned,
   invoiceBlobPrefix,
   isBillingProfileComplete,
   PERFORMANCE_VAT_RATES,
@@ -172,7 +173,9 @@ export async function submitSelfBillingInvoice(input: { bookingId: number; invoi
   assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
 
   if (booking.payoutStatus === "paid") throw new Error("Payout already completed")
-  const lines = buildInvoiceLines(booking, profile, sanitizeAdjustments(input.adjustments, booking))
+  const adjustments = sanitizeAdjustments(input.adjustments, booking)
+  assertReceiptsOwned(adjustments, invoiceBlobPrefix(professionalId, booking.id))
+  const lines = buildInvoiceLines(booking, profile, adjustments)
   const totals = sumInvoiceLines(lines)
   const invoiceNumber = input.invoiceNumber.trim()
 
@@ -252,7 +255,9 @@ export async function submitUploadedInvoice(input: {
   if (!input.file.pathname.startsWith(invoiceBlobPrefix(professionalId, booking.id))) throw new Error("Invalid file")
 
   if (booking.payoutStatus === "paid") throw new Error("Payout already completed")
-  const lines = buildInvoiceLines(booking, profile, sanitizeAdjustments(input.adjustments, booking))
+  const adjustments = sanitizeAdjustments(input.adjustments, booking)
+  assertReceiptsOwned(adjustments, invoiceBlobPrefix(professionalId, booking.id))
+  const lines = buildInvoiceLines(booking, profile, adjustments)
   const totals = sumInvoiceLines(lines)
   if (input.declaredTotalCents !== totals.totalCents) throw new Error("TOTAL_MISMATCH")
   const invoiceNumber = input.invoiceNumber.trim()

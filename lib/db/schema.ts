@@ -150,6 +150,7 @@ export interface InvoiceLine {
   grossCents: number
   vatCents: number
   netCents: number
+  receipt?: { pathname: string; name: string; size: number; contentType: string }
 }
 
 export const invoices = pgTable("invoices", {
