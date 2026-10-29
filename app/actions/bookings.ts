@@ -7,6 +7,46 @@ import { bookings, invoices, notifications, type Booking, type Invoice, type Not
 import { calculatePricing, parseHourlyRateCents } from "@/lib/bookings/pricing"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
+import { getSession } from "@/lib/session"
+
+export type CustomerBooking = Pick<
+  Booking,
+  | "id"
+  | "professionalId"
+  | "professionalName"
+  | "professionalType"
+  | "status"
+  | "eventName"
+  | "eventDate"
+  | "startTime"
+  | "endTime"
+  | "city"
+  | "totalCents"
+  | "createdAt"
+>
+
+export async function getMyBookings(): Promise<CustomerBooking[]> {
+  const session = await getSession()
+  if (!session?.user) throw new Error("Unauthorized")
+  return db
+    .select({
+      id: bookings.id,
+      professionalId: bookings.professionalId,
+      professionalName: bookings.professionalName,
+      professionalType: bookings.professionalType,
+      status: bookings.status,
+      eventName: bookings.eventName,
+      eventDate: bookings.eventDate,
+      startTime: bookings.startTime,
+      endTime: bookings.endTime,
+      city: bookings.city,
+      totalCents: bookings.totalCents,
+      createdAt: bookings.createdAt,
+    })
+    .from(bookings)
+    .where(eq(bookings.customerId, session.user.id))
+    .orderBy(desc(bookings.eventDate))
+}
 
 const DASHBOARD_PATHS = [
   "/dashboard",
@@ -71,6 +111,10 @@ export interface CreateBookingInput {
 const orNull = (value: string) => (value.trim() ? value.trim() : null)
 
 export async function createBooking(input: CreateBookingInput) {
+  const session = await getSession()
+  if (!session?.user) throw new Error("Unauthorized")
+  const customerId = session.user.id
+
   if (!input.professionalId || !input.eventDate || !input.startTime || !input.endTime) {
     throw new Error("Missing required booking fields")
   }
@@ -91,6 +135,7 @@ export async function createBooking(input: CreateBookingInput) {
   const [created] = await db
     .insert(bookings)
     .values({
+      customerId,
       professionalId: input.professionalId,
       professionalName: input.professionalName,
       professionalType: input.professionalType,

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { authClient } from "@/lib/auth-client"
 import { LoginModal } from "@/components/login-modal"
 import { SignupModal } from "@/components/signup-modal"
 import { ForgotPasswordModal } from "@/components/forgot-password-modal"
@@ -17,7 +19,19 @@ export function Header() {
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [signupModalOpen, setSignupModalOpen] = useState(false)
   const [forgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { data: sessionData, isPending } = authClient.useSession()
+  const router = useRouter()
+  const isLoggedIn = Boolean(sessionData?.user)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get("login") === "1") {
+      setLoginModalOpen(true)
+      params.delete("login")
+      const query = params.toString()
+      window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : ""))
+    }
+  }, [])
 
   const switchToSignup = () => {
     setLoginModalOpen(false)
@@ -35,19 +49,18 @@ export function Header() {
     setForgotPasswordModalOpen(true)
   }
 
-  const handleSignOut = () => {
-    setIsLoggedIn(false)
+  const handleSignOut = async () => {
+    await authClient.signOut()
+    router.push("/")
+    router.refresh()
   }
 
   const handleLogin = () => {
-    setIsLoggedIn(true)
     setLoginModalOpen(false)
+    router.refresh()
   }
 
-  const handleSignup = (accountType?: string) => {
-    if (accountType !== "professional") {
-      setIsLoggedIn(true)
-    }
+  const handleSignup = () => {
     setSignupModalOpen(false)
   }
 
@@ -101,8 +114,15 @@ export function Header() {
             <Sun className="hidden h-4 w-4 sm:h-5 sm:w-5 dark:block" />
           </Button>
 
-          {isLoggedIn ? (
-            <ProfileDropdown onSignOut={handleSignOut} />
+          {isPending ? (
+            <div className="h-8 w-24 sm:h-10 sm:w-40" aria-hidden="true" />
+          ) : isLoggedIn && sessionData ? (
+            <ProfileDropdown
+              name={sessionData.user.name}
+              image={sessionData.user.image}
+              role={sessionData.user.role}
+              onSignOut={handleSignOut}
+            />
           ) : (
             <>
               <Button

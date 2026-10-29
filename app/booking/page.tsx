@@ -10,6 +10,7 @@ import { artists, photographers } from "@/lib/smart-search"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { createBooking, getBlockedDates } from "@/app/actions/bookings"
+import { authClient } from "@/lib/auth-client"
 import { calculatePricing, formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
 
 export default function BookingPage() {
@@ -82,6 +83,18 @@ export default function BookingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const { data: sessionData } = authClient.useSession()
+
+  useEffect(() => {
+    const user = sessionData?.user
+    if (!user) return
+    const [first, ...rest] = user.name.split(" ")
+    setFirstName((current) => current || first)
+    setLastName((current) => current || rest.join(" "))
+    setEmail((current) => current || user.email)
+    setPhone((current) => current || user.phone || "")
+    setSubmitError(null)
+  }, [sessionData?.user])
   const [bookingId, setBookingId] = useState<number | null>(null)
 
   const professionalKey = artistId ?? professionalId
@@ -161,6 +174,11 @@ export default function BookingPage() {
   })
 
   const handleSubmitBooking = async () => {
+    if (!sessionData?.user) {
+      setSubmitError("Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return
+    }
     setSubmitting(true)
     setSubmitError(null)
     try {

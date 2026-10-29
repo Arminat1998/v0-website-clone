@@ -3,8 +3,9 @@
 import type { ReactNode } from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { ArrowLeft, User, Menu, X, Sun, Moon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import { ArrowLeft, LogOut, User, Menu, X, Sun, Moon } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 import Image from "next/image"
 import { useTheme } from "@/contexts/theme-context"
 import { useLanguage } from "@/contexts/language-context"
@@ -18,7 +19,15 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const { toggleTheme } = useTheme()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const router = useRouter()
+  const { data: sessionData } = authClient.useSession()
+
+  const handleSignOut = async () => {
+    await authClient.signOut()
+    router.push("/")
+    router.refresh()
+  }
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const menuItems = [
@@ -137,10 +146,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Profile Avatar */}
-        <div className="p-4 flex justify-center flex-shrink-0">
+        <div className="p-4 flex flex-col items-center gap-2 flex-shrink-0">
           <div className="w-10 h-10 rounded-full bg-accent border-2 border-border flex items-center justify-center">
             <User className="w-5 h-5 text-muted-foreground" />
           </div>
+          {sessionData?.user && (
+            <p className="max-w-full truncate text-xs text-muted-foreground">{sessionData.user.name}</p>
+          )}
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            {language === "nl" ? "Uitloggen" : "Sign out"}
+          </button>
         </div>
       </aside>
 

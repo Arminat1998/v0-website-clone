@@ -1,70 +1,64 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { User } from "lucide-react"
 import Link from "next/link"
+import { CalendarCheck, LayoutDashboard, LogOut, User } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useLanguage } from "@/contexts/language-context"
 
 interface ProfileDropdownProps {
+  name: string
+  image?: string | null
+  role?: string | null
   onSignOut: () => void
 }
 
-export function ProfileDropdown({ onSignOut }: ProfileDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isOpen])
+export function ProfileDropdown({ name, image, role, onSignOut }: ProfileDropdownProps) {
+  const nl = useLanguage().language === "nl"
+  const isProfessional = role === "professional"
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-gray-200 border-4 border-blue-500 flex items-center justify-center hover:border-blue-600 transition-colors"
-        aria-label="Profile menu"
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={nl ? "Profielmenu" : "Profile menu"}
+        className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-accent hover:border-red-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <User className="w-7 h-7 text-gray-700" />
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-          <Link
-            href="/profile"
-            className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-            onClick={() => setIsOpen(false)}
-          >
-            Your Profile
-          </Link>
-          <Link
-            href="/dashboard"
-            className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-            onClick={() => setIsOpen(false)}
-          >
-            Dashboard
-          </Link>
-          <button
-            onClick={() => {
-              setIsOpen(false)
-              onSignOut()
-            }}
-            className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      )}
-    </div>
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <User className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+        )}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="truncate">{name}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {isProfessional ? (
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard" className="cursor-pointer">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              Dashboard
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem asChild>
+            <Link href="/mijn-boekingen" className="cursor-pointer">
+              <CalendarCheck className="mr-2 h-4 w-4" />
+              {nl ? "Mijn boekingen" : "My bookings"}
+            </Link>
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onSelect={onSignOut} className="cursor-pointer">
+          <LogOut className="mr-2 h-4 w-4" />
+          {nl ? "Uitloggen" : "Sign out"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
