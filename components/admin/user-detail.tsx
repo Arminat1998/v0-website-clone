@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Ban, Clock, EyeOff, LogOut, RotateCcw, TriangleAlert } from "lucide-react"
+import { ArrowLeft, Ban, Clock, EyeOff, LogOut, Pencil, RotateCcw, TriangleAlert, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -13,8 +13,10 @@ import {
   deleteUserNote,
   forceLogout,
   reinstateUser,
+  revokeWarning,
   suspendUser,
   unpublishProfessional,
+  updateWarning,
   warnUser,
 } from "@/app/actions/admin-users"
 import { useUsersT } from "@/lib/admin-users-i18n"
@@ -22,7 +24,7 @@ import type { AdminNote, AdminUserRow, AdminWarning, AuditEntry } from "@/lib/ad
 import { UserAvatar, UserStatusBadge } from "@/components/admin/moderation-ui"
 import { AuditLog } from "@/components/admin/audit-log"
 
-type ActionKind = "warn" | "suspend" | "ban" | "reinstate" | "logout" | "unpublish"
+type ActionKind = "warn" | "suspend" | "ban" | "reinstate" | "logout" | "unpublish" | "editWarning" | "revokeWarning"
 
 interface UserDetailProps {
   account: AdminUserRow
@@ -45,6 +47,14 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
   const [days, setDays] = useState("7")
   const [blacklistEmail, setBlacklistEmail] = useState(true)
   const [note, setNote] = useState("")
+  const [selectedWarning, setSelectedWarning] = useState<AdminWarning | null>(null)
+
+  const openWarning = (kind: "editWarning" | "revokeWarning", w: AdminWarning) => {
+    setSelectedWarning(w)
+    setMessage(w.message)
+    setSeverity(w.severity)
+    setAction(kind)
+  }
 
   const isAdmin = account.role === "admin"
   const restricted = account.status !== "active"
@@ -83,10 +93,17 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
         return run(() => forceLogout({ userId }), close)
       case "unpublish":
         return run(() => unpublishProfessional({ userId }), close)
+      case "editWarning":
+        if (!selectedWarning) return
+        return run(() => updateWarning({ warningId: selectedWarning.id, userId, message, severity }), close)
+      case "revokeWarning":
+        if (!selectedWarning) return
+        return run(() => revokeWarning({ warningId: selectedWarning.id, userId }), close)
     }
   }
 
-  const needsText = action === "warn" || action === "suspend" || action === "ban"
+  const needsText = action === "warn" || action === "suspend" || action === "ban" || action === "editWarning"
+  const showSeverity = action === "warn" || action === "editWarning"
   const dialog = {
     warn: { title: t.warnTitle, desc: t.warnDesc },
     suspend: { title: t.suspendTitle, desc: t.suspendDesc },
@@ -94,6 +111,8 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
     reinstate: { title: t.reinstateTitle, desc: t.reinstateDesc },
     logout: { title: t.logoutTitle, desc: t.logoutDesc },
     unpublish: { title: t.unpublishTitle, desc: t.unpublishDesc },
+    editWarning: { title: t.editWarningTitle, desc: t.editWarningDesc },
+    revokeWarning: { title: t.revokeWarningTitle, desc: t.revokeWarningDesc },
   }[action ?? "warn"]
 
   return (
@@ -209,6 +228,18 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
                   <p className="mt-2 text-xs text-muted-foreground">
                     {t.by} {w.adminName} · {w.acknowledgedAt ? `${t.acknowledged} ${formatDate(w.acknowledgedAt)}` : t.notAcknowledged}
                   </p>
+                  {!isAdmin && (
+                    <div className="mt-3 flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openWarning("editWarning", w)}>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t.editWarning}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openWarning("revokeWarning", w)}>
+                        <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t.revokeWarning}
+                      </Button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -272,7 +303,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
             <DialogDescription>{dialog.desc}</DialogDescription>
           </DialogHeader>
 
-          {action === "warn" && (
+          {showSeverity && (
             <div className="space-y-2">
               <label htmlFor="severity" className="text-sm font-medium text-foreground">
                 {t.severity}
@@ -305,13 +336,13 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
           {needsText && (
             <div className="space-y-2">
               <label htmlFor="moderation-message" className="text-sm font-medium text-foreground">
-                {action === "warn" ? t.message : t.reason}
+                {showSeverity ? t.message : t.reason}
               </label>
               <Textarea
                 id="moderation-message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={action === "warn" ? t.messagePlaceholder : t.reasonPlaceholder}
+                placeholder={showSeverity ? t.messagePlaceholder : t.reasonPlaceholder}
                 rows={4}
               />
             </div>

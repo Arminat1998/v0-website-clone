@@ -63,6 +63,56 @@ export async function warnUser(input: { userId: string; message: string; severit
   return { ok: true }
 }
 
+export async function updateWarning(input: {
+  warningId: number
+  userId: string
+  message: string
+  severity: string
+}): Promise<Result> {
+  const admin = await requireAdmin()
+  const message = input.message.trim()
+  if (message.length < 5) return { ok: false, error: "Schrijf een duidelijke waarschuwing (minimaal 5 tekens)." }
+  const severity = (SEVERITIES as readonly string[]).includes(input.severity) ? input.severity : "warning"
+
+  const [updated] = await db
+    .update(userWarnings)
+    .set({ message: message.slice(0, 1000), severity, acknowledgedAt: null })
+    .where(and(eq(userWarnings.id, input.warningId), eq(userWarnings.userId, input.userId)))
+    .returning({ id: userWarnings.id })
+  if (!updated) return { ok: false, error: "Waarschuwing niet gevonden." }
+
+  const [target] = await db.select({ name: userTable.name }).from(userTable).where(eq(userTable.id, input.userId)).limit(1)
+  await logAdminAction({
+    adminName: admin.name,
+    action: "warn_edit",
+    targetUserId: input.userId,
+    targetLabel: target?.name ?? null,
+    details: `[${severity}] ${message}`,
+  })
+  refresh(input.userId)
+  return { ok: true }
+}
+
+export async function revokeWarning(input: { warningId: number; userId: string }): Promise<Result> {
+  const admin = await requireAdmin()
+  const [removed] = await db
+    .delete(userWarnings)
+    .where(and(eq(userWarnings.id, input.warningId), eq(userWarnings.userId, input.userId)))
+    .returning({ message: userWarnings.message })
+  if (!removed) return { ok: false, error: "Waarschuwing niet gevonden." }
+
+  const [target] = await db.select({ name: userTable.name }).from(userTable).where(eq(userTable.id, input.userId)).limit(1)
+  await logAdminAction({
+    adminName: admin.name,
+    action: "warn_revoke",
+    targetUserId: input.userId,
+    targetLabel: target?.name ?? null,
+    details: removed.message,
+  })
+  refresh(input.userId)
+  return { ok: true }
+}
+
 export async function suspendUser(input: { userId: string; days: number; reason: string }): Promise<Result> {
   const admin = await requireAdmin()
   const reason = input.reason.trim()
