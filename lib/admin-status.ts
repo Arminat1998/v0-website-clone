@@ -11,7 +11,7 @@ export const statusClasses: Record<SubmissionStatus, string> = {
 
 export function formatDate(iso: string, locale = "nl-NL"): string {
   try {
-    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(iso))
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Amsterdam" }).format(new Date(iso))
   } catch {
     return iso
   }
@@ -25,6 +25,7 @@ export function formatDateTime(iso: string, locale = "nl-NL"): string {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "Europe/Amsterdam",
     }).format(new Date(iso))
   } catch {
     return iso

@@ -231,6 +231,7 @@ export function useUsersT() {
       day: "numeric",
       month: "short",
       year: "numeric",
+      timeZone: "Europe/Amsterdam",
       ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
     })
   return { t, locale, formatDate }
