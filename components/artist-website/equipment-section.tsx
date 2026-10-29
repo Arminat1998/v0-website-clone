@@ -1,7 +1,7 @@
 "use client"
 
 import { useWebsite } from "@/components/artist-website/website-context"
-import { formatRentalPrice, imageSrc } from "@/lib/professional-profile-types"
+import { digitsOnlyPrice, formatRentalPrice, imageSrc } from "@/lib/professional-profile-types"
 import type { EquipmentDetail } from "@/lib/smart-search"
 
 const PACKAGE_ITEMS = [
@@ -31,11 +31,21 @@ function RealEquipment({ packageItems, extraItems }: { packageItems: EquipmentDe
     )
   }
 
+  const packageTotal = packageItems.reduce((sum, item) => sum + (Number(digitsOnlyPrice(item.price)) || 0), 0)
+
   return (
     <div className="space-y-4">
       {packageItems.length > 0 && (
         <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
-          <h2 className="mb-5 text-xl font-bold text-foreground">{isDutch ? "Apparatuurpakket" : "Equipment package"}</h2>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold text-foreground">{isDutch ? "Apparatuurpakket" : "Equipment package"}</h2>
+            {packageTotal > 0 && (
+              <span className="rounded-full border border-border px-4 py-1 text-sm font-bold text-foreground">
+                {isDutch ? "Totaal " : "Total "}
+                {formatRentalPrice(String(packageTotal), suffix)}
+              </span>
+            )}
+          </div>
           <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {packageItems.map((item) => (
               <li key={item.name} className="flex gap-3">

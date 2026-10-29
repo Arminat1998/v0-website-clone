@@ -70,8 +70,22 @@ export async function getProfessionalProfileSummary(professionalId: string): Pro
       .where(eq(professionalProfiles.professionalId, professionalId))
       .limit(1)
     if (!row) return null
-    const packageNames = Object.values(row.minimumEquipment).map((item) => item.name)
-    const extraNames = row.extraEquipment.map((item) => item.name)
+    // Extra lighting/sound sets (with a category) belong to the equipment package; only uncategorised items are optional extras.
+    const toDetail = (item: { name: string; description: string; price: string; image?: string }) => ({
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      image: item.image,
+    })
+    const packageItems = [
+      ...Object.values(row.minimumEquipment),
+      ...row.extraEquipment.filter((item) => item.category),
+    ]
+      .filter((item) => item.name)
+      .map(toDetail)
+    const extraItems = row.extraEquipment
+      .filter((item) => !item.category && item.name)
+      .map(toDetail)
     return {
       stageName: row.stageName,
       bio: row.bio,
@@ -82,13 +96,9 @@ export async function getProfessionalProfileSummary(professionalId: string): Pro
       genres: row.genres,
       eventTypes: row.eventTypes,
       avatarPath: row.avatarPath,
-      equipment: [...packageNames, ...extraNames].filter(Boolean),
-      packageItems: Object.values(row.minimumEquipment)
-        .filter((item) => item.name)
-        .map((item) => ({ name: item.name, description: item.description, price: item.price, image: item.image })),
-      extraItems: row.extraEquipment
-        .filter((item) => item.name)
-        .map((item) => ({ name: item.name, description: item.description, price: item.price, image: item.image })),
+      equipment: [...packageItems, ...extraItems].map((item) => item.name),
+      packageItems,
+      extraItems,
     }
   } catch (error) {
     console.error("Failed to load profile summary:", error)
