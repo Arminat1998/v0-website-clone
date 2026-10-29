@@ -30,6 +30,51 @@ export const user = pgTable("user", {
   role: text("role").notNull().default("user"),
   phone: text("phone"),
   category: text("category"),
+  status: text("status").notNull().default("active"),
+  statusReason: text("statusReason"),
+  suspendedUntil: timestamp("suspendedUntil", { withTimezone: true }),
+  bannedAt: timestamp("bannedAt", { withTimezone: true }),
+})
+
+export const userWarnings = pgTable("user_warnings", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  message: text("message").notNull(),
+  severity: text("severity").notNull().default("warning"),
+  adminName: text("admin_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
+})
+
+export const userNotes = pgTable("user_notes", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  note: text("note").notNull(),
+  adminName: text("admin_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const blacklist = pgTable("blacklist", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(),
+  value: text("value").notNull(),
+  reason: text("reason"),
+  adminName: text("admin_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: serial("id").primaryKey(),
+  adminName: text("admin_name").notNull(),
+  action: text("action").notNull(),
+  targetUserId: text("target_user_id"),
+  targetLabel: text("target_label"),
+  details: text("details"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 export const session = pgTable("session", {

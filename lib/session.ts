@@ -4,8 +4,14 @@ import { cache } from "react"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
+import { getRestriction } from "@/lib/moderation"
 
-export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }))
+/** Banned or suspended accounts are treated as signed out everywhere on the platform. */
+export const getSession = cache(async () => {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) return session
+  return getRestriction(session.user) ? null : session
+})
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSession>>>["user"]
 

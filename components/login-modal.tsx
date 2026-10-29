@@ -42,6 +42,14 @@ export function LoginModal({
     const { error: signInError } = await authClient.signIn.email({ email: email.trim(), password, rememberMe })
     setLoading(false)
     if (signInError) {
+      if (signInError.status === 403) {
+        setError(
+          language === "nl"
+            ? "Dit account is geblokkeerd of geschorst. Neem contact op met ARSI Events als je denkt dat dit een vergissing is."
+            : "This account is blocked or suspended. Contact ARSI Events if you think this is a mistake.",
+        )
+        return
+      }
       setError(language === "nl" ? "E-mailadres of wachtwoord is onjuist." : "Incorrect email or password.")
       return
     }

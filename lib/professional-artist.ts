@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { slugify } from "@/lib/artist-slug"
+import { getRestriction } from "@/lib/moderation"
 import type { Artist, EquipmentDetail } from "@/lib/smart-search"
 
 interface ProfessionalAccount {
@@ -114,11 +115,19 @@ export async function getProfessionalArtistBySlug(slug: string): Promise<Artist 
 
   try {
     const [account] = await db
-      .select({ id: userTable.id, name: userTable.name, image: userTable.image, category: userTable.category })
+      .select({
+        id: userTable.id,
+        name: userTable.name,
+        image: userTable.image,
+        category: userTable.category,
+        status: userTable.status,
+        statusReason: userTable.statusReason,
+        suspendedUntil: userTable.suspendedUntil,
+      })
       .from(userTable)
       .where(and(eq(userTable.id, id), eq(userTable.role, "professional")))
       .limit(1)
-    if (!account) return null
+    if (!account || getRestriction(account)) return null
     // Only profiles approved in the admin dashboard are live on the platform.
     const [review] = await db
       .select({ status: professionalProfiles.reviewStatus })

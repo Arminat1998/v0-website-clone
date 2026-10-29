@@ -5,7 +5,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Inbox, Users, Settings, Menu, X, Sun, Moon, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, Inbox, Users, UserCog, ShieldBan, History, Settings, Menu, X, Sun, Moon, ArrowLeft } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
     { label: t.nav.overview, href: "/admin", icon: LayoutDashboard },
     { label: t.nav.submissions, href: "/admin/aanmeldingen", icon: Inbox },
     { label: t.nav.artists, href: "/admin/artiesten", icon: Users },
+    { label: t.nav.users, href: "/admin/gebruikers", icon: UserCog },
+    { label: t.nav.blacklist, href: "/admin/blacklist", icon: ShieldBan },
+    { label: t.nav.activity, href: "/admin/activiteit", icon: History },
     { label: t.nav.settings, href: "/admin/instellingen", icon: Settings },
   ]
   const { submissions } = useAdmin()

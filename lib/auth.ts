@@ -1,5 +1,12 @@
 import { betterAuth } from "better-auth"
+import { APIError } from "better-auth/api"
 import { pool } from "@/lib/db"
+import {
+  BLOCKED_MESSAGE_NL,
+  SUSPENDED_MESSAGE_NL,
+  findBlacklistMatch,
+  getAccountRestrictionById,
+} from "@/lib/moderation"
 
 const PUBLIC_ROLES = ["user", "professional"] as const
 
@@ -27,6 +34,9 @@ export const auth = betterAuth({
       role: { type: "string", required: false, defaultValue: "user", input: true },
       phone: { type: "string", required: false, input: true },
       category: { type: "string", required: false, input: true },
+      status: { type: "string", required: false, defaultValue: "active", input: false },
+      statusReason: { type: "string", required: false, input: false },
+      suspendedUntil: { type: "date", required: false, input: false },
     },
   },
   databaseHooks: {
@@ -35,7 +45,24 @@ export const auth = betterAuth({
         before: async (user) => {
           const role = (user as { role?: string }).role
           const safeRole = PUBLIC_ROLES.includes(role as (typeof PUBLIC_ROLES)[number]) ? role : "user"
+          const blocked = await findBlacklistMatch({
+            email: user.email,
+            phone: (user as { phone?: string | null }).phone,
+          })
+          if (blocked) throw new APIError("FORBIDDEN", { message: BLOCKED_MESSAGE_NL })
           return { data: { ...user, role: safeRole } }
+        },
+      },
+    },
+    session: {
+      create: {
+        before: async (session) => {
+          const restriction = await getAccountRestrictionById(session.userId)
+          if (restriction) {
+            throw new APIError("FORBIDDEN", {
+              message: restriction.status === "banned" ? BLOCKED_MESSAGE_NL : SUSPENDED_MESSAGE_NL,
+            })
+          }
         },
       },
     },
