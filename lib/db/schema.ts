@@ -204,6 +204,19 @@ export const professionalProfiles = pgTable("professional_profiles", {
     .default([]),
   avatarPath: text("avatar_path"),
   bannerPath: text("banner_path"),
+  reviewStatus: text("review_status").notNull().default("nieuw"),
+  reviewMessage: text("review_message"),
+  reviewData: jsonb("review_data")
+    .$type<{
+      checklist?: Record<string, boolean>
+      notes?: { id: string; author: string; date: string; text: string }[]
+      timeline?: { id: string; type: string; date: string; title: string; description?: string; author: string }[]
+    }>()
+    .notNull()
+    .default({}),
+  reviewerName: text("reviewer_name"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

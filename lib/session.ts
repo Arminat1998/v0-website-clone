@@ -13,6 +13,17 @@ export function isProfessional(user: SessionUser) {
   return user.role === "professional"
 }
 
+export function isAdmin(user: SessionUser) {
+  return user.role === "admin"
+}
+
+/** For admin pages and actions: only accounts with the admin role get through. */
+export async function requireAdmin() {
+  const user = await requireUser("/?login=1")
+  if (!isAdmin(user)) redirect("/")
+  return user
+}
+
 /** For pages: send visitors without a session to the home page and open the login modal. */
 export async function requireUser(redirectTo = "/?login=1") {
   const session = await getSession()
