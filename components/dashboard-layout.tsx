@@ -24,6 +24,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const menuItems = [
     { label: t.dashboard, href: "/dashboard" },
     { label: t.editProfile, href: "/dashboard/edit-profile" },
+    { label: t.myWebsite, href: "/dashboard/my-page" },
     { label: t.calendar, href: "/dashboard/calendar" },
     { label: t.bookingRequests, href: "/dashboard/booking-requests" },
     { label: t.acceptedBookings, href: "/dashboard/accepted-bookings" },

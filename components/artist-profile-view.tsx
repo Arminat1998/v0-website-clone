@@ -16,17 +16,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Artist } from "@/lib/smart-search";
+import { ArtistPortfolio } from "@/components/artist-portfolio";
+import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
 
 interface ArtistProfileViewProps {
   artist: Artist;
   onNavigate?: () => void;
   heroAction?: ReactNode;
+  content?: ArtistPageContent | null;
 }
 
 export function ArtistProfileView({
   artist,
   onNavigate,
   heroAction,
+  content,
 }: ArtistProfileViewProps) {
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -37,9 +41,11 @@ export function ArtistProfileView({
   const fullName = `${artist.name} ${artist.specialty.split(" ")[0]}`;
 
   const artistImage =
+    (content?.bannerPath ? mediaUrl(content.bannerPath) : null) ||
     artist.image ||
     `/placeholder.svg?height=400&width=800&query=${encodeURIComponent(artist.name)} ${encodeURIComponent(artist.category ?? artist.specialty)} performance`;
   const profileImage =
+    (content?.avatarPath ? mediaUrl(content.avatarPath) : null) ||
     artist.image ||
     `/placeholder.svg?height=144&width=144&query=${encodeURIComponent(artist.name)} profile portrait`;
 
@@ -198,7 +204,7 @@ export function ArtistProfileView({
             {artist.name}
           </h2>
           <p className="text-xs sm:text-base text-muted-foreground mb-3">
-            {fullName}
+            {content?.tagline || fullName}
           </p>
           <div className="flex items-center gap-2 mb-4">
             <div className="flex items-center">
@@ -390,6 +396,9 @@ export function ArtistProfileView({
           </TabsContent>
 
           <TabsContent value="portfolio" className="mt-0">
+            {content ? (
+              <ArtistPortfolio content={content} artistName={artist.name} />
+            ) : (
             <div className="space-y-6 sm:space-y-8">
               <div>
                 <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
@@ -461,6 +470,7 @@ export function ArtistProfileView({
                 </div>
               </div>
             </div>
+            )}
           </TabsContent>
 
           <TabsContent value="equipment" className="mt-0">

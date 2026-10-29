@@ -106,6 +106,21 @@ export const notifications = pgTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect
 
+export const artistPages = pgTable("artist_pages", {
+  professionalId: text("professional_id").primaryKey(),
+  bannerPath: text("banner_path"),
+  avatarPath: text("avatar_path"),
+  tagline: text("tagline"),
+  about: text("about"),
+  eventTypes: text("event_types").array().notNull().default([]),
+  musicGenres: text("music_genres").array().notNull().default([]),
+  gallery: jsonb("gallery").$type<string[]>().notNull().default([]),
+  videos: jsonb("videos").$type<{ id: string; url: string; title: string }[]>().notNull().default([]),
+  socials: jsonb("socials").$type<Record<string, string>>().notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const VAT_SCHEMES = ["standard", "kor"] as const
 export type VatScheme = (typeof VAT_SCHEMES)[number]
 

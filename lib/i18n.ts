@@ -215,6 +215,7 @@ export interface Translations {
   // Dashboard
   dashboard: string
   editProfile: string
+  myWebsite: string
   calendar: string
   bookingRequests: string
   acceptedBookings: string
@@ -534,6 +535,7 @@ export const translations: Record<Language, Translations> = {
     // Dashboard
     dashboard: "Dashboard",
     editProfile: "Profiel Bewerken",
+    myWebsite: "Mijn Website",
     calendar: "Kalender",
     bookingRequests: "Boekingsaanvragen",
     acceptedBookings: "Geaccepteerde Boekingen",
@@ -851,6 +853,7 @@ export const translations: Record<Language, Translations> = {
     // Dashboard
     dashboard: "Dashboard",
     editProfile: "Edit Profile",
+    myWebsite: "My Website",
     calendar: "Calendar",
     bookingRequests: "Booking Requests",
     acceptedBookings: "Accepted Bookings",
