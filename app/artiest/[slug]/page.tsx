@@ -2,12 +2,11 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { ArtistBackLink } from "@/components/artist-back-link"
-import { ArtistProfileView } from "@/components/artist-profile-view"
-import { ArtistShareButton } from "@/components/artist-share-button"
+import { ArtistWebsite } from "@/components/artist-website/artist-website"
 import type { Artist } from "@/lib/smart-search"
 import { getArtistBySlug } from "@/lib/artist-slug"
 import { getArtistPageContent } from "@/lib/artist-page"
-import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
+import { emptyPageContent, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
 
 export const dynamic = "force-dynamic"
 
@@ -58,11 +57,9 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="mx-auto w-full max-w-6xl px-0 sm:px-4 py-4 sm:py-8">
+      <main className="mx-auto w-full max-w-[1400px] px-3 py-4 sm:px-6 sm:py-6">
         <ArtistBackLink artistId={artist.id} />
-        <div className="overflow-hidden border-y border-border sm:rounded-xl sm:border">
-          <ArtistProfileView artist={artist} content={content} heroAction={<ArtistShareButton />} />
-        </div>
+        <ArtistWebsite artist={artist} content={content ?? emptyPageContent()} />
       </main>
     </div>
   )

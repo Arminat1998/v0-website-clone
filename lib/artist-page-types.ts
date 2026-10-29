@@ -20,6 +20,20 @@ export interface ArtistPageContent {
   socials: ArtistPageSocials
 }
 
+export function emptyPageContent(): ArtistPageContent {
+  return {
+    bannerPath: null,
+    avatarPath: null,
+    tagline: "",
+    about: "",
+    eventTypes: [],
+    musicGenres: [],
+    gallery: [],
+    videos: [],
+    socials: {},
+  }
+}
+
 export const PAGE_LIMITS = {
   tagline: 120,
   about: 3000,

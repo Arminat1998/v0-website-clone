@@ -32,23 +32,10 @@ export default async function MyPageDashboard() {
     socials: {},
   }
 
-  const summary = [
-    { label: "Tarief", value: artist.price },
-    { label: "Stad", value: artist.location },
-    ...(artist.experience ? [{ label: "Ervaring", value: artist.experience }] : []),
-    { label: "Type", value: artist.specialty },
-  ]
-
   return (
     <DashboardLayout>
       <div className="p-4 pt-16 sm:p-6 lg:p-8">
-        <ArtistPageEditor
-          initialContent={content}
-          artistName={artist.name}
-          artistPath={getArtistPath(artist)}
-          fallbackImage={artist.image}
-          summary={summary}
-        />
+        <ArtistPageEditor initialContent={content} artist={artist} artistPath={getArtistPath(artist)} />
       </div>
     </DashboardLayout>
   )
