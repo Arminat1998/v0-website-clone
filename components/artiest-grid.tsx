@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
 import { useToast } from "@/hooks/use-toast"
-import { updateListState, type ArtiestListState } from "@/lib/artiest-list-state"
+import { updateListState, getViewedArtistIds, markArtistViewed, type ArtiestListState } from "@/lib/artiest-list-state"
 import { analyzeAudioFile, type AudioAnalysisResult } from "@/lib/audio-analyzer"
 
 interface ArtiestGridProps {
@@ -54,6 +54,10 @@ export function ArtiestGrid({
   useEffect(() => {
     updateListState({ sortBy, useAISearch })
   }, [sortBy, useAISearch])
+
+  useEffect(() => {
+    setVisitedArtistIds((prev) => new Set([...prev, ...getViewedArtistIds()]))
+  }, [])
 
   useEffect(() => {
     if (initialSearch) {
@@ -274,6 +278,7 @@ export function ArtiestGrid({
   const handleModalClose = (open: boolean) => {
     if (!open && selectedArtist) {
       setVisitedArtistIds((prev) => new Set(prev).add(selectedArtist.id))
+      markArtistViewed(selectedArtist.id)
     }
     setIsModalOpen(open)
   }

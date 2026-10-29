@@ -3,12 +3,13 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { markListReturnPending } from "@/lib/artiest-list-state"
+import { markArtistViewed, markListReturnPending } from "@/lib/artiest-list-state"
 
-export function ArtistBackLink() {
+export function ArtistBackLink({ artistId }: { artistId: number }) {
   useEffect(() => {
     markListReturnPending()
-  }, [])
+    markArtistViewed(artistId)
+  }, [artistId])
 
   return (
     <Link

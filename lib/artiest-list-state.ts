@@ -28,6 +28,27 @@ export function updateListState(patch: Partial<ArtiestListState>) {
   }
 }
 
+const VIEWED_KEY = "arsi:artiesten-viewed-ids"
+
+export function getViewedArtistIds(): number[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = window.sessionStorage.getItem(VIEWED_KEY)
+    return raw ? (JSON.parse(raw) as number[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function markArtistViewed(id: number) {
+  if (typeof window === "undefined") return
+  try {
+    const ids = new Set(getViewedArtistIds())
+    ids.add(id)
+    window.sessionStorage.setItem(VIEWED_KEY, JSON.stringify([...ids]))
+  } catch {}
+}
+
 export function markListReturnPending() {
   if (typeof window === "undefined") return
   try {

@@ -43,7 +43,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="mx-auto w-full max-w-6xl px-0 sm:px-4 py-4 sm:py-8">
-        <ArtistBackLink />
+        <ArtistBackLink artistId={artist.id} />
         <div className="overflow-hidden border-y border-border sm:rounded-xl sm:border">
           <ArtistProfileView artist={artist} heroAction={<ArtistShareButton />} />
         </div>
