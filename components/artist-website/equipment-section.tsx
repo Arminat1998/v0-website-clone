@@ -1,6 +1,8 @@
 "use client"
 
 import { useWebsite } from "@/components/artist-website/website-context"
+import { formatRentalPrice, imageSrc } from "@/lib/professional-profile-types"
+import type { EquipmentDetail } from "@/lib/smart-search"
 
 const PACKAGE_ITEMS = [
   { image: "/pioneer-cdj-2000-dj-player.jpg", name: "2x Pioneer CDJ-2000 Players", text: "Professional-grade media players" },
@@ -16,8 +18,83 @@ const EXTRAS = [
   { name: "Extra Subwoofer", text: "Add powerful bass", price: "+€100/day" },
 ]
 
+function RealEquipment({ packageItems, extraItems }: { packageItems: EquipmentDetail[]; extraItems: EquipmentDetail[] }) {
+  const { t } = useWebsite()
+  const isDutch = t.extraOptions === "Extra opties"
+  const suffix = isDutch ? "/dag" : "/day"
+
+  if (!packageItems.length && !extraItems.length) {
+    return (
+      <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+        {isDutch ? "Er is nog geen apparatuur toegevoegd." : "No equipment has been added yet."}
+      </section>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {packageItems.length > 0 && (
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="mb-5 text-xl font-bold text-foreground">{isDutch ? "Apparatuurpakket" : "Equipment package"}</h2>
+          <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {packageItems.map((item) => (
+              <li key={item.name} className="flex gap-3">
+                {item.image && (
+                  <img
+                    src={imageSrc(item.image) || "/placeholder.svg"}
+                    alt={item.name}
+                    className="size-16 shrink-0 rounded-lg object-cover"
+                  />
+                )}
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground">{item.name}</h3>
+                  {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+                  {item.price && (
+                    <p className="mt-1 text-sm font-bold text-red-600">{formatRentalPrice(item.price, suffix)}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {extraItems.length > 0 && (
+        <section className="rounded-xl border border-border bg-card p-4 sm:p-6">
+          <h2 className="mb-4 text-xl font-bold text-foreground">{t.extraOptions}</h2>
+          <ul className="grid gap-4 md:grid-cols-2">
+            {extraItems.map((extra, index) => (
+              <li key={`${extra.name}-${index}`} className="flex gap-3 rounded-lg border border-border bg-background p-4">
+                {extra.image && (
+                  <img
+                    src={imageSrc(extra.image) || "/placeholder.svg"}
+                    alt={extra.name}
+                    className="size-16 shrink-0 rounded-lg object-cover"
+                  />
+                )}
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground">{extra.name}</h3>
+                  {extra.description && <p className="mb-2 text-sm text-muted-foreground">{extra.description}</p>}
+                  {extra.price && (
+                    <p className="text-lg font-bold text-red-600">+{formatRentalPrice(extra.price, suffix)}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+}
+
 export function EquipmentSection() {
   const { artist, t } = useWebsite()
+
+  if (artist.equipmentDetails) {
+    return <RealEquipment {...artist.equipmentDetails} />
+  }
+
   const price = artist.equipmentPrice ? `${artist.equipmentPrice.replace("€", "€ ")}/hour` : "€450/day"
 
   return (

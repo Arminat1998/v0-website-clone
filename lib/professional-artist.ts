@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { slugify } from "@/lib/artist-slug"
-import type { Artist } from "@/lib/smart-search"
+import type { Artist, EquipmentDetail } from "@/lib/smart-search"
 
 interface ProfessionalAccount {
   id: string
@@ -32,6 +32,8 @@ export interface ProfessionalProfileSummary {
   eventTypes: string[]
   avatarPath: string | null
   equipment: string[]
+  packageItems: EquipmentDetail[]
+  extraItems: EquipmentDetail[]
 }
 
 export function buildProfessionalArtist(account: ProfessionalAccount, profile?: ProfessionalProfileSummary | null): Artist {
@@ -46,6 +48,7 @@ export function buildProfessionalArtist(account: ProfessionalAccount, profile?: 
     musicStyles: profile?.genres.length ? profile.genres : undefined,
     experience: profile?.yearsExperience ? `${profile.yearsExperience}` : undefined,
     equipment: profile?.equipment.length ? profile.equipment : undefined,
+    equipmentDetails: { packageItems: profile?.packageItems ?? [], extraItems: profile?.extraItems ?? [] },
     rating: 0,
     reviews: 0,
     price: profile?.hourlyRate ? `€${profile.hourlyRate}` : "€0",
@@ -80,6 +83,12 @@ export async function getProfessionalProfileSummary(professionalId: string): Pro
       eventTypes: row.eventTypes,
       avatarPath: row.avatarPath,
       equipment: [...packageNames, ...extraNames].filter(Boolean),
+      packageItems: Object.values(row.minimumEquipment)
+        .filter((item) => item.name)
+        .map((item) => ({ name: item.name, description: item.description, price: item.price, image: item.image })),
+      extraItems: row.extraEquipment
+        .filter((item) => item.name)
+        .map((item) => ({ name: item.name, description: item.description, price: item.price, image: item.image })),
     }
   } catch (error) {
     console.error("Failed to load profile summary:", error)

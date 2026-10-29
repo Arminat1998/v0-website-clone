@@ -22,7 +22,9 @@ import { useImageCrop } from "@/hooks/use-image-crop"
 import { fileToDataUrl } from "@/lib/crop-image"
 import { AdditionalEquipment, type AdditionalCategory } from "@/components/additional-equipment"
 import { saveProfessionalProfile } from "@/app/actions/professional-profile"
-import { imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
+import { EquipmentFields } from "@/components/equipment-fields"
+import { NumericInput } from "@/components/numeric-input"
+import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
 interface PackageEquipmentItem {
   id: string
@@ -155,20 +157,19 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const bannerInputRef = useRef<HTMLInputElement>(null)
   const profileInputRef = useRef<HTMLInputElement>(null)
 
-  const [minimumEquipment, setMinimumEquipment] = useState<Record<string, PackageEquipmentItem>>(
-    initialProfile?.minimumEquipment ?? {},
+  const [minimumEquipment, setMinimumEquipment] = useState<Record<string, PackageEquipmentItem>>(() =>
+    Object.fromEntries(
+      Object.entries(initialProfile?.minimumEquipment ?? {}).map(([key, item]) => [
+        key,
+        { ...item, price: digitsOnlyPrice(item.price) },
+      ]),
+    ),
   )
   const [currentEquipmentIndex, setCurrentEquipmentIndex] = useState(0)
 
-  const [extraEquipment, setExtraEquipment] = useState<ExtraEquipmentItem[]>(initialProfile?.extraEquipment ?? [])
-  const [currentExtraEquipment, setCurrentExtraEquipment] = useState<ExtraEquipmentItem>({
-    id: "",
-    name: "",
-    price: "",
-    description: "",
-  })
-  const [currentExtraEquipmentImage, setCurrentExtraEquipmentImage] = useState<string>("")
-  const extraFileInputRef = useRef<HTMLInputElement>(null)
+  const [extraEquipment, setExtraEquipment] = useState<ExtraEquipmentItem[]>(() =>
+    (initialProfile?.extraEquipment ?? []).map((item) => ({ ...item, price: digitsOnlyPrice(item.price) })),
+  )
   const { requestCrop, cropDialog } = useImageCrop()
 
   const pickCroppedImage = async (
@@ -180,13 +181,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     if (!file) return null
     const cropped = await requestCrop(file, options)
     return cropped ? fileToDataUrl(cropped) : null
-  }
-
-  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Prevent minus (-), plus (+), and 'e' (scientific notation)
-    if (e.key === "-" || e.key === "+" || e.key === "e" || e.key === "E") {
-      e.preventDefault()
-    }
   }
 
   const getMinimumEquipmentConfig = (): EquipmentConfig[] => {
@@ -430,9 +424,15 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     }))
   }
 
-  const handleEquipmentFileChange = async (equipmentId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const image = await pickCroppedImage(e, { aspect: 4 / 3 })
-    if (image) updateEquipmentItem(equipmentId, "image", image)
+  const patchEquipmentItem = (equipmentId: string, patch: Partial<PackageEquipmentItem>) => {
+    setMinimumEquipment((prev) => ({
+      ...prev,
+      [equipmentId]: { ...prev[equipmentId], id: equipmentId, ...patch } as PackageEquipmentItem,
+    }))
+  }
+
+  const updateExtraEquipment = (id: string, patch: Partial<ExtraEquipmentItem>) => {
+    setExtraEquipment((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)))
   }
 
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -443,49 +443,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const handleProfileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const image = await pickCroppedImage(e, { aspect: 1, round: true })
     if (image) setProfileImage(image)
-  }
-
-  const handlePackageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // setPackageEquipmentImage(file.name) // This line was removed as it's not used anymore
-      console.log("[v0] Package equipment file selected:", file.name)
-    }
-  }
-
-  const handleExtraFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const image = await pickCroppedImage(e, { aspect: 4 / 3 })
-    if (image) setCurrentExtraEquipmentImage(image)
-  }
-
-  const addPackageEquipment = () => {
-    // This function is no longer used due to the new progressive disclosure for minimum equipment.
-    // It might be removed or repurposed if needed for a different functionality.
-    console.warn("addPackageEquipment called, but this function is deprecated in the new version.")
-  }
-
-  const removePackageEquipment = (id: string) => {
-    // This function is no longer used due to the new progressive disclosure for minimum equipment.
-    // It might be removed or repurposed if needed for a different functionality.
-    console.warn("removePackageEquipment called, but this function is deprecated in the new version.")
-  }
-
-  const addExtraEquipment = () => {
-    if (currentExtraEquipment.name && currentExtraEquipment.price) {
-      const newItem = { ...currentExtraEquipment, id: Date.now().toString(), image: currentExtraEquipmentImage }
-      setExtraEquipment([...extraEquipment, newItem])
-      setCurrentExtraEquipment({ id: "", name: "", price: "", description: "" })
-      setCurrentExtraEquipmentImage("")
-      if (extraFileInputRef.current) {
-        extraFileInputRef.current.value = ""
-      }
-    } else {
-      alert(
-        L
-          ? "Vul de apparatuurnaam en huurprijs in voordat je toevoegt"
-          : "Please fill in Equipment Name and Rental Price before adding",
-      )
-    }
   }
 
   const removeExtraEquipment = (id: string) => {
@@ -763,10 +720,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         ),
       )
       const extraEquipmentUploaded = await Promise.all(
-        extraEquipment.map(async (item) => ({
-          ...item,
-          image: item.image ? await uploadImage(item.image, "equipment") : undefined,
-        })),
+        extraEquipment
+          .filter((item) => item.name.trim())
+          .map(async (item) => ({
+            ...item,
+            name: item.name.trim(),
+            image: item.image ? await uploadImage(item.image, "equipment") : undefined,
+          })),
       )
       const avatarPath = profileImage ? await uploadImage(profileImage, "avatar") : null
       const bannerPath = bannerImage ? await uploadImage(bannerImage, "banner") : null
@@ -1201,8 +1161,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     id="phone"
                     type="tel"
                     className={inputClassName}
+                    inputMode="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s()-]/g, ""))}
                     required
                   />
                 </div>
@@ -1233,7 +1194,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     className={inputClassName}
                     value={kvkNumber}
                     onChange={handleKvkChange}
-                    onKeyDown={handleNumberKeyDown}
                     maxLength={8}
                     aria-invalid={!!kvkError}
                     aria-describedby="kvkNumber-error"
@@ -1288,14 +1248,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <Label htmlFor="experience" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Jaren ervaring" : "Years of Experience"}
                   </Label>
-                  <Input
+                  <NumericInput
                     id="experience"
-                    type="number"
-                    min="0"
+                    maxLength={2}
                     value={yearsExperience}
-                    onChange={(e) => setYearsExperience(e.target.value)}
+                    onValueChange={setYearsExperience}
                     className={inputClassName}
-                    onKeyDown={handleNumberKeyDown}
                     required
                   />
                 </div>
@@ -1307,15 +1265,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   </Label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">€</span>
-                    <Input
+                    <NumericInput
                       id="fee"
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      allowDecimal
                       value={hourlyRate}
-                      onChange={(e) => setHourlyRate(e.target.value)}
+                      onValueChange={setHourlyRate}
                       className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white py-3 pl-8 pr-4 text-base focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                      onKeyDown={handleNumberKeyDown}
                       required
                     />
                   </div>
@@ -1395,14 +1350,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <Label htmlFor="range" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Bereik (km)" : "Range (km)"}
                   </Label>
-                  <Input
+                  <NumericInput
                     id="range"
-                    type="number"
-                    min="0"
+                    maxLength={4}
                     value={rangeKm}
-                    onChange={(e) => setRangeKm(e.target.value)}
+                    onValueChange={setRangeKm}
                     className={inputClassName}
-                    onKeyDown={handleNumberKeyDown}
                     required
                   />
                 </div>
@@ -1610,52 +1563,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                           {isAccessible && (
                             <div className="space-y-3">
-                              <Input
-                                placeholder={config.placeholder}
-                                value={equipment?.name || ""}
-                                onChange={(e) => updateEquipmentItem(config.id, "name", e.target.value)}
-                                className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                                disabled={!isAccessible}
+                              <EquipmentFields
+                                value={equipment ?? {}}
+                                onChange={(patch) => patchEquipmentItem(config.id, patch)}
+                                namePlaceholder={config.placeholder}
+                                photoId={`equipment-file-${config.id}`}
+                                nl={L}
                               />
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <Input
-                                  placeholder={L ? "Huurprijs (bijv. €150/dag)" : "Rental price (e.g. €150/day)"}
-                                  value={equipment?.price || ""}
-                                  onChange={(e) => updateEquipmentItem(config.id, "price", e.target.value)}
-                                  className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                                  disabled={!isAccessible}
-                                />
-                                <Input
-                                  placeholder={L ? "Korte beschrijving" : "Short description"}
-                                  value={equipment?.description || ""}
-                                  onChange={(e) => updateEquipmentItem(config.id, "description", e.target.value)}
-                                  className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                                  disabled={!isAccessible}
-                                />
-                              </div>
-                              <div>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(e) => handleEquipmentFileChange(config.id, e)}
-                                  className="hidden"
-                                  id={`equipment-file-${config.id}`}
-                                  disabled={!isAccessible}
-                                />
-                                <label
-                                  htmlFor={`equipment-file-${config.id}`}
-                                  className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${!isAccessible ? "opacity-50 cursor-not-allowed" : ""}`}
-                                >
-                                  <Camera className="h-4 w-4" />
-                                  {equipment?.image
-                                    ? L
-                                      ? "Foto toegevoegd"
-                                      : "Photo added"
-                                    : L
-                                      ? "Apparatuurfoto toevoegen"
-                                      : "Add equipment photo"}
-                                </label>
-                              </div>
                               {ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id] && (
                                 <AdditionalEquipment
                                   category={ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id]}
@@ -1663,6 +1577,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                                     (item) => item.category === ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id],
                                   )}
                                   onAdd={(item) => setExtraEquipment((prev) => [...prev, item])}
+                                  onUpdate={updateExtraEquipment}
                                   onRemove={removeExtraEquipment}
                                   nl={L}
                                 />
@@ -1688,101 +1603,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       : "Add any additional equipment you offer as optional extras for clients."}
                   </p>
 
-                  {extraEquipment.some((item) => !item.category) && (
-                    <div className="space-y-3">
-                      {extraEquipment.filter((item) => !item.category).map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-950 p-3 sm:p-4"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex gap-3">
-                              {item.image && (
-                                <img
-                                  src={imageSrc(item.image)}
-                                  alt={item.name}
-                                  className="h-12 w-12 rounded object-cover flex-shrink-0"
-                                />
-                              )}
-                              <div>
-                                <p className="font-semibold text-sm text-foreground">{item.name}</p>
-                                <p className="text-xs text-muted-foreground">{item.description}</p>
-                                <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">{item.price}</p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeExtraEquipment(item.id)}
-                              className="text-gray-400 hover:text-red-500 transition-colors ml-2 flex-shrink-0"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="space-y-4 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-950 p-4 sm:p-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        placeholder={L ? "Apparatuur naam" : "Equipment name"}
-                        value={currentExtraEquipment.name}
-                        onChange={(e) => setCurrentExtraEquipment({ ...currentExtraEquipment, name: e.target.value })}
-                        className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                      />
-                      <Input
-                        placeholder={L ? "Huurprijs (bijv. €50/dag)" : "Rental price (e.g. €50/day)"}
-                        value={currentExtraEquipment.price}
-                        onChange={(e) => setCurrentExtraEquipment({ ...currentExtraEquipment, price: e.target.value })}
-                        className="h-10 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                      />
-                    </div>
-                    <Textarea
-                      placeholder={L ? "Korte beschrijving van de apparatuur" : "Short description of the equipment"}
-                      value={currentExtraEquipment.description}
-                      onChange={(e) =>
-                        setCurrentExtraEquipment({ ...currentExtraEquipment, description: e.target.value })
-                      }
-                      rows={2}
-                      className="w-full resize-none rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-                    />
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleExtraFileChange}
-                          className="hidden"
-                          id="extra-equipment-file"
-                          ref={extraFileInputRef}
-                        />
-                        <label
-                          htmlFor="extra-equipment-file"
-                          className="flex items-center gap-2 px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 w-full sm:w-auto"
-                        >
-                          <Camera className="h-4 w-4" />
-                          {currentExtraEquipmentImage
-                            ? L
-                              ? "Foto toegevoegd"
-                              : "Photo added"
-                            : L
-                              ? "Foto toevoegen"
-                              : "Add photo"}
-                        </label>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addExtraEquipment}
-                        className="h-10 border-gray-300 dark:border-gray-600 dark:bg-gray-950 dark:bg-gray-700 text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-600 w-full sm:w-auto"
-                      >
-                        <Plus className="mr-2 h-4 w-4" />
-                        {L ? "Apparatuur toevoegen" : "Add Equipment"}
-                      </Button>
-                    </div>
-                  </div>
+                  <AdditionalEquipment
+                    items={extraEquipment.filter((item) => !item.category)}
+                    onAdd={(item) => setExtraEquipment((prev) => [...prev, item])}
+                    onUpdate={updateExtraEquipment}
+                    onRemove={removeExtraEquipment}
+                    nl={L}
+                  />
                 </div>
               )}
 

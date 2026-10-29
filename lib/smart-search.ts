@@ -20,6 +20,15 @@ export interface Artist {
   artistTypes?: string[]
   image?: string
   equipment?: string[]
+  /** Real professionals only: the equipment they entered during sign-up. */
+  equipmentDetails?: { packageItems: EquipmentDetail[]; extraItems: EquipmentDetail[] }
+}
+
+export interface EquipmentDetail {
+  name: string
+  description: string
+  price: string
+  image?: string
 }
 
 // Added interface for extracted filters
