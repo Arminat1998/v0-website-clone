@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
+import { consumeListStateForReturn, updateListState, type ArtiestListState } from "@/lib/artiest-list-state"
 
 export default function ArtiestenPage() {
   const { t } = useLanguage()
@@ -18,10 +19,12 @@ export default function ArtiestenPage() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false)
   const [urlParams, setUrlParams] = useState<any>({})
   const [conversationalFilters, setConversationalFilters] = useState<Partial<FilterState>>({})
+  const [restored, setRestored] = useState<ArtiestListState | null | undefined>(undefined)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const urlSearchParams = new URLSearchParams(window.location.search)
+      const saved = window.location.search ? null : consumeListStateForReturn()
       const params = {
         search: urlSearchParams.get("q") || urlSearchParams.get("search") || "",
         artistTypes: urlSearchParams.get("artistTypes")?.split(",").filter(Boolean) || [],
@@ -35,11 +38,47 @@ export default function ArtiestenPage() {
       }
 
       setUrlParams(params)
-      if (params.search) {
+      if (saved) {
+        setSearchQuery(saved.searchQuery ?? "")
+      } else if (params.search) {
         setSearchQuery(params.search)
       }
+      setRestored(saved)
     }
   }, [])
+
+  useEffect(() => {
+    if (restored === undefined) return
+    updateListState({ searchQuery })
+  }, [searchQuery, restored])
+
+  useEffect(() => {
+    if (restored === undefined) return
+
+    const savedScrollY = restored?.scrollY
+    const timers: ReturnType<typeof setTimeout>[] = []
+    if (savedScrollY) {
+      const apply = () => window.scrollTo(0, savedScrollY)
+      apply()
+      timers.push(setTimeout(apply, 50), setTimeout(apply, 200))
+    }
+
+    let frame = 0
+    const onScroll = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        updateListState({ scrollY: window.scrollY })
+      })
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+
+    return () => {
+      timers.forEach(clearTimeout)
+      if (frame) cancelAnimationFrame(frame)
+      window.removeEventListener("scroll", onScroll)
+    }
+  }, [restored])
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return enhancedArtists
@@ -96,8 +135,10 @@ export default function ArtiestenPage() {
         <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileFilterOpen(false)} />
       )}
 
+      {restored !== undefined && (
       <div className="flex">
         <ArtiestFilters
+          initialState={restored?.filters}
           searchQuery={searchQuery}
           filterSuggestions={filterSuggestions}
           onFiltersChange={setFilters}
@@ -105,6 +146,7 @@ export default function ArtiestenPage() {
           onMobileClose={() => setIsMobileFilterOpen(false)}
         />
         <ArtiestGrid
+          restoredState={restored}
           initialSearch={urlParams.search}
           initialFilters={{
             categories: urlParams.artistTypes,
@@ -121,6 +163,7 @@ export default function ArtiestenPage() {
           onFilterUpdate={handleConversationalFilterUpdate}
         />
       </div>
+      )}
     </div>
   )
 }

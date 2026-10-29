@@ -15,9 +15,11 @@ import { Label } from "@/components/ui/label"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
 import { useToast } from "@/hooks/use-toast"
+import { updateListState, type ArtiestListState } from "@/lib/artiest-list-state"
 import { analyzeAudioFile, type AudioAnalysisResult } from "@/lib/audio-analyzer"
 
 interface ArtiestGridProps {
+  restoredState?: ArtiestListState | null
   initialSearch?: string
   initialFilters?: any
   onSearchChange?: (query: string) => void
@@ -27,6 +29,7 @@ interface ArtiestGridProps {
 }
 
 export function ArtiestGrid({
+  restoredState,
   initialSearch,
   initialFilters,
   onSearchChange,
@@ -34,9 +37,9 @@ export function ArtiestGrid({
   searchInsights,
   onFilterUpdate,
 }: ArtiestGridProps) {
-  const [searchTerm, setSearchTerm] = useState(initialSearch || "")
-  const [sortBy, setSortBy] = useState("")
-  const [useAISearch, setUseAISearch] = useState(true)
+  const [searchTerm, setSearchTerm] = useState(restoredState?.searchQuery ?? initialSearch ?? "")
+  const [sortBy, setSortBy] = useState(restoredState?.sortBy ?? "")
+  const [useAISearch, setUseAISearch] = useState(restoredState?.useAISearch ?? true)
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [urlFilters] = useState(initialFilters || {})
@@ -47,6 +50,10 @@ export function ArtiestGrid({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { t } = useLanguage()
   const { toast } = useToast()
+
+  useEffect(() => {
+    updateListState({ sortBy, useAISearch })
+  }, [sortBy, useAISearch])
 
   useEffect(() => {
     if (initialSearch) {

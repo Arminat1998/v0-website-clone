@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
 import { Header } from "@/components/header"
+import { ArtistBackLink } from "@/components/artist-back-link"
 import { ArtistProfileView } from "@/components/artist-profile-view"
 import { ArtistShareButton } from "@/components/artist-share-button"
 import { enhancedArtists } from "@/lib/smart-search"
@@ -44,13 +43,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="mx-auto w-full max-w-6xl px-0 sm:px-4 py-4 sm:py-8">
-        <Link
-          href="/artiesten"
-          className="mb-3 ml-3 sm:ml-0 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Alle artiesten
-        </Link>
+        <ArtistBackLink />
         <div className="overflow-hidden border-y border-border sm:rounded-xl sm:border">
           <ArtistProfileView artist={artist} heroAction={<ArtistShareButton />} />
         </div>

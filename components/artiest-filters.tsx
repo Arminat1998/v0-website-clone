@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { updateListState } from "@/lib/artiest-list-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -12,6 +13,7 @@ import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import { useLanguage } from "@/contexts/language-context"
 
 interface ArtiestFiltersProps {
+  initialState?: Record<string, any> | null
   searchQuery?: string
   filterSuggestions?: FilterSuggestions
   onFiltersChange?: (filters: any) => void
@@ -20,25 +22,32 @@ interface ArtiestFiltersProps {
 }
 
 export function ArtiestFilters({
+  initialState,
   searchQuery,
   filterSuggestions,
   onFiltersChange,
   isMobileOpen,
   onMobileClose,
 }: ArtiestFiltersProps) {
-  const [currentMonth, setCurrentMonth] = useState("September")
-  const [currentYear, setCurrentYear] = useState("2025")
-  const [priceRange, setPriceRange] = useState([100, 5000])
-  const [selectedCity, setSelectedCity] = useState("")
-  const [selectedDuration, setSelectedDuration] = useState("")
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedDate, setSelectedDate] = useState<string>("")
+  const [currentMonth, setCurrentMonth] = useState<string>(initialState?.month ?? "September")
+  const [currentYear, setCurrentYear] = useState<string>(initialState?.year ?? "2025")
+  const [priceRange, setPriceRange] = useState<number[]>(initialState?.priceRange ?? [100, 5000])
+  const [selectedCity, setSelectedCity] = useState<string>(initialState?.city ?? "")
+  const [selectedDuration, setSelectedDuration] = useState<string>(initialState?.duration ?? "")
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(initialState?.genres ?? [])
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(initialState?.eventTypes ?? [])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialState?.categories ?? [])
+  const [selectedDate, setSelectedDate] = useState<string>(initialState?.selectedDate ?? "")
 
   const { t } = useLanguage()
 
+  // When restoring a saved state, ignore the suggestions that were derived on mount so they don't overwrite it.
+  const restoredSuggestionsRef = useRef<string | null>(initialState ? JSON.stringify(filterSuggestions ?? null) : null)
+
   useEffect(() => {
+    if (restoredSuggestionsRef.current !== null && JSON.stringify(filterSuggestions ?? null) === restoredSuggestionsRef.current) {
+      return
+    }
     if (filterSuggestions) {
       if (filterSuggestions.categories && filterSuggestions.categories.length > 0) {
         setSelectedCategories(filterSuggestions.categories)
@@ -112,6 +121,7 @@ export function ArtiestFilters({
         selectedDate: selectedDate,
       }
       onFiltersChange(filters)
+      updateListState({ filters })
     }
   }, [
     priceRange,
