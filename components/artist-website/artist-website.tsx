@@ -100,9 +100,9 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
           )}
         </div>
 
-        <header className="flex flex-col gap-5 px-2 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="relative -mt-16 size-32 shrink-0 sm:-mt-20 sm:size-44">
+        <header className="flex min-w-0 flex-col gap-4 px-2 sm:px-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+            <div className="relative -mt-14 size-28 shrink-0 sm:-mt-20 sm:size-44">
               <div className="size-full overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg">
                 {avatarSrc && <img src={avatarSrc || "/placeholder.svg"} alt={artist.name} className="size-full object-cover" />}
               </div>
@@ -205,7 +205,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
         </header>
 
         <nav aria-label={t.tabsLabel} className="mt-5 border-t border-border px-2 sm:px-6">
-          <div role="tablist" className="-mb-px flex gap-1 overflow-x-auto">
+          <div role="tablist" className="-mx-2 -mb-px flex gap-0 overflow-x-auto px-2 [scrollbar-width:none] sm:mx-0 sm:gap-1 sm:px-0 [&::-webkit-scrollbar]:hidden">
             {TABS.map((key) => (
               <button
                 key={key}
@@ -213,7 +213,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                 role="tab"
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
-                className={`whitespace-nowrap border-b-[3px] px-4 py-4 text-sm font-semibold transition-colors ${
+                className={`shrink-0 whitespace-nowrap border-b-[3px] px-3 py-3.5 text-sm font-semibold transition-colors sm:px-4 sm:py-4 ${
                   tab === key ? "border-red-600 text-red-500" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >

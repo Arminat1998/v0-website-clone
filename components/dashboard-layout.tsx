@@ -145,7 +145,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 min-h-screen bg-background">
+      <main className="min-w-0 flex-1 min-h-screen bg-background">
         <div className="pt-16 lg:pt-0">
           {children}
         </div>

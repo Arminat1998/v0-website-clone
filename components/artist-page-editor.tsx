@@ -151,9 +151,9 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] pb-28">
-      <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+    <div className="mx-auto w-full min-w-0 max-w-[1400px] pb-28">
+      <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground text-balance sm:text-3xl">{t.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.subtitle}</p>
         </div>
@@ -174,11 +174,11 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
       <ArtistWebsite artist={artist} content={draft} edit={edit} />
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur lg:left-64">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-3 lg:px-8">
-          <p className="text-sm text-muted-foreground" aria-live="polite">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:px-8">
+          <p className="min-w-0 flex-1 text-xs text-muted-foreground sm:text-sm" aria-live="polite">
             {dirty ? t.unsaved : t.saved}
           </p>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             <Button type="button" variant="ghost" onClick={() => setDraft(saved)} disabled={!dirty || isSaving}>
               {t.discard}
             </Button>
