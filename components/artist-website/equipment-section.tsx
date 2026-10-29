@@ -59,9 +59,6 @@ function RealEquipment({ packageItems, extraItems }: { packageItems: EquipmentDe
                 <div className="min-w-0">
                   <h3 className="font-semibold text-foreground">{item.name}</h3>
                   {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
-                  {item.price && (
-                    <p className="mt-1 text-sm font-bold text-red-600">{formatRentalPrice(item.price, suffix)}</p>
-                  )}
                 </div>
               </li>
             ))}
