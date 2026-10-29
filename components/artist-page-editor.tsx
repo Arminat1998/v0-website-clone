@@ -9,6 +9,7 @@ import type { UploadKind, WebsiteEditApi } from "@/components/artist-website/web
 import { saveArtistPage } from "@/app/actions/artist-page"
 import { useToast } from "@/hooks/use-toast"
 import { useLanguage } from "@/contexts/language-context"
+import { useImageCrop } from "@/hooks/use-image-crop"
 import type { Artist } from "@/lib/smart-search"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, PAGE_LIMITS, type ArtistPageContent } from "@/lib/artist-page-types"
 
@@ -82,6 +83,7 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
   const [uploading, setUploading] = useState<UploadKind | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
   const [isSaving, startSaving] = useTransition()
+  const { requestCrop, cropDialog } = useImageCrop()
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
   const update = (patch: Partial<ArtistPageContent>) => setDraft((current) => ({ ...current, ...patch }))
@@ -89,7 +91,12 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
   const reportError = (error: unknown) =>
     toast({ title: error instanceof Error ? error.message : t.uploadFailed, variant: "destructive" })
 
-  async function uploadSingle(kind: "banner" | "avatar", file: File | undefined) {
+  async function uploadSingle(kind: "banner" | "avatar", original: File | undefined) {
+    if (!original) return
+    const file = await requestCrop(
+      original,
+      kind === "banner" ? { aspect: 3 } : { aspect: 1, round: true },
+    )
     if (!file) return
     setUploading(kind)
     try {
@@ -104,14 +111,17 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
 
   async function uploadGallery(files: FileList | null) {
     if (!files || files.length === 0) return
-    setUploading("gallery")
+    const selected = Array.from(files)
     const added: string[] = []
     try {
-      for (const file of Array.from(files)) {
+      for (const original of selected) {
         if (draft.gallery.length + added.length >= PAGE_LIMITS.gallery) {
           toast({ title: t.limitReached, variant: "destructive" })
           break
         }
+        const file = await requestCrop(original, { aspect: 4 / 3 })
+        if (!file) continue
+        setUploading("gallery")
         added.push(await uploadImage(file, "gallery", t))
       }
     } catch (error) {
@@ -152,6 +162,7 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1400px] pb-28">
+      {cropDialog}
       <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground text-balance sm:text-3xl">{t.title}</h1>

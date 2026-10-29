@@ -18,6 +18,9 @@ import { useState, useRef, useEffect } from "react" // Imported useEffect
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { useImageCrop } from "@/hooks/use-image-crop"
+import { fileToDataUrl } from "@/lib/crop-image"
+import { AdditionalEquipment, type AdditionalCategory } from "@/components/additional-equipment"
 
 interface PackageEquipmentItem {
   id: string
@@ -33,6 +36,13 @@ interface ExtraEquipmentItem {
   price: string
   description: string
   image?: string
+  category?: AdditionalCategory
+}
+
+const ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID: Record<string, AdditionalCategory> = {
+  lighting: "lighting",
+  "sound-system": "sound",
+  "pa-system": "sound",
 }
 
 interface SocialMediaLink {
@@ -130,6 +140,18 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
   })
   const [currentExtraEquipmentImage, setCurrentExtraEquipmentImage] = useState<string>("")
   const extraFileInputRef = useRef<HTMLInputElement>(null)
+  const { requestCrop, cropDialog } = useImageCrop()
+
+  const pickCroppedImage = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    options: { aspect: number; round?: boolean },
+  ) => {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return null
+    const cropped = await requestCrop(file, options)
+    return cropped ? fileToDataUrl(cropped) : null
+  }
 
   const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // Prevent minus (-), plus (+), and 'e' (scientific notation)
@@ -379,38 +401,19 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
     }))
   }
 
-  const handleEquipmentFileChange = (equipmentId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        updateEquipmentItem(equipmentId, "image", reader.result as string)
-      }
-      reader.readAsDataURL(file)
-      console.log("[v0] Equipment file selected:", file.name)
-    }
+  const handleEquipmentFileChange = async (equipmentId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const image = await pickCroppedImage(e, { aspect: 4 / 3 })
+    if (image) updateEquipmentItem(equipmentId, "image", image)
   }
 
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setBannerImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const image = await pickCroppedImage(e, { aspect: 1.91 })
+    if (image) setBannerImage(image)
   }
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
+  const handleProfileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const image = await pickCroppedImage(e, { aspect: 1, round: true })
+    if (image) setProfileImage(image)
   }
 
   const handlePackageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,16 +424,9 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
     }
   }
 
-  const handleExtraFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setCurrentExtraEquipmentImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-      console.log("[v0] Extra equipment file selected:", file.name)
-    }
+  const handleExtraFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const image = await pickCroppedImage(e, { aspect: 4 / 3 })
+    if (image) setCurrentExtraEquipmentImage(image)
   }
 
   const addPackageEquipment = () => {
@@ -1555,6 +1551,17 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                                       : "Add equipment photo"}
                                 </label>
                               </div>
+                              {ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id] && (
+                                <AdditionalEquipment
+                                  category={ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id]}
+                                  items={extraEquipment.filter(
+                                    (item) => item.category === ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id],
+                                  )}
+                                  onAdd={(item) => setExtraEquipment((prev) => [...prev, item])}
+                                  onRemove={removeExtraEquipment}
+                                  nl={L}
+                                />
+                              )}
                             </div>
                           )}
                         </div>
@@ -1576,9 +1583,9 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                       : "Add any additional equipment you offer as optional extras for clients."}
                   </p>
 
-                  {extraEquipment.length > 0 && (
+                  {extraEquipment.some((item) => !item.category) && (
                     <div className="space-y-3">
-                      {extraEquipment.map((item) => (
+                      {extraEquipment.filter((item) => !item.category).map((item) => (
                         <div
                           key={item.id}
                           className="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-950 p-3 sm:p-4"
@@ -1673,6 +1680,8 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                   </div>
                 </div>
               )}
+
+              {cropDialog}
 
               {/* Social Media Links */}
               <div className="space-y-4">
