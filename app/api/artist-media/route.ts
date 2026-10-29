@@ -10,7 +10,7 @@ const EXTENSIONS: Record<string, string> = {
   "image/avif": "avif",
 }
 
-const KINDS = ["banner", "avatar", "gallery"] as const
+const KINDS = ["banner", "avatar", "gallery", "equipment"] as const
 
 export async function POST(request: NextRequest) {
   try {

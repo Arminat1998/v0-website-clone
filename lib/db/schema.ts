@@ -175,6 +175,39 @@ export const artistPages = pgTable("artist_pages", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const professionalProfiles = pgTable("professional_profiles", {
+  professionalId: text("professional_id").primaryKey(),
+  stageName: text("stage_name").notNull().default(""),
+  fullName: text("full_name").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  companyName: text("company_name").notNull().default(""),
+  kvkNumber: text("kvk_number").notNull().default(""),
+  vatNumber: text("vat_number").notNull().default(""),
+  bio: text("bio").notNull().default(""),
+  yearsExperience: integer("years_experience").notNull().default(0),
+  hourlyRate: numeric("hourly_rate", { precision: 10, scale: 2 }).notNull().default("0"),
+  minHours: integer("min_hours").notNull().default(1),
+  maxHours: integer("max_hours").notNull().default(8),
+  city: text("city").notNull().default(""),
+  rangeKm: integer("range_km").notNull().default(100),
+  artistType: text("artist_type").notNull().default(""),
+  genres: text("genres").array().notNull().default([]),
+  eventTypes: text("event_types").array().notNull().default([]),
+  socials: jsonb("socials").$type<{ id: string; platform: string; url: string }[]>().notNull().default([]),
+  minimumEquipment: jsonb("minimum_equipment")
+    .$type<Record<string, { id: string; name: string; price: string; description: string; image?: string }>>()
+    .notNull()
+    .default({}),
+  extraEquipment: jsonb("extra_equipment")
+    .$type<{ id: string; name: string; price: string; description: string; image?: string; category?: "lighting" | "sound" }[]>()
+    .notNull()
+    .default([]),
+  avatarPath: text("avatar_path"),
+  bannerPath: text("banner_path"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const VAT_SCHEMES = ["standard", "kor"] as const
 export type VatScheme = (typeof VAT_SCHEMES)[number]
 

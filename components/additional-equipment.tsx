@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { fileToDataUrl } from "@/lib/crop-image"
 import { useImageCrop } from "@/hooks/use-image-crop"
+import { imageSrc } from "@/lib/professional-profile-types"
 
 export type AdditionalCategory = "lighting" | "sound"
 
@@ -85,7 +86,7 @@ export function AdditionalEquipment({ category, items, onAdd, onRemove, nl }: Ad
               className="flex items-start justify-between gap-2 rounded-md border border-gray-300 dark:border-gray-600 p-2.5"
             >
               <div className="flex min-w-0 gap-3">
-                {item.image && <img src={item.image || "/placeholder.svg"} alt={item.name} className="h-12 w-12 shrink-0 rounded object-cover" />}
+                {item.image && <img src={imageSrc(item.image) || "/placeholder.svg"} alt={item.name} className="h-12 w-12 shrink-0 rounded object-cover" />}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-foreground">{item.name}</p>
                   {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}

@@ -21,6 +21,8 @@ import Link from "next/link"
 import { useImageCrop } from "@/hooks/use-image-crop"
 import { fileToDataUrl } from "@/lib/crop-image"
 import { AdditionalEquipment, type AdditionalCategory } from "@/components/additional-equipment"
+import { saveProfessionalProfile } from "@/app/actions/professional-profile"
+import { imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
 interface PackageEquipmentItem {
   id: string
@@ -59,33 +61,58 @@ interface EquipmentConfig {
   placeholder: string
 }
 
-export function ProfessionalProfileForm({ mode = "register" }: { mode?: "register" | "edit" }) {
+interface ProfessionalProfileFormProps {
+  mode?: "register" | "edit"
+  initialProfile?: ProfessionalProfileData | null
+}
+
+async function uploadImage(dataUrl: string, kind: "banner" | "avatar" | "equipment") {
+  if (!dataUrl || !dataUrl.startsWith("data:")) return dataUrl
+  const blob = await (await fetch(dataUrl)).blob()
+  const formData = new FormData()
+  formData.append("file", new File([blob], `${kind}.${blob.type.split("/")[1] || "jpg"}`, { type: blob.type }))
+  formData.append("kind", kind)
+  const response = await fetch("/api/artist-media", { method: "POST", body: formData })
+  if (!response.ok) throw new Error("upload_failed")
+  const { pathname } = (await response.json()) as { pathname: string }
+  return pathname
+}
+
+export function ProfessionalProfileForm({ mode = "register", initialProfile = null }: ProfessionalProfileFormProps) {
   const isEdit = mode === "edit"
   const router = useRouter()
   const [saved, setSaved] = useState(false)
-  const [minHours, setMinHours] = useState(1)
-  const [maxHours, setMaxHours] = useState(8)
-  const [artistType, setArtistType] = useState<string>("")
-  const [bannerImage, setBannerImage] = useState<string>("")
-  const [profileImage, setProfileImage] = useState<string>("")
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
+  const [minHours, setMinHours] = useState(initialProfile?.minHours ?? 1)
+  const [maxHours, setMaxHours] = useState(initialProfile?.maxHours ?? 8)
+  const [artistType, setArtistType] = useState<string>(initialProfile?.artistType ?? "")
+  const [bannerImage, setBannerImage] = useState<string>(initialProfile?.bannerPath ?? "")
+  const [profileImage, setProfileImage] = useState<string>(initialProfile?.avatarPath ?? "")
+  const [stageName, setStageName] = useState<string>(initialProfile?.stageName ?? "")
+  const [bio, setBio] = useState<string>(initialProfile?.bio ?? "")
+  const [yearsExperience, setYearsExperience] = useState<string>(String(initialProfile?.yearsExperience ?? 0))
+  const [hourlyRate, setHourlyRate] = useState<string>(String(initialProfile?.hourlyRate ?? 0))
+  const [city, setCity] = useState<string>(initialProfile?.city ?? "")
+  const [rangeKm, setRangeKm] = useState<string>(String(initialProfile?.rangeKm ?? 100))
 
   const { t, language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
   const L = language === "nl"
 
-  const [fullName, setFullName] = useState<string>("")
-  const [email, setEmail] = useState<string>("")
-  const [phone, setPhone] = useState<string>("")
+  const [fullName, setFullName] = useState<string>(initialProfile?.fullName ?? "")
+  const [email, setEmail] = useState<string>(initialProfile?.email ?? "")
+  const [phone, setPhone] = useState<string>(initialProfile?.phone ?? "")
 
-  const [companyName, setCompanyName] = useState<string>("")
-  const [kvkNumber, setKvkNumber] = useState<string>("")
-  const [vatNumber, setVatNumber] = useState<string>("")
+  const [companyName, setCompanyName] = useState<string>(initialProfile?.companyName ?? "")
+  const [kvkNumber, setKvkNumber] = useState<string>(initialProfile?.kvkNumber ?? "")
+  const [vatNumber, setVatNumber] = useState<string>(initialProfile?.vatNumber ?? "")
   const [kvkError, setKvkError] = useState<string>("")
 
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([])
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(initialProfile?.genres ?? [])
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(initialProfile?.eventTypes ?? [])
 
-  const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>([])
+  const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>(initialProfile?.socials ?? [])
   const [currentSocialMedia, setCurrentSocialMedia] = useState({ platform: "", url: "" })
 
   const [mounted, setMounted] = useState(false)
@@ -128,10 +155,12 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
   const bannerInputRef = useRef<HTMLInputElement>(null)
   const profileInputRef = useRef<HTMLInputElement>(null)
 
-  const [minimumEquipment, setMinimumEquipment] = useState<Record<string, PackageEquipmentItem>>({})
+  const [minimumEquipment, setMinimumEquipment] = useState<Record<string, PackageEquipmentItem>>(
+    initialProfile?.minimumEquipment ?? {},
+  )
   const [currentEquipmentIndex, setCurrentEquipmentIndex] = useState(0)
 
-  const [extraEquipment, setExtraEquipment] = useState<ExtraEquipmentItem[]>([])
+  const [extraEquipment, setExtraEquipment] = useState<ExtraEquipmentItem[]>(initialProfile?.extraEquipment ?? [])
   const [currentExtraEquipment, setCurrentExtraEquipment] = useState<ExtraEquipmentItem>({
     id: "",
     name: "",
@@ -704,8 +733,9 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (saving) return
 
     if (!/^\d{8}$/.test(kvkNumber)) {
       setKvkError(
@@ -720,11 +750,72 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
       return
     }
 
-    if (isEdit) {
-      setSaved(true)
-      return
+    setSaving(true)
+    setSaveError("")
+    setSaved(false)
+    try {
+      const minimumEquipmentUploaded = Object.fromEntries(
+        await Promise.all(
+          Object.entries(minimumEquipment).map(async ([key, item]) => [
+            key,
+            { ...item, image: item.image ? await uploadImage(item.image, "equipment") : undefined },
+          ]),
+        ),
+      )
+      const extraEquipmentUploaded = await Promise.all(
+        extraEquipment.map(async (item) => ({
+          ...item,
+          image: item.image ? await uploadImage(item.image, "equipment") : undefined,
+        })),
+      )
+      const avatarPath = profileImage ? await uploadImage(profileImage, "avatar") : null
+      const bannerPath = bannerImage ? await uploadImage(bannerImage, "banner") : null
+      const genreLabels = selectedGenres.map(
+        (value) => getGenreOptions().find((option) => option.value === value)?.label ?? value,
+      )
+
+      const result = await saveProfessionalProfile({
+        stageName,
+        fullName,
+        phone,
+        companyName,
+        kvkNumber,
+        vatNumber,
+        bio,
+        yearsExperience: Number(yearsExperience) || 0,
+        hourlyRate: Number(hourlyRate) || 0,
+        minHours,
+        maxHours,
+        city,
+        rangeKm: Number(rangeKm) || 0,
+        artistType,
+        genres: selectedGenres,
+        genreLabels,
+        eventTypes: selectedEventTypes,
+        socials: socialMediaLinks,
+        minimumEquipment: minimumEquipmentUploaded,
+        extraEquipment: extraEquipmentUploaded,
+        avatarPath,
+        bannerPath,
+      })
+
+      if (!result.ok) {
+        setSaveError(L ? "Opslaan is mislukt. Controleer je gegevens en probeer het opnieuw." : "Saving failed. Check your details and try again.")
+        return
+      }
+
+      if (isEdit) {
+        setSaved(true)
+        router.refresh()
+      } else {
+        router.push("/dashboard")
+      }
+    } catch (error) {
+      console.error("Profile save failed:", error)
+      setSaveError(L ? "Opslaan is mislukt. Probeer het opnieuw." : "Saving failed. Please try again.")
+    } finally {
+      setSaving(false)
     }
-    router.push("/dashboard")
   }
 
   const inputClassName =
@@ -976,7 +1067,7 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                 className="hidden"
               />
               {bannerImage ? (
-                <Image src={bannerImage || "/placeholder.svg"} alt="Banner" fill className="object-cover" />
+                <Image src={imageSrc(bannerImage) || "/placeholder.svg"} alt="Banner" fill className="object-cover" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center p-4 bg-muted group-hover:bg-accent transition-colors">
                   <Camera className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mb-2" />
@@ -1021,7 +1112,7 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                   <div className="flex h-full w-full flex-col items-center justify-center group-hover:bg-accent transition-colors">
                     {profileImage ? (
                       <Image
-                        src={profileImage || "/placeholder.svg"}
+                        src={imageSrc(profileImage) || "/placeholder.svg"}
                         alt="Profile"
                         fill
                         className="object-cover rounded-full"
@@ -1065,6 +1156,8 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                     id="stageName"
                     placeholder={L ? "DJ Voorbeeld" : "DJ Example"}
                     className={inputClassName}
+                    value={stageName}
+                    onChange={(e) => setStageName(e.target.value)}
                     required
                   />
                 </div>
@@ -1183,6 +1276,8 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                   }
                   rows={5}
                   className={textareaClassName}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
                   required
                 />
               </div>
@@ -1197,7 +1292,8 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                     id="experience"
                     type="number"
                     min="0"
-                    defaultValue="0"
+                    value={yearsExperience}
+                    onChange={(e) => setYearsExperience(e.target.value)}
                     className={inputClassName}
                     onKeyDown={handleNumberKeyDown}
                     required
@@ -1216,7 +1312,8 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                       type="number"
                       min="0"
                       step="0.01"
-                      defaultValue="0"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
                       className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white py-3 pl-8 pr-4 text-base focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                       onKeyDown={handleNumberKeyDown}
                       required
@@ -1283,7 +1380,14 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                   <Label htmlFor="city" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Stad" : "City"}
                   </Label>
-                  <Input id="city" placeholder="Amsterdam" className={inputClassName} required />
+                  <Input
+                    id="city"
+                    placeholder="Amsterdam"
+                    className={inputClassName}
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    required
+                  />
                 </div>
 
                 {/* Range (km) */}
@@ -1295,7 +1399,8 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                     id="range"
                     type="number"
                     min="0"
-                    defaultValue="100"
+                    value={rangeKm}
+                    onChange={(e) => setRangeKm(e.target.value)}
                     className={inputClassName}
                     onKeyDown={handleNumberKeyDown}
                     required
@@ -1594,7 +1699,7 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
                             <div className="flex gap-3">
                               {item.image && (
                                 <img
-                                  src={item.image}
+                                  src={imageSrc(item.image)}
                                   alt={item.name}
                                   className="h-12 w-12 rounded object-cover flex-shrink-0"
                                 />
@@ -1761,9 +1866,25 @@ export function ProfessionalProfileForm({ mode = "register" }: { mode?: "registe
               <Button
                 type="submit"
                 className="h-12 w-full bg-red-700 text-base font-semibold text-white hover:bg-red-600"
+                disabled={saving}
               >
-                {isEdit ? (L ? "Wijzigingen opslaan" : "Save changes") : L ? "Registreren" : "Register"}
+                {saving
+                  ? L
+                    ? "Opslaan..."
+                    : "Saving..."
+                  : isEdit
+                    ? L
+                      ? "Wijzigingen opslaan"
+                      : "Save changes"
+                    : L
+                      ? "Registreren"
+                      : "Register"}
               </Button>
+              {saveError && (
+                <p role="alert" className="text-center text-sm text-red-500">
+                  {saveError}
+                </p>
+              )}
               {isEdit && saved && (
                 <p role="status" className="text-center text-sm text-green-600">
                   {L ? "Je profiel is opgeslagen" : "Your profile has been saved"}

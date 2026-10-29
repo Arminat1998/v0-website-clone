@@ -2,7 +2,7 @@ import "server-only"
 
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { user as userTable } from "@/lib/db/schema"
+import { professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { slugify } from "@/lib/artist-slug"
 import type { Artist } from "@/lib/smart-search"
 
@@ -21,16 +21,34 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 /** Builds the artist shape used by the website from a real professional account. */
-export function buildProfessionalArtist(account: ProfessionalAccount): Artist {
+export interface ProfessionalProfileSummary {
+  stageName: string
+  bio: string
+  city: string
+  hourlyRate: number
+  yearsExperience: number
+  artistType: string
+  genres: string[]
+  eventTypes: string[]
+  avatarPath: string | null
+  equipment: string[]
+}
+
+export function buildProfessionalArtist(account: ProfessionalAccount, profile?: ProfessionalProfileSummary | null): Artist {
   return {
     // Real accounts use string ids; the website only interpolates the id into URLs.
     id: account.id as unknown as number,
-    name: account.name,
-    specialty: CATEGORY_LABELS[account.category ?? ""] ?? "Professional",
-    location: "",
+    name: profile?.stageName || account.name,
+    specialty: profile?.artistType || (CATEGORY_LABELS[account.category ?? ""] ?? "Professional"),
+    location: profile?.city ?? "",
+    description: profile?.bio || undefined,
+    eventTypes: profile?.eventTypes.length ? profile.eventTypes : undefined,
+    musicStyles: profile?.genres.length ? profile.genres : undefined,
+    experience: profile?.yearsExperience ? `${profile.yearsExperience}` : undefined,
+    equipment: profile?.equipment.length ? profile.equipment : undefined,
     rating: 0,
     reviews: 0,
-    price: "€0",
+    price: profile?.hourlyRate ? `€${profile.hourlyRate}` : "€0",
     available: true,
     category: account.category ?? undefined,
     image: account.image ?? undefined,
@@ -39,6 +57,34 @@ export function buildProfessionalArtist(account: ProfessionalAccount): Artist {
 
 export function getProfessionalArtistPath(account: ProfessionalAccount) {
   return `/artiest/${slugify(account.name) || "professional"}-${account.id}`
+}
+
+export async function getProfessionalProfileSummary(professionalId: string): Promise<ProfessionalProfileSummary | null> {
+  try {
+    const [row] = await db
+      .select()
+      .from(professionalProfiles)
+      .where(eq(professionalProfiles.professionalId, professionalId))
+      .limit(1)
+    if (!row) return null
+    const packageNames = Object.values(row.minimumEquipment).map((item) => item.name)
+    const extraNames = row.extraEquipment.map((item) => item.name)
+    return {
+      stageName: row.stageName,
+      bio: row.bio,
+      city: row.city,
+      hourlyRate: Number(row.hourlyRate),
+      yearsExperience: row.yearsExperience,
+      artistType: row.artistType,
+      genres: row.genres,
+      eventTypes: row.eventTypes,
+      avatarPath: row.avatarPath,
+      equipment: [...packageNames, ...extraNames].filter(Boolean),
+    }
+  } catch (error) {
+    console.error("Failed to load profile summary:", error)
+    return null
+  }
 }
 
 export async function getProfessionalArtistBySlug(slug: string): Promise<Artist | null> {
@@ -53,7 +99,8 @@ export async function getProfessionalArtistBySlug(slug: string): Promise<Artist 
       .from(userTable)
       .where(and(eq(userTable.id, id), eq(userTable.role, "professional")))
       .limit(1)
-    return account ? buildProfessionalArtist(account) : null
+    if (!account) return null
+    return buildProfessionalArtist(account, await getProfessionalProfileSummary(account.id))
   } catch (error) {
     console.error("Failed to load professional account:", error)
     return null

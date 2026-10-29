@@ -2,7 +2,12 @@ import type { Metadata } from "next"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ArtistPageEditor } from "@/components/artist-page-editor"
 import { requireProfessionalUser } from "@/lib/session"
-import { buildProfessionalArtist, getProfessionalArtistPath } from "@/lib/professional-artist"
+import { ProfileLinks } from "@/components/profile-links"
+import {
+  buildProfessionalArtist,
+  getProfessionalArtistPath,
+  getProfessionalProfileSummary,
+} from "@/lib/professional-artist"
 import { getArtistPageContent } from "@/lib/artist-page"
 import { getArtistPath } from "@/lib/artist-slug"
 import { enhancedArtists } from "@/lib/smart-search"
@@ -18,7 +23,8 @@ export default async function MyPageDashboard() {
   const account = await requireProfessionalUser()
   const professionalId = account.id
   const listedArtist = enhancedArtists.find((item) => String(item.id) === professionalId)
-  const artist = listedArtist ?? buildProfessionalArtist(account)
+  const profile = await getProfessionalProfileSummary(professionalId)
+  const artist = listedArtist ?? buildProfessionalArtist(account, profile)
   const artistPath = listedArtist ? getArtistPath(listedArtist) : getProfessionalArtistPath(account)
 
   const stored = await getArtistPageContent(professionalId)
@@ -36,7 +42,8 @@ export default async function MyPageDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-4 pt-16 sm:p-6 lg:p-8">
+      <div className="space-y-4 p-4 pt-16 sm:p-6 lg:p-8">
+        <ProfileLinks current="website" publicPath={artistPath} />
         <ArtistPageEditor initialContent={content} artist={artist} artistPath={artistPath} />
       </div>
     </DashboardLayout>
