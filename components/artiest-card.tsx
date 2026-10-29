@@ -1,7 +1,9 @@
 "use client"
 
-import { MapPin, Clock, CheckCircle, Speaker, Wallet } from "lucide-react"
+import Link from "next/link"
+import { MapPin, Clock, CheckCircle, Speaker, Wallet, ExternalLink } from "lucide-react"
 import { getArtistTypeLabels } from "@/lib/artist-types"
+import { getArtistPath } from "@/lib/artist-slug"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -170,6 +172,17 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
             }}
           >
             {t.viewProfile}
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Link href={getArtistPath(artist)} aria-label={`Open de eigen pagina van ${artist.name}`} title="Eigen pagina">
+              <ExternalLink className="w-4 h-4" />
+            </Link>
           </Button>
           <Button
             className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
