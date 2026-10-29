@@ -147,8 +147,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Profile Avatar */}
         <div className="p-4 flex flex-col items-center gap-2 flex-shrink-0">
-          <div className="w-10 h-10 rounded-full bg-accent border-2 border-border flex items-center justify-center">
-            <User className="w-5 h-5 text-muted-foreground" />
+          <div className="relative w-10 h-10 rounded-full bg-accent border-2 border-border flex items-center justify-center overflow-hidden">
+            {sessionData?.user?.image ? (
+              <Image
+                src={sessionData.user.image || "/placeholder.svg"}
+                alt={sessionData.user.name}
+                fill
+                sizes="40px"
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <User className="w-5 h-5 text-muted-foreground" />
+            )}
           </div>
           {sessionData?.user && (
             <p className="max-w-full truncate text-xs text-muted-foreground">{sessionData.user.name}</p>

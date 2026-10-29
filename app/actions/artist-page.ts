@@ -4,7 +4,7 @@ import { del } from "@vercel/blob"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { artistPages } from "@/lib/db/schema"
+import { artistPages, user } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { enhancedArtists } from "@/lib/smart-search"
 import { getArtistPath } from "@/lib/artist-slug"
@@ -13,6 +13,7 @@ import {
   PAGE_LIMITS,
   SOCIAL_KEYS,
   getVideoEmbed,
+  mediaUrl,
   type ArtistPageContent,
   type ArtistPageSocials,
 } from "@/lib/artist-page-types"
@@ -98,6 +99,11 @@ export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArti
     .insert(artistPages)
     .values({ professionalId, ...values })
     .onConflictDoUpdate({ target: artistPages.professionalId, set: values })
+
+  await db
+    .update(user)
+    .set({ image: content.avatarPath ? mediaUrl(content.avatarPath) : null })
+    .where(eq(user.id, professionalId))
 
   if (previous) {
     const kept = new Set([content.bannerPath, content.avatarPath, ...content.gallery])

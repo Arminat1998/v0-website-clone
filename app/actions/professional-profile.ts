@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { artistPages, billingProfiles, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
-import { SOCIAL_KEYS, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
+import { SOCIAL_KEYS, mediaUrl, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
 import type {
   ProfessionalProfileData,
   ProfileEquipmentItem,
@@ -112,7 +112,12 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
 
   try {
     const [existingProfile] = await db
-      .select({ avatarPath: professionalProfiles.avatarPath, bannerPath: professionalProfiles.bannerPath })
+      .select({
+        avatarPath: professionalProfiles.avatarPath,
+        bannerPath: professionalProfiles.bannerPath,
+        reviewStatus: professionalProfiles.reviewStatus,
+        reviewData: professionalProfiles.reviewData,
+      })
       .from(professionalProfiles)
       .where(eq(professionalProfiles.professionalId, professionalId))
       .limit(1)
@@ -120,15 +125,32 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
     const profileAvatar = avatarPath ?? existingProfile?.avatarPath ?? null
     const profileBanner = bannerPath ?? existingProfile?.bannerPath ?? null
 
+    // New profiles enter the admin screening queue; a profile that was asked for more info goes back to the queue.
+    const now = new Date().toISOString()
+    const timeline = existingProfile?.reviewData?.timeline ?? []
+    const entry = (title: string) => ({ id: crypto.randomUUID(), type: "aanmelding", date: now, title, author: "Systeem" })
+    const review: Partial<typeof professionalProfiles.$inferInsert> = {}
+    if (!existingProfile) {
+      review.reviewStatus = "nieuw"
+      review.reviewData = { timeline: [entry("Aanmelding ontvangen")] }
+    } else if (existingProfile.reviewStatus === "wacht-op-aanvulling") {
+      review.reviewStatus = "nieuw"
+      review.submittedAt = new Date()
+      review.reviewData = { ...existingProfile.reviewData, timeline: [...timeline, entry("Aanvulling ontvangen")] }
+    }
+
     await db
       .insert(professionalProfiles)
-      .values({ professionalId, ...values, avatarPath: profileAvatar, bannerPath: profileBanner })
+      .values({ professionalId, ...values, avatarPath: profileAvatar, bannerPath: profileBanner, ...review })
       .onConflictDoUpdate({
         target: professionalProfiles.professionalId,
-        set: { ...values, avatarPath: profileAvatar, bannerPath: profileBanner },
+        set: { ...values, avatarPath: profileAvatar, bannerPath: profileBanner, ...review },
       })
 
-    await db.update(userTable).set({ name: stageName, phone: phone || null }).where(eq(userTable.id, professionalId))
+    await db
+      .update(userTable)
+      .set({ name: stageName, phone: phone || null, ...(profileAvatar ? { image: mediaUrl(profileAvatar) } : {}) })
+      .where(eq(userTable.id, professionalId))
 
     const billing = {
       businessName: values.companyName || stageName,

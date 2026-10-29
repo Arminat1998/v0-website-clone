@@ -119,6 +119,13 @@ export async function getProfessionalArtistBySlug(slug: string): Promise<Artist 
       .where(and(eq(userTable.id, id), eq(userTable.role, "professional")))
       .limit(1)
     if (!account) return null
+    // Only profiles approved in the admin dashboard are live on the platform.
+    const [review] = await db
+      .select({ status: professionalProfiles.reviewStatus })
+      .from(professionalProfiles)
+      .where(eq(professionalProfiles.professionalId, account.id))
+      .limit(1)
+    if (review?.status !== "goedgekeurd") return null
     return buildProfessionalArtist(account, await getProfessionalProfileSummary(account.id))
   } catch (error) {
     console.error("Failed to load professional account:", error)
