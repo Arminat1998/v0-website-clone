@@ -6,6 +6,7 @@ import { ArtistWebsite } from "@/components/artist-website/artist-website"
 import type { Artist } from "@/lib/smart-search"
 import { getArtistBySlug } from "@/lib/artist-slug"
 import { getArtistPageContent } from "@/lib/artist-page"
+import { getProfessionalArtistBySlug } from "@/lib/professional-artist"
 import { emptyPageContent, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
 
 export const dynamic = "force-dynamic"
@@ -26,7 +27,7 @@ function withPageContent(artist: Artist, content: ArtistPageContent | null): Art
 
 export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
   const { slug } = await params
-  const baseArtist = getArtistBySlug(slug)
+  const baseArtist = getArtistBySlug(slug) ?? (await getProfessionalArtistBySlug(slug))
   if (!baseArtist) return { title: "Artiest niet gevonden | ARSI Events" }
 
   const content = await getArtistPageContent(String(baseArtist.id))
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }: ArtistPageProps): Promise<Met
 
 export default async function ArtistPage({ params }: ArtistPageProps) {
   const { slug } = await params
-  const baseArtist = getArtistBySlug(slug)
+  const baseArtist = getArtistBySlug(slug) ?? (await getProfessionalArtistBySlug(slug))
   if (!baseArtist) notFound()
 
   const content = await getArtistPageContent(String(baseArtist.id))

@@ -109,6 +109,7 @@ export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArti
 
   const artist = enhancedArtists.find((candidate) => String(candidate.id) === professionalId)
   if (artist) revalidatePath(getArtistPath(artist))
+  else revalidatePath("/artiest/[slug]", "page")
   revalidatePath("/dashboard/my-page")
 
   return { ok: true, content }
