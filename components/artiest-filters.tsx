@@ -31,7 +31,7 @@ export function ArtiestFilters({
 }: ArtiestFiltersProps) {
   const [currentMonth, setCurrentMonth] = useState<string>(initialState?.month ?? "September")
   const [currentYear, setCurrentYear] = useState<string>(initialState?.year ?? "2025")
-  const [priceRange, setPriceRange] = useState<number[]>(initialState?.priceRange ?? [100, 5000])
+  const [priceRange, setPriceRange] = useState<number[]>(initialState?.priceRange ?? [0, 5000])
   const [selectedCity, setSelectedCity] = useState<string>(initialState?.city ?? "")
   const [selectedDuration, setSelectedDuration] = useState<string>(initialState?.duration ?? "")
   const [selectedGenres, setSelectedGenres] = useState<string[]>(initialState?.genres ?? [])
@@ -409,7 +409,7 @@ export function ArtiestFilters({
             />
           </div>
         </div>
-        <Slider value={priceRange} onValueChange={setPriceRange} max={5000} min={100} step={50} className="w-full" />
+        <Slider value={priceRange} onValueChange={setPriceRange} max={5000} min={0} step={50} className="w-full" />
       </div>
 
       <div className="mb-6">
