@@ -23,6 +23,8 @@ export function getArtistSlug(artist: Artist) {
 }
 
 export function getArtistPath(artist: Artist) {
+  // Real professional accounts have string ids and are looked up by id.
+  if (typeof artist.id === "string") return `/artiest/${slugify(artist.name) || "professional"}-${artist.id}`
   return `/artiest/${getArtistSlug(artist)}`
 }
 

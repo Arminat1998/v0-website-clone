@@ -107,6 +107,40 @@ export async function getProfessionalProfileSummary(professionalId: string): Pro
   }
 }
 
+/** All professionals whose profile was approved in the admin dashboard and whose account is not restricted. */
+export async function listLiveProfessionalArtists(): Promise<Artist[]> {
+  try {
+    const rows = await db
+      .select({
+        id: userTable.id,
+        name: userTable.name,
+        image: userTable.image,
+        category: userTable.category,
+        status: userTable.status,
+        statusReason: userTable.statusReason,
+        suspendedUntil: userTable.suspendedUntil,
+      })
+      .from(userTable)
+      .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
+      .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
+
+    const artists = await Promise.all(
+      rows
+        .filter((account) => !getRestriction(account))
+        .map(async (account) => {
+          const profile = await getProfessionalProfileSummary(account.id)
+          const artist = buildProfessionalArtist(account, profile)
+          // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
+          return profile?.artistType ? { ...artist, category: profile.artistType } : artist
+        }),
+    )
+    return artists
+  } catch (error) {
+    console.error("Failed to list live professionals:", error)
+    return []
+  }
+}
+
 export async function getProfessionalArtistBySlug(slug: string): Promise<Artist | null> {
   const separator = slug.lastIndexOf("-")
   if (separator < 1) return null

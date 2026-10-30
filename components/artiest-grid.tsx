@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles, Zap, Music, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,8 @@ import { useLanguage } from "@/contexts/language-context"
 import { useToast } from "@/hooks/use-toast"
 import { updateListState, getViewedArtistIds, markArtistViewed, type ArtiestListState } from "@/lib/artiest-list-state"
 import { analyzeAudioFile, type AudioAnalysisResult } from "@/lib/audio-analyzer"
+
+const fetcher = (url: string) => fetch(url).then((response) => response.json())
 
 interface ArtiestGridProps {
   restoredState?: ArtiestListState | null
@@ -146,8 +149,13 @@ export function ArtiestGrid({
     }
   }
 
+  const { data: liveData } = useSWR<{ artists: Artist[] }>("/api/artists/live", fetcher, {
+    revalidateOnFocus: true,
+  })
+  const allArtists = useMemo(() => [...(liveData?.artists ?? []), ...enhancedArtists], [liveData])
+
   const filteredArtists = useMemo(() => {
-    let artists = enhancedArtists
+    let artists = allArtists
 
     if (searchTerm.trim()) {
       if (useAISearch) {
@@ -245,7 +253,7 @@ export function ArtiestGrid({
     }
 
     return artists
-  }, [searchTerm, appliedFilters, urlFilters, useAISearch, musicAnalysis])
+  }, [searchTerm, appliedFilters, urlFilters, useAISearch, musicAnalysis, allArtists])
 
   const sortedArtists = useMemo(() => {
     const artists = [...filteredArtists]

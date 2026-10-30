@@ -49,5 +49,6 @@ export async function saveReview(input: SaveReviewInput): Promise<{ ok: boolean 
   revalidatePath("/admin", "layout")
   revalidatePath("/dashboard", "layout")
   revalidatePath("/artiest/[slug]", "page")
+  revalidatePath("/artiesten")
   return { ok: true }
 }
