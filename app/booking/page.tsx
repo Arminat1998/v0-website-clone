@@ -107,7 +107,16 @@ export default function BookingPage() {
   const musicGenres = ["Trance", "House", "Techno", "Punk", "Hip-Hop", "Pop", "Rock", "EDM"]
 
   // Get artist or photographer data
-  const artist = artistId ? artists.find(a => a.id === Number(artistId)) : null
+  const staticArtist = artistId ? artists.find(a => a.id === Number(artistId)) : null
+  const needsLiveLookup = Boolean(artistId) && !staticArtist
+  const { data: liveData, isLoading: liveLoading } = useSWR<{ artists: typeof artists }>(
+    needsLiveLookup ? "/api/artists/live" : null,
+    (url: string) => fetch(url).then((response) => response.json()),
+  )
+  const liveArtist = needsLiveLookup
+    ? liveData?.artists.find((a) => String(a.id) === artistId)
+    : null
+  const artist = staticArtist || liveArtist || null
   const photographer = professionalId ? photographers.find(p => p.id === Number(professionalId)) : null
   const professional = artist || photographer
 
@@ -121,10 +130,10 @@ export default function BookingPage() {
   }, [initialDate])
 
   useEffect(() => {
-    if (!professional) {
+    if (!professional && !liveLoading && (!needsLiveLookup || liveData)) {
       router.push("/")
     }
-  }, [professional, router])
+  }, [professional, router, liveLoading, needsLiveLookup, liveData])
 
   if (!professional) {
     return null
