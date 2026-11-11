@@ -20,6 +20,7 @@ export default function BookingPage() {
   const router = useRouter()
   const { t, language } = useLanguage()
   const dateLocale = language === "nl" ? "nl-NL" : "en-US"
+  const tr = (nl: string, en: string) => (language === "nl" ? nl : en)
   
   const artistId = searchParams.get("artistId")
   const professionalId = searchParams.get("professionalId")
@@ -127,6 +128,14 @@ export default function BookingPage() {
   )
   
   const eventTypes = ["Birthday", "Anniversary", "Wedding", "Corporate", "Festival", "Club Night"]
+  const eventTypeLabels: Record<string, string> = {
+    Birthday: "Verjaardag",
+    Anniversary: "Jubileum",
+    Wedding: "Bruiloft",
+    Corporate: "Zakelijk",
+    Festival: "Festival",
+    "Club Night": "Clubavond",
+  }
   const musicGenres = ["Trance", "House", "Techno", "Punk", "Hip-Hop", "Pop", "Rock", "EDM"]
 
   // Get artist or photographer data
@@ -414,7 +423,7 @@ export default function BookingPage() {
     const date = new Date(dateStr)
     return {
       id: idx + 1,
-      name: `Booked Event ${idx + 1}`,
+      name: `${tr("Geboekt evenement", "Booked Event")} ${idx + 1}`,
       date: date.toLocaleDateString(dateLocale, { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
       location: professional.location,
     }
@@ -481,7 +490,7 @@ export default function BookingPage() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>1 - 8 hrs</span>
+                    <span>{tr("1 - 8 uur", "1 - 8 hrs")}</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-foreground">
@@ -671,7 +680,7 @@ export default function BookingPage() {
                   disabled={!selectedDate || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
-                  Continue to Event Details
+                  {tr("Naar evenementdetails", "Continue to Event Details")}
                 </Button>
               </div>
             </div>
@@ -681,16 +690,16 @@ export default function BookingPage() {
           {currentStep === 2 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">Event Details</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{tr("Evenementdetails", "Event Details")}</h2>
                 
                 {/* Event Name */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Event Name</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Naam van het evenement", "Event Name")}</label>
                   <input
                     type="text"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
-                    placeholder="Enter event name"
+                    placeholder={tr("Naam van je evenement", "Enter event name")}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
                   {eventName.length < 3 && eventName.length > 0 && (
@@ -701,7 +710,7 @@ export default function BookingPage() {
                 {/* Date and Times */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Event Date</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</label>
                     <input
                       type="date"
                       value={eventDate}
@@ -710,13 +719,13 @@ export default function BookingPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Start Time</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}</label>
                     <select
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
-                      <option value="">Select</option>
+                      <option value="">{tr("Kies", "Select")}</option>
                       {Array.from({ length: 24 }, (_, i) => (
                         <option key={i} value={`${i.toString().padStart(2, '0')}:00`}>
                           {`${i.toString().padStart(2, '0')}:00`}
@@ -725,13 +734,13 @@ export default function BookingPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">End Time</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Eindtijd", "End Time")}</label>
                     <select
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
-                      <option value="">Select</option>
+                      <option value="">{tr("Kies", "Select")}</option>
                       {Array.from({ length: 24 }, (_, i) => (
                         <option key={i} value={`${i.toString().padStart(2, '0')}:30`}>
                           {`${i.toString().padStart(2, '0')}:30`}
@@ -744,7 +753,7 @@ export default function BookingPage() {
                 {/* Event Types and Music Genres */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Event Types</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Type evenement", "Event Types")}</label>
                     <div className="flex flex-wrap gap-2">
                       {eventTypes.map((type) => (
                         <button
@@ -761,18 +770,18 @@ export default function BookingPage() {
                               : 'bg-accent text-foreground hover:bg-muted'
                           }`}
                         >
-                          {type}
+                          {language === "nl" ? eventTypeLabels[type] ?? type : type}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Capacity</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
                     <input
                       type="number"
                       value={capacity}
                       onChange={(e) => setCapacity(e.target.value)}
-                      placeholder="Expected number of guests"
+                      placeholder={tr("Verwacht aantal gasten", "Expected number of guests")}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
                   </div>
@@ -780,7 +789,7 @@ export default function BookingPage() {
                 
                 {/* Music Genres */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Music Genres</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziekgenres", "Music Genres")}</label>
                   <div className="flex flex-wrap gap-2">
                     {musicGenres.map((genre) => (
                       <button
@@ -805,11 +814,11 @@ export default function BookingPage() {
                 
                 {/* Description */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Description</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Omschrijving", "Description")}</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your event..."
+                    placeholder={tr("Beschrijf je evenement...", "Describe your event...")}
                     rows={4}
                     maxLength={5000}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground resize-none"
@@ -819,11 +828,11 @@ export default function BookingPage() {
                 
                 {/* Special Requests */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Special Requests</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Speciale wensen", "Special Requests")}</label>
                   <textarea
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
-                    placeholder="Any special requests or requirements..."
+                    placeholder={tr("Speciale wensen of eisen...", "Any special requests or requirements...")}
                     rows={3}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground resize-none"
                   />
@@ -831,7 +840,7 @@ export default function BookingPage() {
                 
                 {/* Link Option */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Link Option</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Soort link", "Link Option")}</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -840,7 +849,7 @@ export default function BookingPage() {
                         onChange={() => setLinkOption("playlist")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
                       />
-                      <span className="text-sm text-foreground">Favorite Playlist Link</span>
+                      <span className="text-sm text-foreground">{tr("Link naar favoriete playlist", "Favorite Playlist Link")}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -849,7 +858,7 @@ export default function BookingPage() {
                         onChange={() => setLinkOption("individual")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
                       />
-                      <span className="text-sm text-foreground">Links for Each Song</span>
+                      <span className="text-sm text-foreground">{tr("Link per nummer", "Links for Each Song")}</span>
                     </label>
                   </div>
                 </div>
@@ -857,7 +866,7 @@ export default function BookingPage() {
                 {/* Playlist Link */}
                 {linkOption === "playlist" && (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-foreground mb-2">Playlist Link</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Playlistlink", "Playlist Link")}</label>
                     <div className="flex gap-2">
                       <input
                         type="url"
@@ -866,14 +875,14 @@ export default function BookingPage() {
                         placeholder="https://..."
                         className="flex-1 px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                       />
-                      <Button className="bg-accent text-foreground hover:bg-muted px-4">Add Link</Button>
+                      <Button className="bg-accent text-foreground hover:bg-muted px-4">{tr("Link toevoegen", "Add Link")}</Button>
                     </div>
                   </div>
                 )}
                 
                 {/* Opening Dance Music */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Opening Dance Music</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor de openingsdans", "Opening Dance Music")}</label>
                   <div className="flex gap-4 mb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -882,7 +891,7 @@ export default function BookingPage() {
                         onChange={() => setOpeningDanceOption("upload")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
                       />
-                      <span className="text-sm text-foreground">Upload File</span>
+                      <span className="text-sm text-foreground">{tr("Bestand uploaden", "Upload File")}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -891,7 +900,7 @@ export default function BookingPage() {
                         onChange={() => setOpeningDanceOption("link")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
                       />
-                      <span className="text-sm text-foreground">Add Link</span>
+                      <span className="text-sm text-foreground">{tr("Link toevoegen", "Add Link")}</span>
                     </label>
                   </div>
                   {openingDanceOption === "upload" ? (
@@ -922,7 +931,7 @@ export default function BookingPage() {
                 
                 {/* Last Song Music */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">Last Song Music</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor het laatste nummer", "Last Song Music")}</label>
                   <div className="flex gap-4 mb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -931,7 +940,7 @@ export default function BookingPage() {
                         onChange={() => setLastSongOption("upload")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
                       />
-                      <span className="text-sm text-foreground">Upload File</span>
+                      <span className="text-sm text-foreground">{tr("Bestand uploaden", "Upload File")}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -940,7 +949,7 @@ export default function BookingPage() {
                         onChange={() => setLastSongOption("link")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
                       />
-                      <span className="text-sm text-foreground">Add Link</span>
+                      <span className="text-sm text-foreground">{tr("Link toevoegen", "Add Link")}</span>
                     </label>
                   </div>
                   {lastSongOption === "upload" ? (
@@ -971,23 +980,23 @@ export default function BookingPage() {
                 
                 {/* DJ Dress Code Preference */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">DJ Dress Code Preference (e.g. Formal or theme)</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode voor de DJ (bijv. formeel of thema)", "DJ Dress Code Preference (e.g. Formal or theme)")}</label>
                   <input
                     type="text"
                     value={dressCode}
                     onChange={(e) => setDressCode(e.target.value)}
-                    placeholder="e.g. Formal, Casual, Theme-based"
+                    placeholder={tr("bijv. formeel, casual, thema", "e.g. Formal, Casual, Theme-based")}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
                 </div>
                 
                 {/* Event Venue Address */}
                 <div className="border-t border-border pt-4">
-                  <h3 className="text-lg font-semibold text-foreground mb-3">Event Venue Address</h3>
+                  <h3 className="text-lg font-semibold text-foreground mb-3">{tr("Adres van de locatie", "Event Venue Address")}</h3>
                   
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Street Name</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">{tr("Straat", "Street Name")}</label>
                       <input
                         type="text"
                         value={streetName}
@@ -998,7 +1007,7 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">House Number</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Huisnummer", "House Number")}</label>
                         <input
                           type="text"
                           value={houseNumber}
@@ -1007,7 +1016,7 @@ export default function BookingPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">House Number Extension</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Toevoeging", "House Number Extension")}</label>
                         <input
                           type="text"
                           value={houseNumberExt}
@@ -1019,7 +1028,7 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Postal Code</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
                         <input
                           type="text"
                           value={postalCode}
@@ -1028,7 +1037,7 @@ export default function BookingPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">City</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
                         <input
                           type="text"
                           value={city}
@@ -1039,7 +1048,7 @@ export default function BookingPage() {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">Country</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">{tr("Land", "Country")}</label>
                       <input
                         type="text"
                         value={country}
@@ -1053,7 +1062,7 @@ export default function BookingPage() {
               
               {/* Equipment Selection */}
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Equipment Selection</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-4">{tr("Apparatuur kiezen", "Equipment Selection")}</h3>
                 
                 {/* Basic DJ Package */}
                 <div className={`border-2 rounded-lg p-4 mb-4 cursor-pointer transition-colors ${
@@ -1070,10 +1079,10 @@ export default function BookingPage() {
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Speaker className="w-5 h-5 text-red-500" />
-                      <h4 className="font-semibold text-foreground">Basic DJ Package</h4>
+                      <h4 className="font-semibold text-foreground">{tr("Basis DJ-pakket", "Basic DJ Package")}</h4>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-accent text-foreground rounded-full text-sm font-medium">€450/day</span>
+                      <span className="px-3 py-1 bg-accent text-foreground rounded-full text-sm font-medium">€450/{tr("dag", "day")}</span>
                       {selectedEquipment.includes("basic") && (
                         <div className="w-5 h-5 bg-red-500 rounded flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -1084,10 +1093,10 @@ export default function BookingPage() {
                     </div>
                   </div>
                   
-                  <p className="text-sm text-muted-foreground mb-3">Complete Setup for Small to Medium Events</p>
+                  <p className="text-sm text-muted-foreground mb-3">{tr("Complete set voor kleine tot middelgrote evenementen", "Complete Setup for Small to Medium Events")}</p>
                   
                   <p className="text-xs text-foreground mb-3">
-                    Everything you need for a professional DJ setup in one package. Perfect for parties, small weddings, and corporate events up to 150 people.
+                    {tr("Alles wat je nodig hebt voor een professionele DJ-set in één pakket. Geschikt voor feesten, kleine bruiloften en zakelijke evenementen tot 150 personen.", "Everything you need for a professional DJ setup in one package. Perfect for parties, small weddings, and corporate events up to 150 people.")}
                   </p>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1095,42 +1104,42 @@ export default function BookingPage() {
                       <img src="/placeholder.svg?height=40&width=40" alt="Pioneer" className="w-10 h-10 object-contain" />
                       <div>
                         <p className="text-xs font-medium text-foreground">2x Pioneer CDJ-2000 Players</p>
-                        <p className="text-xs text-muted-foreground">Professional-grade media players</p>
+                        <p className="text-xs text-muted-foreground">{tr("Professionele mediaspelers", "Professional-grade media players")}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <img src="/placeholder.svg?height=40&width=40" alt="Mixer" className="w-10 h-10 object-contain" />
                       <div>
                         <p className="text-xs font-medium text-foreground">DJM-900NXS2 Mixer</p>
-                        <p className="text-xs text-muted-foreground">Industry standard 4-channel mixer</p>
+                        <p className="text-xs text-muted-foreground">{tr("4-kanaals mixer, de standaard in clubs", "Industry standard 4-channel mixer")}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <img src="/placeholder.svg?height=40&width=40" alt="Table" className="w-10 h-10 object-contain" />
                       <div>
-                        <p className="text-xs font-medium text-foreground">DJ Table with Cover</p>
-                        <p className="text-xs text-muted-foreground">Professional setup with cable management</p>
+                        <p className="text-xs font-medium text-foreground">{tr("DJ-tafel met hoes", "DJ Table with Cover")}</p>
+                        <p className="text-xs text-muted-foreground">{tr("Professionele opstelling met weggewerkte kabels", "Professional setup with cable management")}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <img src="/placeholder.svg?height=40&width=40" alt="Microphone" className="w-10 h-10 object-contain" />
                       <div>
                         <p className="text-xs font-medium text-foreground">Shure SM58 Microphone</p>
-                        <p className="text-xs text-muted-foreground">Professional vocal microphone with stand</p>
+                        <p className="text-xs text-muted-foreground">{tr("Professionele zangmicrofoon met standaard", "Professional vocal microphone with stand")}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <img src="/placeholder.svg?height=40&width=40" alt="Speakers" className="w-10 h-10 object-contain" />
                       <div>
                         <p className="text-xs font-medium text-foreground">2x QSC K12.2 Speakers</p>
-                        <p className="text-xs text-muted-foreground">Powerful 2000W speakers with stands</p>
+                        <p className="text-xs text-muted-foreground">{tr("Krachtige speakers van 2000 W met standaards", "Powerful 2000W speakers with stands")}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <img src="/placeholder.svg?height=40&width=40" alt="Lighting" className="w-10 h-10 object-contain" />
                       <div>
-                        <p className="text-xs font-medium text-foreground">Basic Lighting Package</p>
-                        <p className="text-xs text-muted-foreground">2 moving heads, 2 par cans, and controller</p>
+                        <p className="text-xs font-medium text-foreground">{tr("Basis lichtpakket", "Basic Lighting Package")}</p>
+                        <p className="text-xs text-muted-foreground">{tr("2 moving heads, 2 parlampen en controller", "2 moving heads, 2 par cans, and controller")}</p>
                       </div>
                     </div>
                   </div>
@@ -1153,7 +1162,7 @@ export default function BookingPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">Pioneer CDJ-3000 (Pair)</h4>
+                        <h4 className="text-sm font-semibold text-foreground">{tr("Pioneer CDJ-3000 (set van 2)", "Pioneer CDJ-3000 (Pair)")}</h4>
                       </div>
                       {selectedEquipment.includes("cdj3000") && (
                         <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
@@ -1163,9 +1172,9 @@ export default function BookingPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2">Latest CDJ model in excellent condition. Perfect for professional events. Includes all necessary cables.</p>
+                    <p className="text-xs text-muted-foreground mb-2">{tr("Nieuwste CDJ-model in uitstekende staat. Geschikt voor professionele evenementen. Inclusief alle kabels.", "Latest CDJ model in excellent condition. Perfect for professional events. Includes all necessary cables.")}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€150/day</span>
+                      <span className="text-sm font-semibold text-foreground">€150/{tr("dag", "day")}</span>
                     </div>
                   </div>
                   
@@ -1194,9 +1203,9 @@ export default function BookingPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2">Industry standard 4-channel mixer. Excellent condition with all features working perfectly.</p>
+                    <p className="text-xs text-muted-foreground mb-2">{tr("4-kanaals mixer, de standaard in clubs. In uitstekende staat en volledig werkend.", "Industry standard 4-channel mixer. Excellent condition with all features working perfectly.")}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€80/day</span>
+                      <span className="text-sm font-semibold text-foreground">€80/{tr("dag", "day")}</span>
                     </div>
                   </div>
                   
@@ -1215,7 +1224,7 @@ export default function BookingPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">QSC K12.2 Speakers (Pair)</h4>
+                        <h4 className="text-sm font-semibold text-foreground">{tr("QSC K12.2 Speakers (set van 2)", "QSC K12.2 Speakers (Pair)")}</h4>
                       </div>
                       {selectedEquipment.includes("speakers") && (
                         <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
@@ -1225,9 +1234,9 @@ export default function BookingPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2">Powerful 2000W speakers with stands. Great for medium to large venues up to 200 people.</p>
+                    <p className="text-xs text-muted-foreground mb-2">{tr("Krachtige speakers van 2000 W met standaards. Geschikt voor middelgrote tot grote locaties tot 200 personen.", "Powerful 2000W speakers with stands. Great for medium to large venues up to 200 people.")}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€120/day</span>
+                      <span className="text-sm font-semibold text-foreground">€120/{tr("dag", "day")}</span>
                     </div>
                   </div>
                   
@@ -1246,7 +1255,7 @@ export default function BookingPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">Complete Lighting Package</h4>
+                        <h4 className="text-sm font-semibold text-foreground">{tr("Compleet lichtpakket", "Complete Lighting Package")}</h4>
                       </div>
                       {selectedEquipment.includes("lighting") && (
                         <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
@@ -1256,9 +1265,9 @@ export default function BookingPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2">Includes 4 moving heads, 2 par cans, fog machine, and DMX controller. Perfect for creating atmosphere.</p>
+                    <p className="text-xs text-muted-foreground mb-2">{tr("Met 4 moving heads, 2 parlampen, rookmachine en DMX-controller. Zorgt voor sfeer.", "Includes 4 moving heads, 2 par cans, fog machine, and DMX controller. Perfect for creating atmosphere.")}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€180/day</span>
+                      <span className="text-sm font-semibold text-foreground">€180/{tr("dag", "day")}</span>
                     </div>
                   </div>
                 </div>
@@ -1270,14 +1279,14 @@ export default function BookingPage() {
                   onClick={() => setCurrentStep(1)}
                   className="px-6 py-3 bg-accent text-foreground hover:bg-muted"
                 >
-                  Back
+                  {tr("Terug", "Back")}
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
                   disabled={!eventName || eventName.length < 3}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
-                  Continue to Personal Details
+                  {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
                 </Button>
               </div>
             </div>
