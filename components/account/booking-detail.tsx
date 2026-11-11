@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Clock3, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock3, MapPin, Star } from "lucide-react";
+import { MessageButton } from "@/components/chat/message-button";
 import { useLanguage } from "@/contexts/language-context";
 import {
   Card,
@@ -24,8 +25,12 @@ import type { CustomerBookingDetail } from "@/app/actions/customer";
 
 export function AccountBookingDetail({
   booking: b,
+  reviewToken,
+  reviewDone,
 }: {
   booking: CustomerBookingDetail;
+  reviewToken?: string | null;
+  reviewDone?: boolean;
 }) {
   const nl = useLanguage().language === "nl";
   const payment = {
@@ -224,11 +229,26 @@ export function AccountBookingDetail({
               <CardTitle>{b.professionalName}</CardTitle>
               <CardDescription>
                 {nl
-                  ? "Bewaar deze professional voor een volgend evenement."
-                  : "Save this professional for your next event."}
+                  ? "Stel je vragen of stem details af via de chat."
+                  : "Ask questions or align details via chat."}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-3">
+              {reviewToken && (
+                <Button asChild>
+                  <Link href={`/review/${reviewToken}`}>
+                    <Star />
+                    {reviewDone
+                      ? nl ? "Bekijk je review" : "View your review"
+                      : nl ? "Review schrijven" : "Write a review"}
+                  </Link>
+                </Button>
+              )}
+              <MessageButton
+                variant={reviewToken ? "outline" : "default"}
+                professionalId={b.professionalId}
+                label={nl ? "Stuur een bericht" : "Send a message"}
+              />
               <FavoriteButton
                 professionalId={b.professionalId}
                 professionalType={

@@ -9,6 +9,7 @@ import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
 import { resolveCustomerProfessional } from "@/lib/customer-catalog"
+import { createReviewInvite } from "@/app/actions/reviews"
 
 export type CustomerBooking = Pick<
   Booking,
@@ -299,6 +300,7 @@ export async function completeBooking(id: number) {
     title: "Dien je factuur in",
     body: `${booking.eventName} is afgerond. Dien je factuur in om je uitbetaling in gang te zetten.`,
   })
+  await createReviewInvite(booking)
   revalidateDashboard(id)
 }
 

@@ -13,7 +13,9 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquare,
   Moon,
+  Star,
   Sun,
   UserRound,
 } from "lucide-react";
@@ -60,6 +62,16 @@ export function AccountShell({
       href: "/account/boekingen",
       label: nl ? "Mijn boekingen" : "My bookings",
       icon: CalendarDays,
+    },
+    {
+      href: "/account/berichten",
+      label: nl ? "Berichten" : "Messages",
+      icon: MessageSquare,
+    },
+    {
+      href: "/account/reviews",
+      label: nl ? "Reviews" : "Reviews",
+      icon: Star,
     },
     {
       href: "/account/favorieten",

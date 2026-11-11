@@ -362,6 +362,43 @@ export const customerFavorites = pgTable("customer_favorites", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [primaryKey({ columns: [table.userId, table.professionalId, table.professionalType] })])
 
+/** One thread per customer and professional; a null professional means the ARSI support thread. */
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  customerId: text("customer_id").notNull(),
+  professionalId: text("professional_id"),
+  customerLastReadAt: timestamp("customer_last_read_at", { withTimezone: true }).notNull().defaultNow(),
+  staffLastReadAt: timestamp("staff_last_read_at", { withTimezone: true }).notNull().defaultNow(),
+  lastMessageAt: timestamp("last_message_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type MessageRole = "customer" | "professional" | "admin"
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull(),
+  senderId: text("sender_id").notNull(),
+  senderRole: text("sender_role").$type<MessageRole>().notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  bookingId: integer("booking_id").notNull().unique(),
+  customerId: text("customer_id").notNull(),
+  professionalId: text("professional_id").notNull(),
+  professionalType: text("professional_type").notNull(),
+  token: text("token").notNull().unique(),
+  rating: integer("rating"),
+  comment: text("comment"),
+  reply: text("reply"),
+  repliedAt: timestamp("replied_at", { withTimezone: true }),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const customerNotifications = pgTable("customer_notifications", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { CalendarCheck, LayoutDashboard, LogOut, User } from "lucide-react"
+import { LayoutDashboard, LogOut, User } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,12 +45,6 @@ export function ProfileDropdown({ name, image, role, onSignOut }: ProfileDropdow
             {role === "user" ? (nl ? "Mijn dashboard" : "My dashboard") : "Dashboard"}
           </Link>
         </DropdownMenuItem>
-        {role === "user" && <DropdownMenuItem asChild>
-          <Link href="/account/boekingen" className="cursor-pointer">
-            <CalendarCheck className="mr-2 h-4 w-4" />
-            {nl ? "Mijn boekingen" : "My bookings"}
-          </Link>
-        </DropdownMenuItem>}
         <DropdownMenuItem onSelect={onSignOut} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           {nl ? "Uitloggen" : "Sign out"}
