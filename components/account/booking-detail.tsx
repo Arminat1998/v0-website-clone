@@ -14,40 +14,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import {
-  AccountHeading,
-  BookingBadge,
-  euro,
-  eventDate,
-} from "./account-common";
+import { AccountHeading, BookingBadge, eventDate } from "./account-common";
+import { BookingPayment } from "./booking-payment";
 import { FavoriteButton } from "./favorite-button";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
+import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
 
 export function AccountBookingDetail({
   booking: b,
+  invoice,
+  bank,
   reviewToken,
   reviewDone,
 }: {
   booking: CustomerBookingDetail;
+  invoice: CustomerInvoice | null;
+  bank: BankDetails | null;
   reviewToken?: string | null;
   reviewDone?: boolean;
 }) {
   const nl = useLanguage().language === "nl";
-  const payment = {
-    unpaid: nl ? "Nog niet betaald" : "Not paid",
-    deposit_paid: nl ? "Aanbetaling ontvangen" : "Deposit received",
-    paid: nl ? "Betaald" : "Paid",
-    refunded: nl ? "Terugbetaald" : "Refunded",
-  };
-  const lines = [
-    [
-      nl ? "Professional" : "Professional",
-      `${b.hours} ${nl ? "uur" : "hours"} × ${euro(b.hourlyRateCents, nl)}`,
-      Math.round(Number(b.hours) * b.hourlyRateCents),
-    ],
-    [nl ? "Apparatuur" : "Equipment", "", b.equipmentCents],
-    [nl ? "Reiskosten" : "Travel", "", b.travelCents],
-  ] as const;
   function detail(label: string, value: string | number | null) {
     return (
       <div className="flex flex-col gap-1">
@@ -184,46 +170,7 @@ export function AccountBookingDetail({
           </Card>
         </div>
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{nl ? "Prijsindicatie" : "Price estimate"}</CardTitle>
-              <CardDescription>
-                {nl
-                  ? "Op basis van je ingediende aanvraag."
-                  : "Based on your submitted request."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-5">
-                {lines.map(([label, sub, cents]) => (
-                  <div
-                    key={label}
-                    className="flex justify-between gap-4 text-sm"
-                  >
-                    <div>
-                      <p>{label}</p>
-                      {sub && <p className="text-muted-foreground">{sub}</p>}
-                    </div>
-                    <span>{euro(cents, nl)}</span>
-                  </div>
-                ))}
-                <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>{nl ? "Totaal" : "Total"}</span>
-                  <span>{euro(b.totalCents, nl)}</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {nl ? "Betaalstatus" : "Payment status"}:{" "}
-                  {payment[b.paymentStatus]}
-                </p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {nl
-                    ? "Dit overzicht is geen factuur. Online betalen is hier nog niet beschikbaar. Stem de definitieve afspraken af met de professional."
-                    : "This overview is not an invoice. Online payment is not available here yet. Confirm the final arrangements with the professional."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <BookingPayment booking={b} invoice={invoice} bank={bank} />
           <Card>
             <CardHeader>
               <CardTitle>{b.professionalName}</CardTitle>

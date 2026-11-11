@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getCustomerBooking } from "@/app/actions/customer";
+import { getCustomerBooking, getCustomerInvoice } from "@/app/actions/customer";
+import { bankDetails } from "@/lib/bookings/payments";
 import { getMyReviews } from "@/app/actions/reviews";
 import { requireCustomerUser } from "@/lib/session";
 import { AccountBookingDetail } from "@/components/account/booking-detail";
@@ -18,6 +19,8 @@ export default async function BookingPage({
   return (
     <AccountBookingDetail
       booking={booking}
+      invoice={await getCustomerInvoice(booking.id)}
+      bank={bankDetails()}
       reviewToken={review?.token}
       reviewDone={Boolean(review?.submittedAt)}
     />

@@ -9,7 +9,9 @@ import {
   customerProfiles,
   customerFavorites,
   customerNotifications,
+  invoices,
 } from "@/lib/db/schema";
+import type { CustomerInvoice } from "@/lib/bookings/payments";
 import { getSession } from "@/lib/session";
 import {
   customerProfileSchema,
@@ -113,6 +115,7 @@ export async function getCustomerBooking(id: number) {
       totalCents: bookings.totalCents,
       paymentStatus: bookings.paymentStatus,
       paymentMethod: bookings.paymentMethod,
+      paidAt: bookings.paidAt,
       responseMessage: bookings.responseMessage,
       rejectionReason: bookings.rejectionReason,
       createdAt: bookings.createdAt,
@@ -126,6 +129,44 @@ export async function getCustomerBooking(id: number) {
 export type CustomerBookingDetail = NonNullable<
   Awaited<ReturnType<typeof getCustomerBooking>>
 >;
+
+/** The professional's invoice for one of the client's own bookings, without receipts or files. */
+export async function getCustomerInvoice(
+  bookingId: number,
+): Promise<CustomerInvoice | null> {
+  const account = await customerUser();
+  if (!Number.isSafeInteger(bookingId) || bookingId < 1) return null;
+  const [row] = await db
+    .select({
+      invoiceNumber: invoices.invoiceNumber,
+      invoiceDate: invoices.invoiceDate,
+      totalCents: invoices.totalCents,
+      lines: invoices.lines,
+    })
+    .from(invoices)
+    .innerJoin(bookings, eq(bookings.id, invoices.bookingId))
+    .where(
+      and(
+        eq(invoices.bookingId, bookingId),
+        eq(bookings.customerId, account.id),
+        eq(bookings.status, "completed"),
+      ),
+    )
+    .limit(1);
+  if (!row) return null;
+  return {
+    ...row,
+    lines: row.lines.map(
+      ({ key, description, quantity, unitLabel, grossCents }) => ({
+        key,
+        description,
+        quantity,
+        unitLabel,
+        grossCents,
+      }),
+    ),
+  };
+}
 
 export async function getFavoriteKeys() {
   const account = await customerUser();

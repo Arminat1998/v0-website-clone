@@ -98,6 +98,8 @@ const nl = {
     unpublish: "Profiel offline gehaald",
     blacklist_add: "Toegevoegd aan blacklist",
     blacklist_remove: "Van blacklist gehaald",
+    payment_deposit: "Aanbetaling ontvangen",
+    payment_balance: "Eindfactuur betaald",
   } as Record<string, string>,
   stats: {
     title: "Moderatie",
@@ -209,6 +211,8 @@ const en: UsersTranslations = {
     unpublish: "Profile taken offline",
     blacklist_add: "Added to blacklist",
     blacklist_remove: "Removed from blacklist",
+    payment_deposit: "Deposit received",
+    payment_balance: "Final invoice paid",
   },
   stats: {
     title: "Moderation",
