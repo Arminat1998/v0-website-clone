@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, CreditCard, LockKeyhole, Loader2 } from "lucide-react"
+import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { artists, photographers } from "@/lib/smart-search"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
+import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
 import { createBooking, getBlockedDates } from "@/app/actions/bookings"
 import { authClient } from "@/lib/auth-client"
 import { getCustomerProfile } from "@/app/actions/customer"
@@ -80,7 +81,6 @@ export default function BookingPage() {
   const [billingCity, setBillingCity] = useState("")
   const [billingCountry, setBillingCountry] = useState("Nederland")
   const [vatNumber, setVatNumber] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<"ideal" | "card" | "invoice">("ideal")
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -253,7 +253,7 @@ export default function BookingPage() {
         billingCity,
         billingCountry,
         vatNumber,
-        paymentMethod,
+        paymentMethod: "invoice",
       })
       setBookingId(result.id)
       setSubmitted(true)
@@ -1320,7 +1320,7 @@ export default function BookingPage() {
           {currentStep === 4 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-5 text-foreground">Overzicht & betaling</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-5 text-foreground">Overzicht</h2>
                 <div className="space-y-3 text-sm border-b border-border pb-4">
                   <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Datum</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
@@ -1333,7 +1333,22 @@ export default function BookingPage() {
                   <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Prijsindicatie</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
                   <p className="text-xs text-muted-foreground">Dit is een indicatie. De professional bevestigt het definitieve bedrag zodra je aanvraag is geaccepteerd. Je betaalt pas na acceptatie.</p>
                 </div>
-                <div className="mt-5"><h3 className="font-semibold text-foreground mb-3">Betaalmethode</h3><div className="grid gap-3 sm:grid-cols-3">{([['ideal', 'iDEAL'], ['card', 'Creditcard'], ['invoice', 'Factuur'] ] as const).map(([value, label]) => <button type="button" key={value} onClick={() => setPaymentMethod(value)} className={`rounded-md border p-3 text-left text-sm ${paymentMethod === value ? "border-red-500 bg-red-500/10" : "border-border"}`}><CreditCard className="mb-2 h-4 w-4" />{label}</button>)}</div></div>
+                <div className="mt-5">
+                  <h3 className="font-semibold text-foreground mb-3">Zo betaal je</h3>
+                  <ol className="space-y-3 text-sm">
+                    {[
+                      ["Nu", "Je verstuurt je aanvraag en betaalt nog niets."],
+                      [`Na goedkeuring: ${formatEuro(depositCents(pricing.totalCents))}`, `Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`],
+                      [`Na het evenement: ${formatEuro(pricing.totalCents - depositCents(pricing.totalCents))}`, "Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op."],
+                    ].map(([title, text], index) => (
+                      <li key={title} className="flex gap-3">
+                        <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground" aria-hidden="true">{index + 1}</span>
+                        <div><p className="font-medium text-foreground">{title}</p><p className="text-muted-foreground">{text}</p></div>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="mt-3 text-xs text-muted-foreground">Je betaalt per bankoverschrijving. De bedragen volgen uit de prijsindicatie hierboven.</p>
+                </div>
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />Je gegevens worden veilig verwerkt.</div>
               </div>
               {submitError && (
@@ -1342,7 +1357,7 @@ export default function BookingPage() {
                   <span>{submitError}</span>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Versturen...</> : "Bevestig boeking"}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Versturen...</> : "Verstuur aanvraag"}</Button></div>
             </div>
           )}
 
