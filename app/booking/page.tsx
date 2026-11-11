@@ -86,7 +86,7 @@ export default function BookingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const { data: sessionData } = authClient.useSession()
+  const { data: sessionData, isPending: sessionPending } = authClient.useSession()
 
   useEffect(() => {
     const user = sessionData?.user
@@ -428,6 +428,41 @@ export default function BookingPage() {
       location: professional.location,
     }
   }) || []
+
+  // Booking requires an account: show a login prompt instead of the flow.
+  if (!sessionData?.user) {
+    return (
+      <div className="min-h-screen bg-background transition-colors">
+        <Header />
+        <div className="max-w-xl mx-auto px-3 sm:px-4 py-10 sm:py-16">
+          {sessionPending ? (
+            <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <div className="bg-card rounded-lg shadow border border-border p-6 sm:p-8 text-center">
+              <LockKeyhole className="mx-auto h-10 w-10 text-red-500" />
+              <h1 className="mt-4 text-xl sm:text-2xl font-bold text-foreground">
+                {tr("Log in om te boeken", "Log in to book")}
+              </h1>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {tr(
+                  `Om ${professional.name} te boeken heb je een account nodig. Log in of maak een account aan, daarna ga je direct verder met je aanvraag.`,
+                  `You need an account to book ${professional.name}. Log in or create an account and continue with your request right away.`,
+                )}
+              </p>
+              <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={() => window.dispatchEvent(new Event("arsi:open-login"))} className="bg-red-600 hover:bg-red-700 text-white px-8">
+                  {tr("Inloggen", "Log in")}
+                </Button>
+                <Button onClick={() => window.dispatchEvent(new Event("arsi:open-signup"))} className="bg-accent text-foreground hover:bg-muted px-8">
+                  {tr("Account aanmaken", "Create account")}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background transition-colors">

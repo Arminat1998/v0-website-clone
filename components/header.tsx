@@ -33,6 +33,18 @@ export function Header() {
     }
   }, [])
 
+  // Lets other components (e.g. the booking page) open the login or signup modal.
+  useEffect(() => {
+    const openLogin = () => setLoginModalOpen(true)
+    const openSignup = () => setSignupModalOpen(true)
+    window.addEventListener("arsi:open-login", openLogin)
+    window.addEventListener("arsi:open-signup", openSignup)
+    return () => {
+      window.removeEventListener("arsi:open-login", openLogin)
+      window.removeEventListener("arsi:open-signup", openSignup)
+    }
+  }, [])
+
   const switchToSignup = () => {
     setLoginModalOpen(false)
     setSignupModalOpen(true)
