@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Photographer } from "@/lib/smart-search"
+import { FavoriteButton } from "@/components/account/favorite-button"
 
 interface PhotoVideoProfileModalProps {
   professional: Photographer | null
@@ -179,6 +180,7 @@ export function PhotoVideoProfileModal({ professional, open, onOpenChange }: Pho
               </a>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
+              <FavoriteButton professionalId={String(professional.id)} professionalType="photographer" />
               <Button className="bg-red-700 hover:bg-red-600 text-white w-full sm:w-auto">
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Chat
@@ -186,8 +188,9 @@ export function PhotoVideoProfileModal({ professional, open, onOpenChange }: Pho
               <Button
                 variant="outline"
                 className="w-full sm:w-auto bg-transparent border-border text-foreground hover:bg-accent"
+                asChild
               >
-                Book Now
+                <Link href={`/booking?professionalId=${professional.id}&type=photographer`} onClick={() => onOpenChange(false)}>Book Now</Link>
               </Button>
             </div>
           </div>

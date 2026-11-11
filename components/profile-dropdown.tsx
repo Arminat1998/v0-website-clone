@@ -21,7 +21,7 @@ interface ProfileDropdownProps {
 
 export function ProfileDropdown({ name, image, role, onSignOut }: ProfileDropdownProps) {
   const nl = useLanguage().language === "nl"
-  const isProfessional = role === "professional"
+  const dashboardPath = role === "admin" ? "/admin" : role === "professional" ? "/dashboard" : "/account"
 
   return (
     <DropdownMenu>
@@ -39,21 +39,18 @@ export function ProfileDropdown({ name, image, role, onSignOut }: ProfileDropdow
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="truncate">{name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {isProfessional ? (
-          <DropdownMenuItem asChild>
-            <Link href="/dashboard" className="cursor-pointer">
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              Dashboard
-            </Link>
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem asChild>
-            <Link href="/mijn-boekingen" className="cursor-pointer">
-              <CalendarCheck className="mr-2 h-4 w-4" />
-              {nl ? "Mijn boekingen" : "My bookings"}
-            </Link>
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem asChild>
+          <Link href={dashboardPath} className="cursor-pointer">
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            {role === "user" ? (nl ? "Mijn dashboard" : "My dashboard") : "Dashboard"}
+          </Link>
+        </DropdownMenuItem>
+        {role === "user" && <DropdownMenuItem asChild>
+          <Link href="/account/boekingen" className="cursor-pointer">
+            <CalendarCheck className="mr-2 h-4 w-4" />
+            {nl ? "Mijn boekingen" : "My bookings"}
+          </Link>
+        </DropdownMenuItem>}
         <DropdownMenuItem onSelect={onSignOut} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           {nl ? "Uitloggen" : "Sign out"}

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Artist } from "@/lib/smart-search";
 import { ArtistPortfolio } from "@/components/artist-portfolio";
+import { FavoriteButton } from "@/components/account/favorite-button";
 import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
 
 interface ArtistProfileViewProps {
@@ -230,6 +231,7 @@ export function ArtistProfileView({
             </a>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <FavoriteButton professionalId={String(artist.id)} professionalType="artist" />
             <Button
               variant="outline"
               className="flex-1 bg-transparent border-border text-foreground hover:bg-accent text-sm sm:text-base py-2 sm:py-auto"

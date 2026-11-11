@@ -5,6 +5,7 @@ import {
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -337,3 +338,35 @@ export const invoices = pgTable("invoices", {
 })
 
 export type Invoice = typeof invoices.$inferSelect
+
+export const customerProfiles = pgTable("customer_profiles", {
+  userId: text("user_id").primaryKey(),
+  firstName: text("first_name").notNull().default(""),
+  lastName: text("last_name").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  customerType: text("customer_type").$type<"private" | "business">().notNull().default("private"),
+  companyName: text("company_name").notNull().default(""),
+  billingStreet: text("billing_street").notNull().default(""),
+  billingHouseNumber: text("billing_house_number").notNull().default(""),
+  billingPostalCode: text("billing_postal_code").notNull().default(""),
+  billingCity: text("billing_city").notNull().default(""),
+  billingCountry: text("billing_country").notNull().default("Nederland"),
+  vatNumber: text("vat_number").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const customerFavorites = pgTable("customer_favorites", {
+  userId: text("user_id").notNull(),
+  professionalId: text("professional_id").notNull(),
+  professionalType: text("professional_type").$type<"artist" | "photographer">().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [primaryKey({ columns: [table.userId, table.professionalId, table.professionalType] })])
+
+export const customerNotifications = pgTable("customer_notifications", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  bookingId: integer("booking_id").notNull(),
+  status: text("status").$type<BookingStatus>().notNull(),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})

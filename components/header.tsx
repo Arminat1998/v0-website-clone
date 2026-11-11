@@ -55,14 +55,24 @@ export function Header() {
     router.refresh()
   }
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setLoginModalOpen(false)
+    setSignupModalOpen(false)
+    // Keep the in-memory booking form intact when authentication happens mid-booking.
+    if (window.location.pathname === "/booking") {
+      router.refresh()
+      return
+    }
+    const result = await authClient.getSession()
+    const role = result.data?.user.role
+    const home = role === "admin" ? "/admin" : role === "professional" ? "/dashboard" : "/account"
+    const next = new URLSearchParams(window.location.search).get("next")
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") && !/[\\\\\u0000-\u0020]/.test(next)
+    router.push(role === "user" && safeNext ? next : home)
     router.refresh()
   }
 
-  const handleSignup = () => {
-    setSignupModalOpen(false)
-  }
+  const handleSignup = handleLogin
 
   const { t } = useLanguage()
   const { theme, toggleTheme } = useTheme()

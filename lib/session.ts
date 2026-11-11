@@ -40,6 +40,14 @@ export async function requireUser(redirectTo = "/?login=1") {
 /** For pages: only professionals may open the professional dashboard. */
 export async function requireProfessionalUser() {
   const user = await requireUser()
-  if (!isProfessional(user)) redirect("/mijn-boekingen")
+  if (!isProfessional(user)) redirect(isAdmin(user) ? "/admin" : "/account")
+  return user
+}
+
+export async function requireCustomerUser() {
+  const user = await requireUser("/?login=1&next=%2Faccount")
+  if (isAdmin(user)) redirect("/admin")
+  if (isProfessional(user)) redirect("/dashboard")
+  if (user.role !== "user") redirect("/")
   return user
 }

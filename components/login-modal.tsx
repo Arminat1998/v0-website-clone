@@ -81,6 +81,7 @@ export function LoginModal({
               type="email"
               autoComplete="email"
               placeholder={t.email}
+              aria-label={t.email}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-12 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 bg-white dark:bg-gray-800"
@@ -92,6 +93,7 @@ export function LoginModal({
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder={t.password}
+                aria-label={t.password}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 pr-10 bg-white dark:bg-gray-800"

@@ -77,7 +77,9 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
+  --color-brand: oklch(0.55 0.22 27);
+  --color-brand-foreground: oklch(0.985 0 0);
   /* Invoice documents render as a white sheet regardless of the app theme, so they print correctly. */
   --color-paper: oklch(1 0 0);
   --color-paper-foreground: oklch(0.18 0 0);

@@ -11,6 +11,7 @@ import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { createBooking, getBlockedDates } from "@/app/actions/bookings"
 import { authClient } from "@/lib/auth-client"
+import { getCustomerProfile } from "@/app/actions/customer"
 import { calculatePricing, formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
 
 export default function BookingPage() {
@@ -96,6 +97,27 @@ export default function BookingPage() {
     setSubmitError(null)
   }, [sessionData?.user])
   const [bookingId, setBookingId] = useState<number | null>(null)
+  const { data: savedProfile } = useSWR(
+    sessionData?.user.role === "user" ? ["customer-profile", sessionData.user.id] : null,
+    () => getCustomerProfile(),
+  )
+  const [profileApplied, setProfileApplied] = useState(false)
+  useEffect(() => {
+    if (!savedProfile || profileApplied) return
+    const [accountFirst, ...accountRest] = (sessionData?.user.name || "").split(" ")
+    setFirstName((value) => !value || value === accountFirst ? savedProfile.firstName : value)
+    setLastName((value) => !value || value === accountRest.join(" ") ? savedProfile.lastName : value)
+    setPhone((value) => !value || value === sessionData?.user.phone ? savedProfile.phone : value)
+    setCompanyName((value) => value || savedProfile.companyName)
+    setBillingStreet((value) => value || savedProfile.billingStreet)
+    setBillingHouseNumber((value) => value || savedProfile.billingHouseNumber)
+    setBillingPostalCode((value) => value || savedProfile.billingPostalCode)
+    setBillingCity((value) => value || savedProfile.billingCity)
+    setBillingCountry((value) => value === "Nederland" ? savedProfile.billingCountry || value : value)
+    setVatNumber((value) => value || savedProfile.vatNumber)
+    if (currentStep < 3) setCustomerType(savedProfile.customerType)
+    setProfileApplied(true)
+  }, [savedProfile, profileApplied, currentStep, sessionData?.user.name, sessionData?.user.phone])
 
   const professionalKey = artistId ?? professionalId
   const { data: blockedDates = [] } = useSWR(
@@ -1326,7 +1348,7 @@ export default function BookingPage() {
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">Boekingsaanvraag verzonden</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">Bedankt {firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar {professional.name}. Je ontvangt een bevestiging op {email || "je e-mailadres"} zodra de professional reageert.</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">Aanvraagnummer <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push("/")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">Terug naar home</Button></div>
+            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">Boekingsaanvraag verzonden</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">Bedankt {firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar {professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">Aanvraagnummer <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">Bekijk mijn boeking</Button></div>
           )}
         </div>
       </div>

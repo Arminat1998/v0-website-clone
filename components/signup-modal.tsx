@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { X, Eye, EyeOff, Loader2 } from "lucide-react"
@@ -79,8 +79,9 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       onOpenChange(false)
       router.push("/register/professional")
     } else {
-      onSignup?.()
       onOpenChange(false)
+      if (onSignup) onSignup()
+      else router.push("/account")
       router.refresh()
     }
   }
@@ -88,6 +89,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px] max-w-[95vw] p-0 gap-0 max-h-[90vh] overflow-y-auto">
+        <DialogTitle className="sr-only">{t.createAccount}</DialogTitle>
         <div className="relative p-4 sm:p-8">
           <button
             onClick={() => onOpenChange(false)}
@@ -149,6 +151,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 <Input
                   type="text"
                   placeholder={t.fullName}
+                  aria-label={t.fullName}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -160,6 +163,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 <Input
                   type="email"
                   placeholder={t.email}
+                  aria-label={t.email}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -171,6 +175,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 <Input
                   type="tel"
                   placeholder={t.phoneNumber}
+                  aria-label={t.phoneNumber}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -182,6 +187,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder={t.password}
+                    aria-label={t.password}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 pr-10 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"

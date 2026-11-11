@@ -14,8 +14,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "ArsiEvents - Plan Your Perfect Event",
-  description: "Book your Artiesten, Photographer & Videographer all in one place.",
+  title: "ARSI Events — Alles voor jouw evenement",
+  description: "Ontdek en boek artiesten en eventprofessionals. Beheer je aanvragen, favorieten en boekingen in je eigen ARSI Events account.",
   generator: "v0.app",
 }
 
@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="nl" className="bg-background" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
           <LanguageProvider>

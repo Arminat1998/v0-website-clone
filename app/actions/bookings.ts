@@ -8,6 +8,7 @@ import { calculatePricing, parseHourlyRateCents } from "@/lib/bookings/pricing"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
+import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 
 export type CustomerBooking = Pick<
   Booking,
@@ -57,6 +58,7 @@ const DASHBOARD_PATHS = [
 ]
 
 function revalidateDashboard(bookingId?: number) {
+  revalidatePath("/account", "layout")
   for (const path of DASHBOARD_PATHS) revalidatePath(path)
   if (bookingId) revalidatePath(`/dashboard/bookings/${bookingId}`)
 }
@@ -122,8 +124,20 @@ export async function createBooking(input: CreateBookingInput) {
     throw new Error("Missing customer details")
   }
 
+  if (!["artist", "photographer"].includes(input.professionalType) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(input.eventDate) || input.eventDate < todayIso() ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.startTime) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.endTime) ||
+      !Number.isFinite(input.distanceKm) || input.distanceKm < 0 || input.distanceKm > 2000 ||
+      !Array.isArray(input.equipment) || input.equipment.length > 20) {
+    throw new Error("Invalid booking details")
+  }
+  const professional = await resolveCustomerProfessional(input.professionalId, input.professionalType)
+  if (!professional) throw new Error("Professional unavailable")
+  if ((await getBlockedDates(input.professionalId)).includes(input.eventDate)) throw new Error("Date unavailable")
+
   const pricing = calculatePricing({
-    hourlyRateCents: parseHourlyRateCents(input.professionalPrice),
+    hourlyRateCents: parseHourlyRateCents(professional.price),
     startTime: input.startTime,
     endTime: input.endTime,
     equipment: input.equipment,
@@ -137,7 +151,7 @@ export async function createBooking(input: CreateBookingInput) {
     .values({
       customerId,
       professionalId: input.professionalId,
-      professionalName: input.professionalName,
+      professionalName: professional.name,
       professionalType: input.professionalType,
       status: "pending",
       eventName: input.eventName.trim() || `${input.eventTypes[0] ?? "Evenement"} ${input.firstName.trim()}`,
