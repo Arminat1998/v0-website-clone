@@ -18,7 +18,8 @@ import { calculatePricing, formatEuro, parseHourlyRateCents } from "@/lib/bookin
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const dateLocale = language === "nl" ? "nl-NL" : "en-US"
   
   const artistId = searchParams.get("artistId")
   const professionalId = searchParams.get("professionalId")
@@ -397,9 +398,9 @@ export default function BookingPage() {
   }
 
   const formatSelectedDate = () => {
-    if (!selectedDate) return "Not selected"
+    if (!selectedDate) return language === "nl" ? "Niet gekozen" : "Not selected"
     const date = new Date(currentYear, currentMonth, selectedDate)
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(dateLocale, {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -414,7 +415,7 @@ export default function BookingPage() {
     return {
       id: idx + 1,
       name: `Booked Event ${idx + 1}`,
-      date: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
+      date: date.toLocaleDateString(dateLocale, { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
       location: professional.location,
     }
   }) || []
