@@ -11,6 +11,7 @@ import { X, Eye, EyeOff, Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useLanguage } from "@/contexts/language-context"
 import { authClient } from "@/lib/auth-client"
+import { lettersOnly, phoneChars } from "@/lib/input-filters"
 
 interface SignupModalProps {
   open: boolean
@@ -47,9 +48,16 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       setError(language === "nl" ? "Kies eerst wat voor account je wilt." : "First choose the kind of account you want.")
       return
     }
-    if (accountType === "professional" && !category) {
-      trackUserTest("signup_error", { reason: "category_missing" })
-      setError(language === "nl" ? "Kies een categorie." : "Please choose a category.")
+    if (accountType === "professional") {
+      if (!category) {
+        trackUserTest("signup_error", { reason: "category_missing" })
+        setError(language === "nl" ? "Kies een categorie." : "Please choose a category.")
+        return
+      }
+      // A professional only gets an account once the registration form is saved.
+      sessionStorage.setItem("professionalSignupData", JSON.stringify({ category }))
+      onOpenChange(false)
+      router.push("/register/professional")
       return
     }
     if (password.length < 8) {
@@ -65,7 +73,6 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       password,
       role: accountType,
       phone: phone.trim(),
-      category: accountType === "professional" ? category : undefined,
     })
     setLoading(false)
 
@@ -81,24 +88,10 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
     setPassword("")
     trackUserTest("signup_completed", { account_type: accountType })
 
-    if (accountType === "professional") {
-      sessionStorage.setItem(
-        "professionalSignupData",
-        JSON.stringify({
-          fullName,
-          email,
-          phone,
-          category,
-        }),
-      )
-      onOpenChange(false)
-      router.push("/register/professional")
-    } else {
-      onOpenChange(false)
-      if (onSignup) onSignup()
-      else router.push("/account")
-      router.refresh()
-    }
+    onOpenChange(false)
+    if (onSignup) onSignup()
+    else router.push("/account")
+    router.refresh()
   }
 
   return (
@@ -176,13 +169,21 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 </div>
               )}
 
+              {accountType === "professional" ? (
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {language === "nl"
+                    ? "Op de volgende pagina vul je je gegevens en profiel in. Je account wordt aangemaakt zodra je dat formulier opslaat. Daarna beoordeelt ARSI Events je aanmelding."
+                    : "On the next page you enter your details and profile. Your account is created once you save that form. ARSI Events then reviews your application."}
+                </p>
+              ) : (
+              <>
               <div>
                 <Input
                   type="text"
                   placeholder={t.fullName}
                   aria-label={t.fullName}
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => setFullName(lettersOnly(e.target.value))}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
                   required
                 />
@@ -206,7 +207,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                   placeholder={t.phoneNumber}
                   aria-label={t.phoneNumber}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(phoneChars(e.target.value))}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
                   required
                 />
@@ -238,6 +239,9 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 {language === "nl" ? "Minimaal 8 tekens." : "At least 8 characters."}
               </p>
 
+              </>
+              )}
+
               {error && (
                 <p role="alert" className="text-sm text-red-600 dark:text-red-400">
                   {error}
@@ -249,7 +253,13 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 disabled={loading}
                 className="w-full h-11 sm:h-12 bg-red-700 hover:bg-red-600 text-white font-medium text-sm sm:text-base"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t.signUpButton}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : accountType === "professional" ? (
+                  language === "nl" ? "Verder naar registratie" : "Continue to registration"
+                ) : (
+                  t.signUpButton
+                )}
               </Button>
             </form>
 

@@ -12,6 +12,7 @@ import { useLanguage } from "@/contexts/language-context"
 import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
 import { createBooking, getBlockedDates } from "@/app/actions/bookings"
 import { authClient } from "@/lib/auth-client"
+import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { getCustomerProfile } from "@/app/actions/customer"
 import { calculatePricing, formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
 
@@ -679,7 +680,14 @@ export default function BookingPage() {
                   <input
                     type="text"
                     value={eventLocation}
-                    onChange={(e) => setEventLocation(e.target.value)}
+                    onChange={(e) => setEventLocation(lettersOnly(e.target.value))}
+                    onKeyDown={(e) => {
+                      // Enter does the same as the "Check distance" button.
+                      if (e.key !== "Enter") return
+                      e.preventDefault()
+                      if (eventLocation.trim() && !calculating) calculateDistance()
+                    }}
+                    enterKeyHint="search"
                     placeholder={t.enterCityName}
                     className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
@@ -813,9 +821,11 @@ export default function BookingPage() {
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
                       value={capacity}
-                      onChange={(e) => setCapacity(e.target.value)}
+                      onChange={(e) => setCapacity(digitsOnly(e.target.value))}
                       placeholder={tr("Verwacht aantal gasten", "Expected number of guests")}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
@@ -1046,7 +1056,7 @@ export default function BookingPage() {
                         <input
                           type="text"
                           value={houseNumber}
-                          onChange={(e) => setHouseNumber(e.target.value)}
+                          onChange={(e) => setHouseNumber(digitsOnly(e.target.value))}
                           className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                         />
                       </div>
@@ -1067,7 +1077,7 @@ export default function BookingPage() {
                         <input
                           type="text"
                           value={postalCode}
-                          onChange={(e) => setPostalCode(e.target.value)}
+                          onChange={(e) => setPostalCode(postalCodeChars(e.target.value))}
                           className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                         />
                       </div>
@@ -1076,7 +1086,7 @@ export default function BookingPage() {
                         <input
                           type="text"
                           value={city}
-                          onChange={(e) => setCity(e.target.value)}
+                          onChange={(e) => setCity(lettersOnly(e.target.value))}
                           className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                         />
                       </div>
@@ -1087,7 +1097,7 @@ export default function BookingPage() {
                       <input
                         type="text"
                         value={country}
-                        onChange={(e) => setCountry(e.target.value)}
+                        onChange={(e) => setCountry(lettersOnly(e.target.value))}
                         className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                       />
                     </div>
@@ -1334,10 +1344,10 @@ export default function BookingPage() {
                 <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">Persoonlijke gegevens</h2>
                 <p className="text-sm text-muted-foreground mb-6">Vul je gegevens in zodat de professional contact met je kan opnemen.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-2 text-sm font-medium text-foreground">Voornaam<input required value={firstName} onChange={(event) => setFirstName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Voornaam" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">Achternaam<input required value={lastName} onChange={(event) => setLastName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Achternaam" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Voornaam<input required value={firstName} onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Voornaam" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Achternaam<input required value={lastName} onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Achternaam" /></label>
                   <label className="space-y-2 text-sm font-medium text-foreground">E-mailadres<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="jij@voorbeeld.nl" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">Telefoonnummer<input required type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">Telefoonnummer<input required type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
                 </div>
                 <div className="mt-6 border-t border-border pt-5">
                   <h3 className="font-semibold text-foreground">Factuurgegevens</h3>
@@ -1350,8 +1360,8 @@ export default function BookingPage() {
                     {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">Bedrijfsnaam<input required value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Bedrijfsnaam" /></label>}
                     <label className="space-y-2 text-sm font-medium text-foreground">Straat<input required value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Straatnaam" /></label>
                     <label className="space-y-2 text-sm font-medium text-foreground">Huisnummer<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">Postcode<input required value={billingPostalCode} onChange={(event) => setBillingPostalCode(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">Plaats<input required value={billingCity} onChange={(event) => setBillingCity(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">Postcode<input required value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">Plaats<input required value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
                     <label className="space-y-2 text-sm font-medium text-foreground">Land<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option>Nederland</option><option>België</option><option>Duitsland</option><option>Anders</option></select></label>
                     {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">BTW-nummer<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
                   </div>

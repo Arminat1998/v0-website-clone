@@ -259,7 +259,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                             id="declaredTotal"
                             inputMode="decimal"
                             value={declaredTotal}
-                            onChange={(e) => setDeclaredTotal(e.target.value)}
+                            onChange={(e) => setDeclaredTotal(e.target.value.replace(/[^\d.,]/g, ""))}
                             placeholder={formatEuro(totals.totalCents, locale).replace("€", "").trim()}
                             className="pl-7 font-mono"
                             aria-describedby="declaredTotal-status"

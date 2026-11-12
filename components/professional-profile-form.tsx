@@ -26,6 +26,7 @@ import { saveProfessionalProfile } from "@/app/actions/professional-profile"
 import { EquipmentFields } from "@/components/equipment-fields"
 import { NumericInput } from "@/components/numeric-input"
 import { authClient } from "@/lib/auth-client"
+import { lettersOnly, phoneChars } from "@/lib/input-filters"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
 /** Visible marker for required fields; the field itself carries `required` for screen readers. */
@@ -121,8 +122,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const [fullName, setFullName] = useState<string>(initialProfile?.fullName ?? "")
   const [email, setEmail] = useState<string>(initialProfile?.email ?? "")
   const [artistTypeError, setArtistTypeError] = useState("")
-  const { data: sessionData } = authClient.useSession()
+  const { data: sessionData, isPending: sessionPending, error: sessionError } = authClient.useSession()
   const sessionEmail = sessionData?.user?.email
+  // A new professional has no account yet: it is created together with the profile on submit.
+  const needsAccount = !isEdit && !sessionData?.user && (!sessionPending || !!sessionError)
+  const [password, setPassword] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [signupCategory, setSignupCategory] = useState("artist")
   useEffect(() => {
     // After a reload the signup data is gone; the account's own address is the source of truth.
     if (sessionEmail) setEmail((current) => current || sessionEmail)
@@ -158,6 +164,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         if (data.email) setEmail(data.email)
         if (data.phone) setPhone(data.phone)
         if (data.category) {
+          setSignupCategory(data.category)
           // Map category to artist type
           const categoryMap: Record<string, string> = {
             artist: "DJ", // Default to DJ for artist category
@@ -169,8 +176,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
           if (mappedArtistType) setArtistType(mappedArtistType)
         }
 
-        // Clear sessionStorage after using the data
-        sessionStorage.removeItem("professionalSignupData")
       } catch (error) {
         console.error("[v0] Error parsing signup data:", error)
       }
@@ -739,10 +744,40 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       return
     }
 
+    if (needsAccount && password.length < 8) {
+      trackUserTest("signup_error", { reason: "password_too_short" })
+      setPasswordError(L ? "Je wachtwoord moet minimaal 8 tekens hebben." : "Your password must be at least 8 characters.")
+      document.getElementById("password")?.focus()
+      return
+    }
+
     setSaving(true)
     setSaveError("")
     setSaved(false)
     try {
+      if (needsAccount) {
+        trackUserTest("signup_submitted", { account_type: "professional" })
+        const { error: signUpError } = await authClient.signUp.email({
+          name: fullName.trim(),
+          email: email.trim(),
+          password,
+          role: "professional",
+          phone: phone.trim(),
+          category: signupCategory,
+        })
+        if (signUpError) {
+          trackUserTest("signup_error", { reason: "server" })
+          setSaveError(
+            L
+              ? "Je account aanmaken is niet gelukt. Controleer je e-mailadres, of log in als je al een account hebt."
+              : "Creating your account failed. Check your email address, or log in if you already have an account.",
+          )
+          return
+        }
+        trackUserTest("signup_completed", { account_type: "professional" })
+        setPassword("")
+      }
+
       const minimumEquipmentUploaded = Object.fromEntries(
         await Promise.all(
           Object.entries(minimumEquipment).map(async ([key, item]) => [
@@ -801,6 +836,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         setSaved(true)
         router.refresh()
       } else {
+        sessionStorage.removeItem("professionalSignupData")
         reachUserTestGoal("artist_profile_completed")
         router.push("/dashboard")
       }
@@ -1040,8 +1076,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     ? "Werk je gegevens, apparatuur en tarieven bij"
                     : "Update your details, equipment and rates"
                   : L
-                    ? "Vul het onderstaande formulier in om boekingsaanvragen te ontvangen"
-                    : "Fill out the form below to start receiving booking requests"}
+                    ? "Vul het formulier in. Je account wordt aangemaakt als je het opslaat; daarna beoordeelt ARSI Events je aanmelding."
+                    : "Fill out the form. Your account is created when you save it; ARSI Events then reviews your application."}
               </p>
             </div>
           </div>
@@ -1183,7 +1219,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     placeholder={L ? "Tekst" : "Text"}
                     className={inputClassName}
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => setFullName(lettersOnly(e.target.value))}
                     required
                   />
                 </div>
@@ -1192,19 +1228,55 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "E-mail" : "Email"}
+                    {needsAccount && <RequiredMark />}
                   </Label>
                   <Input
                     id="email"
                     type="email"
                     className={inputClassName}
                     value={email}
-                    readOnly
+                    onChange={(e) => setEmail(e.target.value)}
+                    readOnly={!needsAccount}
+                    required
+                    autoComplete="email"
                     aria-describedby="email-help"
                   />
                   <p id="email-help" className="text-xs sm:text-sm text-gray-500">
-                    {L ? "Dit is het e-mailadres van je account." : "This is the email address of your account."}
+                    {needsAccount
+                      ? L
+                        ? "Hiermee log je straks in."
+                        : "You will use this to log in."
+                      : L
+                        ? "Dit is het e-mailadres van je account."
+                        : "This is the email address of your account."}
                   </p>
                 </div>
+
+                {needsAccount && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm sm:text-base font-medium text-gray-900">
+                      {L ? "Wachtwoord" : "Password"}
+                      <RequiredMark />
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      className={inputClassName}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        setPasswordError("")
+                      }}
+                      required
+                      autoComplete="new-password"
+                      aria-invalid={!!passwordError}
+                      aria-describedby="password-help"
+                    />
+                    <p id="password-help" className={`text-xs sm:text-sm ${passwordError ? "text-red-500" : "text-gray-500"}`}>
+                      {passwordError || (L ? "Minimaal 8 tekens." : "At least 8 characters.")}
+                    </p>
+                  </div>
+                )}
 
                 {/* Phone */}
                 <div className="space-y-2">
@@ -1218,7 +1290,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     className={inputClassName}
                     inputMode="tel"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s()-]/g, ""))}
+                    onChange={(e) => setPhone(phoneChars(e.target.value))}
                     required
                   />
                 </div>
@@ -1400,7 +1472,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     placeholder="Amsterdam"
                     className={inputClassName}
                     value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    onChange={(e) => setCity(lettersOnly(e.target.value))}
                     required
                   />
                 </div>

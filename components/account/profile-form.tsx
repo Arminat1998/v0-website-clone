@@ -22,6 +22,21 @@ import {
   type CustomerProfileInput,
 } from "@/lib/customer-types";
 import { authClient } from "@/lib/auth-client";
+import {
+  lettersOnly,
+  phoneChars,
+  postalCodeChars,
+} from "@/lib/input-filters";
+
+const keep = (value: string) => value;
+/** Characters that do not belong in a field are dropped while typing. */
+const FIELD_FILTERS: Partial<Record<string, (value: string) => string>> = {
+  firstName: lettersOnly,
+  lastName: lettersOnly,
+  phone: phoneChars,
+  billingCity: lettersOnly,
+  billingPostalCode: postalCodeChars,
+};
 
 export function AccountProfileForm({
   profile,
@@ -104,7 +119,9 @@ export function AccountProfileForm({
           }
           required={required}
           aria-invalid={invalid.includes(key)}
-          onChange={(e) => setValues({ ...values, [key]: e.target.value })}
+          onChange={(e) =>
+            setValues({ ...values, [key]: (FIELD_FILTERS[key] ?? keep)(e.target.value) })
+          }
         />
       </Field>
     );

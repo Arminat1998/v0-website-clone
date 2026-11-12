@@ -8,6 +8,7 @@ import type { BillingProfile, VatScheme } from "@/lib/db/schema"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { digitsOnly, lettersOnly, postalCodeChars } from "@/lib/input-filters"
 
 interface Props {
   profile: BillingProfile
@@ -62,7 +63,7 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
         </div>
         <div className={field}>
           <Label htmlFor="kvkNumber">{tf.kvk}</Label>
-          <Input id="kvkNumber" name="kvkNumber" defaultValue={profile.kvkNumber ?? ""} inputMode="numeric" />
+          <Input id="kvkNumber" name="kvkNumber" maxLength={8} onInput={(e) => (e.currentTarget.value = digitsOnly(e.currentTarget.value))} defaultValue={profile.kvkNumber ?? ""} inputMode="numeric" />
         </div>
         <div className={field}>
           <Label htmlFor="iban">{tf.iban}</Label>
@@ -118,15 +119,15 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
         </div>
         <div className={`${field} col-span-2`}>
           <Label htmlFor="postalCode">{tf.postalCode}</Label>
-          <Input id="postalCode" name="postalCode" defaultValue={profile.postalCode ?? ""} required autoComplete="postal-code" />
+          <Input id="postalCode" name="postalCode" onInput={(e) => (e.currentTarget.value = postalCodeChars(e.currentTarget.value))} defaultValue={profile.postalCode ?? ""} required autoComplete="postal-code" />
         </div>
         <div className={`${field} col-span-4 sm:col-span-2`}>
           <Label htmlFor="city">{tf.city}</Label>
-          <Input id="city" name="city" defaultValue={profile.city ?? ""} required autoComplete="address-level2" />
+          <Input id="city" name="city" onInput={(e) => (e.currentTarget.value = lettersOnly(e.currentTarget.value))} defaultValue={profile.city ?? ""} required autoComplete="address-level2" />
         </div>
         <div className={`${field} col-span-6 sm:col-span-2`}>
           <Label htmlFor="country">{tf.country}</Label>
-          <Input id="country" name="country" defaultValue={profile.country} autoComplete="country-name" />
+          <Input id="country" name="country" onInput={(e) => (e.currentTarget.value = lettersOnly(e.currentTarget.value))} defaultValue={profile.country} autoComplete="country-name" />
         </div>
       </div>
 

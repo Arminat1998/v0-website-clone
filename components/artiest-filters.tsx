@@ -11,6 +11,7 @@ import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react"
 import type { FilterSuggestions } from "@/lib/adaptive-filters"
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import { useLanguage } from "@/contexts/language-context"
+import { lettersOnly, rangeChars } from "@/lib/input-filters"
 
 interface ArtiestFiltersProps {
   initialState?: Record<string, any> | null
@@ -381,12 +382,12 @@ export function ArtiestFilters({
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.city}</h3>
-        <Input placeholder={t.searchCity} value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} />
+        <Input placeholder={t.searchCity} value={selectedCity} onChange={(e) => setSelectedCity(lettersOnly(e.target.value))} />
       </div>
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.durationInHours}</h3>
-        <Input placeholder="1 - 8" value={selectedDuration} onChange={(e) => setSelectedDuration(e.target.value)} />
+        <Input placeholder="1 - 8" value={selectedDuration} onChange={(e) => setSelectedDuration(rangeChars(e.target.value))} />
       </div>
 
       <div className="mb-6">
