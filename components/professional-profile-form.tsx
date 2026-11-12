@@ -25,7 +25,18 @@ import { AdditionalEquipment, type AdditionalCategory } from "@/components/addit
 import { saveProfessionalProfile } from "@/app/actions/professional-profile"
 import { EquipmentFields } from "@/components/equipment-fields"
 import { NumericInput } from "@/components/numeric-input"
+import { authClient } from "@/lib/auth-client"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
+
+/** Visible marker for required fields; the field itself carries `required` for screen readers. */
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="text-red-600">
+      {" "}
+      *
+    </span>
+  )
+}
 
 interface PackageEquipmentItem {
   id: string
@@ -109,6 +120,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
   const [fullName, setFullName] = useState<string>(initialProfile?.fullName ?? "")
   const [email, setEmail] = useState<string>(initialProfile?.email ?? "")
+  const [artistTypeError, setArtistTypeError] = useState("")
+  const { data: sessionData } = authClient.useSession()
+  const sessionEmail = sessionData?.user?.email
+  useEffect(() => {
+    // After a reload the signup data is gone; the account's own address is the source of truth.
+    if (sessionEmail) setEmail((current) => current || sessionEmail)
+  }, [sessionEmail])
   const [phone, setPhone] = useState<string>(initialProfile?.phone ?? "")
 
   const [companyName, setCompanyName] = useState<string>(initialProfile?.companyName ?? "")
@@ -714,6 +732,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       return
     }
 
+    if (!artistType) {
+      if (!isEdit) trackUserTest("profile_error", { reason: "artist_type_missing" })
+      setArtistTypeError(L ? "Kies je artiest type." : "Choose your artist type.")
+      document.getElementById("artistType")?.focus()
+      return
+    }
+
     setSaving(true)
     setSaveError("")
     setSaved(false)
@@ -943,6 +968,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
   const handleArtistTypeChange = (value: string) => {
     setArtistType(value)
+    setArtistTypeError("")
     setSelectedGenres([])
     setSelectedEventTypes([])
   }
@@ -1124,11 +1150,17 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               }}
               className="space-y-6"
             >
+              <p className="text-sm text-gray-500">
+                {L ? "Velden met " : "Fields marked "}
+                <span className="text-red-600">*</span>
+                {L ? " zijn verplicht." : " are required."}
+              </p>
               <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
                 {/* Stage Name */}
                 <div className="space-y-2">
                   <Label htmlFor="stageName" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Artiestennaam" : "Stage Name"}
+                    <RequiredMark />
                   </Label>
                   <Input
                     id="stageName"
@@ -1144,6 +1176,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="fullName" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Volledige naam" : "Full Name"}
+                    <RequiredMark />
                   </Label>
                   <Input
                     id="fullName"
@@ -1165,15 +1198,19 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     type="email"
                     className={inputClassName}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
+                    readOnly
+                    aria-describedby="email-help"
                   />
+                  <p id="email-help" className="text-xs sm:text-sm text-gray-500">
+                    {L ? "Dit is het e-mailadres van je account." : "This is the email address of your account."}
+                  </p>
                 </div>
 
                 {/* Phone */}
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Telefoonnummer" : "Phone number"}
+                    <RequiredMark />
                   </Label>
                   <Input
                     id="phone"
@@ -1204,6 +1241,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="kvkNumber" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "KVK-nummer" : "Chamber of Commerce (KVK) number"}
+                    <RequiredMark />
                   </Label>
                   <Input
                     id="kvkNumber"
@@ -1244,6 +1282,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               <div className="space-y-2">
                 <Label htmlFor="bio" className="text-sm sm:text-base font-medium text-gray-900">
                   Bio
+                  <RequiredMark />
                 </Label>
                 <Textarea
                   id="bio"
@@ -1265,6 +1304,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="experience" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Jaren ervaring" : "Years of Experience"}
+                    <RequiredMark />
                   </Label>
                   <NumericInput
                     id="experience"
@@ -1280,6 +1320,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="fee" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Tarief (€ per uur)" : "Fee (€ per hour)"}
+                    <RequiredMark />
                   </Label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">€</span>
@@ -1352,6 +1393,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="city" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Stad" : "City"}
+                    <RequiredMark />
                   </Label>
                   <Input
                     id="city"
@@ -1367,6 +1409,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="range" className="text-sm sm:text-base font-medium text-gray-900">
                     {L ? "Bereik (km)" : "Range (km)"}
+                    <RequiredMark />
                   </Label>
                   <NumericInput
                     id="range"
@@ -1383,9 +1426,14 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               <div className="space-y-2">
                 <Label htmlFor="artistType" className="text-sm sm:text-base font-medium text-gray-900">
                   {L ? "Artiest type" : "Artist Type"}
+                  <RequiredMark />
                 </Label>
                 <Select value={artistType} onValueChange={handleArtistTypeChange}>
-                  <SelectTrigger className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base">
+                  <SelectTrigger
+                    id="artistType"
+                    aria-invalid={!!artistTypeError}
+                    aria-describedby={artistTypeError ? "artistType-error" : undefined}
+                    className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base">
                     <SelectValue placeholder={L ? "Selecteer je artiest type" : "Select your artist type"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -1398,6 +1446,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     <SelectItem value="Violinist">Violinist</SelectItem>
                   </SelectContent>
                 </Select>
+                {artistTypeError && (
+                  <p id="artistType-error" role="alert" className="text-sm text-red-500">
+                    {artistTypeError}
+                  </p>
+                )}
                 <p className="text-xs sm:text-sm text-gray-500">
                   {L
                     ? "Dit helpt klanten je te vinden op basis van het type optreden dat je aanbiedt"
@@ -1536,7 +1589,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                   <div className="space-y-3">
                     <h3 className="text-sm sm:text-base font-semibold text-foreground">
-                      {L ? "Minimale apparatuur vereist om te registreren:" : "Minimum equipment required to register:"}
+                      {L ? "Apparatuur die bij dit pakket hoort:" : "Equipment that belongs to this package:"}
                     </h3>
                     <ul className="list-disc space-y-1.5 pl-5 text-sm sm:text-base leading-relaxed text-muted-foreground">
                       {getMinimumEquipmentRequirements().map((req, index) => (

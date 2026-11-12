@@ -23,7 +23,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
   const router = useRouter()
   const { t, language } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
-  const [accountType, setAccountType] = useState<"user" | "professional">("user")
+  const [accountType, setAccountType] = useState<"user" | "professional" | null>(null)
   const [category, setCategory] = useState<string>("")
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -42,6 +42,11 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
     setError("")
     trackUserTest("signup_submitted", { account_type: accountType })
 
+    if (!accountType) {
+      trackUserTest("signup_error", { reason: "account_type_missing" })
+      setError(language === "nl" ? "Kies eerst wat voor account je wilt." : "First choose the kind of account you want.")
+      return
+    }
     if (accountType === "professional" && !category) {
       trackUserTest("signup_error", { reason: "category_missing" })
       setError(language === "nl" ? "Kies een categorie." : "Please choose a category.")
@@ -115,28 +120,42 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-2">{t.createAccountSubtitle}</p>
             </div>
 
-            {/* Account Type Toggle */}
-            <div className="flex gap-0 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setAccountType("user")}
-                className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
-                  accountType === "user"
-                    ? "bg-red-700 text-white"
-                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
-              >
-                {t.user}
-              </button>
-              <button
-                onClick={() => setAccountType("professional")}
-                className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
-                  accountType === "professional"
-                    ? "bg-red-700 text-white"
-                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
-              >
-                {t.professional}
-              </button>
+            {/* Account Type Toggle: no default, so nobody ends up with the wrong kind of account. */}
+            <div className="space-y-2">
+              <p id="account-type-label" className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {language === "nl" ? "Wat voor account wil je?" : "What kind of account do you want?"}
+              </p>
+              <div role="group" aria-labelledby="account-type-label" className="flex gap-0 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  aria-pressed={accountType === "user"}
+                  onClick={() => setAccountType("user")}
+                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
+                    accountType === "user"
+                      ? "bg-red-700 text-white"
+                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {t.user}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={accountType === "professional"}
+                  onClick={() => setAccountType("professional")}
+                  className={`flex-1 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-colors ${
+                    accountType === "professional"
+                      ? "bg-red-700 text-white"
+                      : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {t.professional}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {language === "nl"
+                  ? "Gebruiker: je wilt boeken. Professional: je wilt geboekt worden, bijvoorbeeld als artiest."
+                  : "User: you want to book. Professional: you want to be booked, for example as an artist."}
+              </p>
             </div>
 
             <form onSubmit={handleSignup} className="space-y-3 sm:space-y-4">
@@ -202,15 +221,22 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 pr-10 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
                   required
+                  autoComplete="new-password"
+                  aria-describedby="signup-password-help"
                 />
                 <button
                   type="button"
+                  aria-label={language === "nl" ? "Wachtwoord tonen of verbergen" : "Show or hide password"}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+
+              <p id="signup-password-help" className="text-xs text-gray-500 dark:text-gray-400">
+                {language === "nl" ? "Minimaal 8 tekens." : "At least 8 characters."}
+              </p>
 
               {error && (
                 <p role="alert" className="text-sm text-red-600 dark:text-red-400">
