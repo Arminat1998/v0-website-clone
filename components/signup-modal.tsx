@@ -1,7 +1,8 @@
 "use client"
 
+import { trackUserTest } from "@/lib/usertest"
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -32,15 +33,22 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    if (open) trackUserTest("signup_opened")
+  }, [open])
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    trackUserTest("signup_submitted", { account_type: accountType })
 
     if (accountType === "professional" && !category) {
+      trackUserTest("signup_error", { reason: "category_missing" })
       setError(language === "nl" ? "Kies een categorie." : "Please choose a category.")
       return
     }
     if (password.length < 8) {
+      trackUserTest("signup_error", { reason: "password_too_short" })
       setError(language === "nl" ? "Je wachtwoord moet minimaal 8 tekens hebben." : "Your password must be at least 8 characters.")
       return
     }
@@ -57,6 +65,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
     setLoading(false)
 
     if (signUpError) {
+      trackUserTest("signup_error", { reason: "server" })
       setError(
         language === "nl"
           ? "Registreren is niet gelukt. Controleer je gegevens of log in als je al een account hebt."
@@ -65,6 +74,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       return
     }
     setPassword("")
+    trackUserTest("signup_completed", { account_type: accountType })
 
     if (accountType === "professional") {
       sessionStorage.setItem(

@@ -1,5 +1,6 @@
 "use client"
 
+import { reachUserTestGoal, trackUserTest } from "@/lib/usertest"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
@@ -86,6 +87,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
+
+  useEffect(() => {
+    if (!isEdit) trackUserTest("profile_form_opened")
+  }, [isEdit])
   const [minHours, setMinHours] = useState(initialProfile?.minHours ?? 1)
   const [maxHours, setMaxHours] = useState(initialProfile?.maxHours ?? 8)
   const [artistType, setArtistType] = useState<string>(initialProfile?.artistType ?? "")
@@ -693,8 +698,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (saving) return
+    if (!isEdit) trackUserTest("profile_submitted")
 
     if (!/^\d{8}$/.test(kvkNumber)) {
+      if (!isEdit) trackUserTest("profile_error", { reason: "kvk_invalid" })
       setKvkError(
         kvkNumber.length === 0
           ? L
@@ -760,6 +767,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       })
 
       if (!result.ok) {
+        if (!isEdit) trackUserTest("profile_error", { reason: "save_failed" })
         setSaveError(L ? "Opslaan is mislukt. Controleer je gegevens en probeer het opnieuw." : "Saving failed. Check your details and try again.")
         return
       }
@@ -768,9 +776,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         setSaved(true)
         router.refresh()
       } else {
+        reachUserTestGoal("artist_profile_completed")
         router.push("/dashboard")
       }
     } catch (error) {
+      if (!isEdit) trackUserTest("profile_error", { reason: "exception" })
       console.error("Profile save failed:", error)
       setSaveError(L ? "Opslaan is mislukt. Probeer het opnieuw." : "Saving failed. Please try again.")
     } finally {
@@ -1105,7 +1115,15 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
           {/* Form Wrapper */}
           <div className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form
+              onSubmit={handleSubmit}
+              // Required fields left empty block the submit before handleSubmit runs.
+              onInvalidCapture={(event) => {
+                const field = event.target as HTMLInputElement
+                if (!isEdit) trackUserTest("profile_field_missing", { field: field.name || field.id || field.type })
+              }}
+              className="space-y-6"
+            >
               <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
                 {/* Stage Name */}
                 <div className="space-y-2">

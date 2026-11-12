@@ -64,6 +64,11 @@ function DialogContent({
           className,
         )}
         {...props}
+        onInteractOutside={(event) => {
+          // The user-test bar lives outside the dialog; using it must not close the dialog.
+          if ((event.target as HTMLElement | null)?.closest?.('[data-usertest]')) event.preventDefault()
+          props.onInteractOutside?.(event)
+        }}
       >
         {children}
         {showCloseButton && (
