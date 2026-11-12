@@ -1,5 +1,6 @@
 "use client";
 
+import { useBookGuard } from "@/hooks/use-book-guard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -34,6 +35,7 @@ export function ArtistProfileView({
   content,
 }: ArtistProfileViewProps) {
   const router = useRouter();
+  const bookGuard = useBookGuard();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
@@ -242,8 +244,10 @@ export function ArtistProfileView({
             <Button
               className="bg-red-700 hover:bg-red-600 text-white flex-1 text-sm sm:text-base py-2 sm:py-auto"
               onClick={() => {
+                const href = `/booking?artistId=${artist.id}&type=artist`;
+                if (!bookGuard(href)) return;
                 onNavigate?.();
-                router.push(`/booking?artistId=${artist.id}&type=artist`);
+                router.push(href);
               }}
             >
               Book Now
@@ -735,7 +739,12 @@ export function ArtistProfileView({
                     onClick={(e) => {
                       if (!selectedDate) {
                         e.preventDefault();
-                      } else {
+                      } else if (
+                        bookGuard(
+                          `/booking?artistId=${artist.id}&date=${selectedDate}-${currentMonth + 1}-${currentYear}`,
+                          e,
+                        )
+                      ) {
                         onNavigate?.();
                       }
                     }}

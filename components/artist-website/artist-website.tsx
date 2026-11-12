@@ -1,5 +1,6 @@
 "use client"
 
+import { useBookGuard } from "@/hooks/use-book-guard"
 import { useRef, useState } from "react"
 import Link from "next/link"
 import { Camera, Loader2, MapPin, MessageCircle, Pencil, Star, Trash2 } from "lucide-react"
@@ -39,6 +40,7 @@ interface ArtistWebsiteProps {
 }
 
 export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
+  const bookGuard = useBookGuard()
   const { language } = useLanguage()
   const t = websiteCopy[language === "en" ? "en" : "nl"]
   const [tab, setTab] = useState<TabKey>("overview")
@@ -197,7 +199,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                   {t.chat}
                 </Button>
                 <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-                  <Link href={`/booking?artistId=${artist.id}&type=artist`}>{t.book}</Link>
+                  <Link href={`/booking?artistId=${artist.id}&type=artist`} onClick={(event) => bookGuard(`/booking?artistId=${artist.id}&type=artist`, event)}>{t.book}</Link>
                 </Button>
               </>
             )}

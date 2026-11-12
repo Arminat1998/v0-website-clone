@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
@@ -22,6 +22,8 @@ export function Header() {
   const { data: sessionData, isPending } = authClient.useSession()
   const router = useRouter()
   const isLoggedIn = Boolean(sessionData?.user)
+  // Where to go after logging in from a book button; reset when the header buttons are used.
+  const afterLoginRef = useRef<string | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -35,7 +37,10 @@ export function Header() {
 
   // Lets other components (e.g. the booking page) open the login or signup modal.
   useEffect(() => {
-    const openLogin = () => setLoginModalOpen(true)
+    const openLogin = (event: Event) => {
+      afterLoginRef.current = (event as CustomEvent<{ next?: string }>).detail?.next ?? null
+      setLoginModalOpen(true)
+    }
     const openSignup = () => setSignupModalOpen(true)
     window.addEventListener("arsi:open-login", openLogin)
     window.addEventListener("arsi:open-signup", openSignup)
@@ -70,6 +75,13 @@ export function Header() {
   const handleLogin = async () => {
     setLoginModalOpen(false)
     setSignupModalOpen(false)
+    const afterLogin = afterLoginRef.current
+    afterLoginRef.current = null
+    if (afterLogin) {
+      router.push(afterLogin)
+      router.refresh()
+      return
+    }
     // Keep the in-memory booking form intact when authentication happens mid-booking.
     if (window.location.pathname === "/booking") {
       router.refresh()
@@ -150,13 +162,19 @@ export function Header() {
               <Button
                 variant="ghost"
                 className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 text-xs sm:text-base px-2 sm:px-4 h-8 sm:h-10"
-                onClick={() => setLoginModalOpen(true)}
+                onClick={() => {
+                  afterLoginRef.current = null
+                  setLoginModalOpen(true)
+                }}
               >
                 {t.logIn}
               </Button>
               <Button
                 className="bg-red-700 hover:bg-red-600 text-white text-xs sm:text-base px-2 sm:px-6 h-8 sm:h-10"
-                onClick={() => setSignupModalOpen(true)}
+                onClick={() => {
+                  afterLoginRef.current = null
+                  setSignupModalOpen(true)
+                }}
               >
                 {t.signUp}
               </Button>

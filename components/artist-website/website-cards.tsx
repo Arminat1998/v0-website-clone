@@ -1,5 +1,6 @@
 "use client"
 
+import { useBookGuard } from "@/hooks/use-book-guard"
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { Clock, MapPin, Pencil, Plus, Target, Wallet, Music2 } from "lucide-react"
@@ -51,6 +52,7 @@ export function Card({ title, action, children }: { title: string; action?: Reac
 }
 
 export function BookingCard() {
+  const bookGuard = useBookGuard()
   const { artist, t, goToTab } = useWebsite()
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
@@ -58,7 +60,7 @@ export function BookingCard() {
       <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.bookText}</p>
       <div className="mt-4 flex flex-col gap-2">
         <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-          <Link href={`/booking?artistId=${artist.id}&type=artist`}>{t.book}</Link>
+          <Link href={`/booking?artistId=${artist.id}&type=artist`} onClick={(event) => bookGuard(`/booking?artistId=${artist.id}&type=artist`, event)}>{t.book}</Link>
         </Button>
         <Button type="button" variant="outline" onClick={() => goToTab("availability")}>
           {t.checkAvailability}

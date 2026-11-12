@@ -1,5 +1,6 @@
 "use client"
 
+import { useBookGuard } from "@/hooks/use-book-guard"
 import { MapPin, Clock, CheckCircle, Speaker, Wallet } from "lucide-react"
 import { getArtistTypeLabels } from "@/lib/artist-types"
 import { useRouter } from "next/navigation"
@@ -17,6 +18,7 @@ interface ArtiestCardProps {
 
 export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardProps) {
   const router = useRouter()
+  const bookGuard = useBookGuard()
   const { t, language } = useLanguage()
   const typeLabels = getArtistTypeLabels(artist.artistTypes, artist.category, language)
 
@@ -175,7 +177,8 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
             className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
             onClick={(e) => {
               e.stopPropagation()
-              router.push(`/booking?artistId=${artist.id}&type=artist`)
+              const href = `/booking?artistId=${artist.id}&type=artist`
+              if (bookGuard(href)) router.push(href)
             }}
           >
             {t.bookNow}

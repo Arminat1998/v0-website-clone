@@ -1,5 +1,6 @@
 "use client"
 
+import { useBookGuard } from "@/hooks/use-book-guard"
 import Link from "next/link"
 
 import { useState } from "react"
@@ -17,6 +18,7 @@ interface PhotoVideoProfileModalProps {
 }
 
 export function PhotoVideoProfileModal({ professional, open, onOpenChange }: PhotoVideoProfileModalProps) {
+  const bookGuard = useBookGuard()
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [selectedDate, setSelectedDate] = useState<number | null>(null)
@@ -190,7 +192,7 @@ export function PhotoVideoProfileModal({ professional, open, onOpenChange }: Pho
                 className="w-full sm:w-auto bg-transparent border-border text-foreground hover:bg-accent"
                 asChild
               >
-                <Link href={`/booking?professionalId=${professional.id}&type=photographer`} onClick={() => onOpenChange(false)}>Book Now</Link>
+                <Link href={`/booking?professionalId=${professional.id}&type=photographer`} onClick={(e) => { if (bookGuard(`/booking?professionalId=${professional.id}&type=photographer`, e)) onOpenChange(false) }}>Book Now</Link>
               </Button>
             </div>
           </div>
@@ -575,7 +577,12 @@ export function PhotoVideoProfileModal({ professional, open, onOpenChange }: Pho
                       onClick={(e) => {
                         if (!selectedDate) {
                           e.preventDefault()
-                        } else {
+                        } else if (
+                          bookGuard(
+                            `/booking?professionalId=${professional.id}&type=photographer&date=${selectedDate}-${currentMonth + 1}-${currentYear}`,
+                            e,
+                          )
+                        ) {
                           onOpenChange(false)
                         }
                       }}

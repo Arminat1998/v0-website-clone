@@ -1,5 +1,6 @@
 "use client"
 
+import { useBookGuard } from "@/hooks/use-book-guard"
 import { useState } from "react"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react"
@@ -13,6 +14,7 @@ const UPCOMING = [
 ]
 
 export function AvailabilitySection() {
+  const bookGuard = useBookGuard()
   const { artist, t, edit } = useWebsite()
   const today = new Date()
   const [month, setMonth] = useState(today.getMonth())
@@ -119,7 +121,10 @@ export function AvailabilitySection() {
             <Link
               href={selected ? `/booking?artistId=${artist.id}&date=${selected}-${month + 1}-${year}` : "#"}
               aria-disabled={!selected}
-              onClick={(event) => !selected && event.preventDefault()}
+              onClick={(event) => {
+                if (!selected) event.preventDefault()
+                else bookGuard(`/booking?artistId=${artist.id}&date=${selected}-${month + 1}-${year}`, event)
+              }}
               className={`mt-4 block w-full rounded-lg py-3 text-center text-sm font-medium transition-colors ${
                 selected ? "bg-red-700 text-white hover:bg-red-600" : "pointer-events-none bg-secondary text-muted-foreground"
               }`}
