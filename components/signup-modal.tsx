@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLanguage } from "@/contexts/language-context"
 import { authClient } from "@/lib/auth-client"
 import { lettersOnly, phoneChars } from "@/lib/input-filters"
+import { setPendingPassword } from "@/lib/pending-signup"
+import { isEmailAvailable } from "@/app/actions/signup-check"
 
 interface SignupModalProps {
   open: boolean
@@ -48,21 +50,39 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       setError(language === "nl" ? "Kies eerst wat voor account je wilt." : "First choose the kind of account you want.")
       return
     }
-    if (accountType === "professional") {
-      if (!category) {
-        trackUserTest("signup_error", { reason: "category_missing" })
-        setError(language === "nl" ? "Kies een categorie." : "Please choose a category.")
-        return
-      }
-      // A professional only gets an account once the registration form is saved.
-      sessionStorage.setItem("professionalSignupData", JSON.stringify({ category }))
-      onOpenChange(false)
-      router.push("/register/professional")
+    if (accountType === "professional" && !category) {
+      trackUserTest("signup_error", { reason: "category_missing" })
+      setError(language === "nl" ? "Kies een categorie." : "Please choose a category.")
       return
     }
     if (password.length < 8) {
       trackUserTest("signup_error", { reason: "password_too_short" })
       setError(language === "nl" ? "Je wachtwoord moet minimaal 8 tekens hebben." : "Your password must be at least 8 characters.")
+      return
+    }
+    if (accountType === "professional") {
+      setLoading(true)
+      const available = await isEmailAvailable({ email }).catch(() => true)
+      setLoading(false)
+      if (!available) {
+        trackUserTest("signup_error", { reason: "email_taken" })
+        setError(
+          language === "nl"
+            ? "Er bestaat al een account met dit e-mailadres. Log in of gebruik een ander adres."
+            : "An account with this email address already exists. Log in or use another address.",
+        )
+        return
+      }
+      // A professional only gets an account once the registration form is saved. The details
+      // travel along and are fixed there; the password stays in memory only.
+      sessionStorage.setItem(
+        "professionalSignupData",
+        JSON.stringify({ category, fullName: fullName.trim(), email: email.trim(), phone: phone.trim() }),
+      )
+      setPendingPassword(password)
+      setPassword("")
+      onOpenChange(false)
+      router.push("/register/professional")
       return
     }
 
@@ -169,14 +189,6 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 </div>
               )}
 
-              {accountType === "professional" ? (
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {language === "nl"
-                    ? "Op de volgende pagina vul je je gegevens en profiel in. Je account wordt aangemaakt zodra je dat formulier opslaat. Daarna beoordeelt ARSI Events je aanmelding."
-                    : "On the next page you enter your details and profile. Your account is created once you save that form. ARSI Events then reviews your application."}
-                </p>
-              ) : (
-              <>
               <div>
                 <Input
                   type="text"
@@ -239,7 +251,12 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 {language === "nl" ? "Minimaal 8 tekens." : "At least 8 characters."}
               </p>
 
-              </>
+              {accountType === "professional" && (
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {language === "nl"
+                    ? "Op de volgende pagina vul je je profiel in. Deze gegevens gaan mee en zijn daar niet meer aan te passen. Je account wordt aangemaakt zodra je dat formulier opslaat."
+                    : "On the next page you complete your profile. These details are carried over and cannot be changed there. Your account is created once you save that form."}
+                </p>
               )}
 
               {error && (

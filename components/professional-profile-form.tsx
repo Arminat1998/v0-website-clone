@@ -25,6 +25,7 @@ import { AdditionalEquipment, type AdditionalCategory } from "@/components/addit
 import { saveProfessionalProfile } from "@/app/actions/professional-profile"
 import { EquipmentFields } from "@/components/equipment-fields"
 import { NumericInput } from "@/components/numeric-input"
+import { clearPendingPassword, getPendingPassword } from "@/lib/pending-signup"
 import { authClient } from "@/lib/auth-client"
 import { lettersOnly, phoneChars } from "@/lib/input-filters"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
@@ -129,6 +130,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const [password, setPassword] = useState("")
   const [passwordError, setPasswordError] = useState("")
   const [signupCategory, setSignupCategory] = useState("artist")
+  // Name, email and phone were entered in the signup window and are fixed here,
+  // because email and phone are verified later.
+  const [signupLocked, setSignupLocked] = useState(false)
+  const [hasPendingPassword, setHasPendingPassword] = useState(false)
+  const lockSignupFields = needsAccount && signupLocked
   useEffect(() => {
     // After a reload the signup data is gone; the account's own address is the source of truth.
     if (sessionEmail) setEmail((current) => current || sessionEmail)
@@ -163,6 +169,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         if (data.fullName) setFullName(data.fullName)
         if (data.email) setEmail(data.email)
         if (data.phone) setPhone(data.phone)
+        if (data.fullName && data.email && data.phone) {
+          setSignupLocked(true)
+          setHasPendingPassword(getPendingPassword().length >= 8)
+        }
         if (data.category) {
           setSignupCategory(data.category)
           // Map category to artist type
@@ -744,7 +754,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       return
     }
 
-    if (needsAccount && password.length < 8) {
+    const accountPassword = hasPendingPassword ? getPendingPassword() : password
+    if (needsAccount && accountPassword.length < 8) {
       trackUserTest("signup_error", { reason: "password_too_short" })
       setPasswordError(L ? "Je wachtwoord moet minimaal 8 tekens hebben." : "Your password must be at least 8 characters.")
       document.getElementById("password")?.focus()
@@ -760,7 +771,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         const { error: signUpError } = await authClient.signUp.email({
           name: fullName.trim(),
           email: email.trim(),
-          password,
+          password: accountPassword,
           role: "professional",
           phone: phone.trim(),
           category: signupCategory,
@@ -768,14 +779,19 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         if (signUpError) {
           trackUserTest("signup_error", { reason: "server" })
           setSaveError(
-            L
-              ? "Je account aanmaken is niet gelukt. Controleer je e-mailadres, of log in als je al een account hebt."
-              : "Creating your account failed. Check your email address, or log in if you already have an account.",
+            lockSignupFields
+              ? L
+                ? "Je account aanmaken is niet gelukt. Bestaat er al een account met dit e-mailadres, log dan in. Klopt het adres niet, begin dan opnieuw via Sign Up."
+                : "Creating your account failed. If an account with this email address already exists, log in. If the address is wrong, start again via Sign Up."
+              : L
+                ? "Je account aanmaken is niet gelukt. Controleer je e-mailadres, of log in als je al een account hebt."
+                : "Creating your account failed. Check your email address, or log in if you already have an account.",
           )
           return
         }
         trackUserTest("signup_completed", { account_type: "professional" })
         setPassword("")
+        clearPendingPassword()
       }
 
       const minimumEquipmentUploaded = Object.fromEntries(
@@ -1217,9 +1233,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <Input
                     id="fullName"
                     placeholder={L ? "Tekst" : "Text"}
-                    className={inputClassName}
+                    className={inputClassName + (lockSignupFields ? " cursor-not-allowed opacity-70" : "")}
                     value={fullName}
                     onChange={(e) => setFullName(lettersOnly(e.target.value))}
+                    readOnly={lockSignupFields}
                     required
                   />
                 </div>
@@ -1233,16 +1250,20 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <Input
                     id="email"
                     type="email"
-                    className={inputClassName}
+                    className={inputClassName + (lockSignupFields ? " cursor-not-allowed opacity-70" : "")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    readOnly={!needsAccount}
+                    readOnly={!needsAccount || lockSignupFields}
                     required
                     autoComplete="email"
                     aria-describedby="email-help"
                   />
                   <p id="email-help" className="text-xs sm:text-sm text-gray-500">
-                    {needsAccount
+                    {lockSignupFields
+                      ? L
+                        ? "Hiermee log je straks in. Naam, e-mail en telefoonnummer heb je bij het aanmelden opgegeven en zijn hier niet aan te passen. Typfout? Begin opnieuw via Sign Up."
+                        : "You will use this to log in. Name, email and phone number were entered at sign-up and cannot be changed here. Typo? Start again via Sign Up."
+                      : needsAccount
                       ? L
                         ? "Hiermee log je straks in."
                         : "You will use this to log in."
@@ -1252,7 +1273,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   </p>
                 </div>
 
-                {needsAccount && (
+                {needsAccount && !hasPendingPassword && (
                   <div className="space-y-2">
                     <Label htmlFor="password" className="text-sm sm:text-base font-medium text-gray-900">
                       {L ? "Wachtwoord" : "Password"}
@@ -1287,10 +1308,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <Input
                     id="phone"
                     type="tel"
-                    className={inputClassName}
+                    className={inputClassName + (lockSignupFields ? " cursor-not-allowed opacity-70" : "")}
                     inputMode="tel"
                     value={phone}
                     onChange={(e) => setPhone(phoneChars(e.target.value))}
+                    readOnly={lockSignupFields}
                     required
                   />
                 </div>
