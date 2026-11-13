@@ -108,17 +108,22 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
                 {artist.price.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perHour}</span>
               </dd>
             </div>
-            {artist.equipmentPrice && (
-              <div className="flex items-center justify-between gap-3 px-3 py-2">
+            {/* Always shown, so every card has the same rows. */}
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
                 <dt className="flex items-center gap-1.5 text-muted-foreground">
                   <Speaker className="w-3.5 h-3.5" aria-hidden="true" />
                   {t.equipmentPrice}
                 </dt>
-                <dd className="text-right font-semibold text-foreground">
-                  {artist.equipmentPrice.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perDay}</span>
-                </dd>
+                {artist.equipmentPrice ? (
+                  <dd className="text-right font-semibold text-foreground">
+                    {artist.equipmentPrice.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perDay}</span>
+                  </dd>
+                ) : (
+                  <dd className="text-right text-sm text-muted-foreground">
+                    {language === "nl" ? "Niet opgegeven" : "Not specified"}
+                  </dd>
+                )}
               </div>
-            )}
           </dl>
 
           <div>

@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { slugify } from "@/lib/artist-slug"
 import { getRestriction } from "@/lib/moderation"
+import { digitsOnlyPrice } from "@/lib/professional-profile-types"
 import type { Artist, EquipmentDetail } from "@/lib/smart-search"
 
 interface ProfessionalAccount {
@@ -37,6 +38,13 @@ export interface ProfessionalProfileSummary {
   extraItems: EquipmentDetail[]
 }
 
+/** Day price of the equipment package: the sum of its items, like the single package price on the cards. */
+function packagePrice(items: EquipmentDetail[]) {
+  const total = items.reduce((sum, item) => sum + (Number(digitsOnlyPrice(item.price)) || 0), 0)
+  if (total <= 0) return undefined
+  return `€${Number.isInteger(total) ? total : total.toFixed(2).replace(".", ",")}`
+}
+
 export function buildProfessionalArtist(account: ProfessionalAccount, profile?: ProfessionalProfileSummary | null): Artist {
   return {
     // Real accounts use string ids; the website only interpolates the id into URLs.
@@ -50,6 +58,7 @@ export function buildProfessionalArtist(account: ProfessionalAccount, profile?: 
     experience: profile?.yearsExperience ? `${profile.yearsExperience}` : undefined,
     equipment: profile?.equipment.length ? profile.equipment : undefined,
     equipmentDetails: { packageItems: profile?.packageItems ?? [], extraItems: profile?.extraItems ?? [] },
+    equipmentPrice: packagePrice(profile?.packageItems ?? []),
     rating: 0,
     reviews: 0,
     price: profile?.hourlyRate ? `€${profile.hourlyRate}` : "€0",

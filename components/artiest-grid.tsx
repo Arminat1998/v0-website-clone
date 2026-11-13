@@ -51,7 +51,7 @@ export function ArtiestGrid({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [musicAnalysis, setMusicAnalysis] = useState<AudioAnalysisResult | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -149,10 +149,14 @@ export function ArtiestGrid({
     }
   }
 
-  const { data: liveData } = useSWR<{ artists: Artist[] }>("/api/artists/live", fetcher, {
+  const { data: liveData, isLoading: liveLoading } = useSWR<{ artists: Artist[] }>("/api/artists/live", fetcher, {
     revalidateOnFocus: true,
   })
-  const allArtists = useMemo(() => [...(liveData?.artists ?? []), ...enhancedArtists], [liveData])
+  // The list appears in one go: nothing is shown until the registered artists have loaded too.
+  const allArtists = useMemo(
+    () => (liveLoading ? [] : [...(liveData?.artists ?? []), ...enhancedArtists]),
+    [liveData, liveLoading],
+  )
 
   const filteredArtists = useMemo(() => {
     let artists = allArtists
@@ -402,7 +406,7 @@ export function ArtiestGrid({
         ))}
       </div>
 
-      {sortedArtists.length === 0 && searchTerm && (
+      {!liveLoading && sortedArtists.length === 0 && searchTerm && (
         <div className="text-center text-muted-foreground py-12">
           <Sparkles className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
           <p className="text-lg font-medium mb-2 text-foreground">
@@ -431,7 +435,16 @@ export function ArtiestGrid({
         </div>
       )}
 
-      {sortedArtists.length === 0 && !searchTerm && (
+      {liveLoading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5" aria-busy="true" aria-live="polite">
+          <span className="sr-only">{language === "nl" ? "Artiesten laden" : "Loading artists"}</span>
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="h-[520px] animate-pulse rounded-xl border border-border bg-card" />
+          ))}
+        </div>
+      )}
+
+      {!liveLoading && sortedArtists.length === 0 && !searchTerm && (
         <div className="text-center text-muted-foreground py-12">
           <p className="text-lg text-foreground">{t.noResults}</p>
           <p className="text-sm mt-2">{t.noResultsSubtext}</p>
