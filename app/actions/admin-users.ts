@@ -1,11 +1,22 @@
 "use server"
 
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray, or } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import {
+  artistPages,
+  billingProfiles,
   blacklist,
+  bookings,
+  conversations,
+  customerFavorites,
+  customerNotifications,
+  customerProfiles,
+  invoices,
+  messages,
+  notifications,
   professionalProfiles,
+  reviews,
   session as sessionTable,
   user as userTable,
   userNotes,
@@ -256,6 +267,73 @@ export async function unpublishProfessional(input: { userId: string }): Promise<
   refresh(target.id)
   revalidatePath("/admin/aanmeldingen")
   revalidatePath("/admin/artiesten")
+  return { ok: true }
+}
+
+/**
+ * Permanently deletes an account and everything that belongs to it alone.
+ * Accounts with bookings or invoices are refused: those records must be kept.
+ */
+export async function deleteUser(input: { userId: string; confirmEmail: string }): Promise<Result> {
+  const admin = await requireAdmin()
+  const { target, error } = await loadTarget(input.userId, admin.id)
+  if (!target) return { ok: false, error: error ?? "Onbekende fout." }
+  if (input.confirmEmail.trim().toLowerCase() !== target.email.toLowerCase()) {
+    return { ok: false, error: "Het e-mailadres komt niet overeen met dit account." }
+  }
+
+  const id = target.id
+  const [booking] = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(or(eq(bookings.professionalId, id), eq(bookings.customerId, id)))
+    .limit(1)
+  const [invoice] = await db.select({ id: invoices.id }).from(invoices).where(eq(invoices.professionalId, id)).limit(1)
+  if (booking || invoice) {
+    return {
+      ok: false,
+      error: "Dit account heeft boekingen of facturen en kan niet worden verwijderd. Verban het account of haal het profiel offline.",
+    }
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      const threads = await tx
+        .select({ id: conversations.id })
+        .from(conversations)
+        .where(or(eq(conversations.customerId, id), eq(conversations.professionalId, id)))
+      const threadIds = threads.map((thread) => thread.id)
+      if (threadIds.length) {
+        await tx.delete(messages).where(inArray(messages.conversationId, threadIds))
+        await tx.delete(conversations).where(inArray(conversations.id, threadIds))
+      }
+      await tx.delete(reviews).where(or(eq(reviews.customerId, id), eq(reviews.professionalId, id)))
+      await tx.delete(customerFavorites).where(or(eq(customerFavorites.userId, id), eq(customerFavorites.professionalId, id)))
+      await tx.delete(customerNotifications).where(eq(customerNotifications.userId, id))
+      await tx.delete(customerProfiles).where(eq(customerProfiles.userId, id))
+      await tx.delete(notifications).where(eq(notifications.professionalId, id))
+      await tx.delete(artistPages).where(eq(artistPages.professionalId, id))
+      await tx.delete(billingProfiles).where(eq(billingProfiles.professionalId, id))
+      await tx.delete(professionalProfiles).where(eq(professionalProfiles.professionalId, id))
+      // Sessions, login details, warnings and notes go with the user row (cascade).
+      await tx.delete(userTable).where(eq(userTable.id, id))
+    })
+  } catch (deleteError) {
+    console.error("Failed to delete account:", deleteError)
+    return { ok: false, error: "Verwijderen is mislukt. Er is niets verwijderd." }
+  }
+
+  await logAdminAction({
+    adminName: admin.name,
+    action: "delete",
+    targetUserId: id,
+    targetLabel: target.name,
+    details: `Account verwijderd (${target.email})`,
+  })
+  refresh()
+  revalidatePath("/admin/aanmeldingen")
+  revalidatePath("/admin/artiesten")
+  revalidatePath("/artiesten")
   return { ok: true }
 }
 

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Ban, Clock, EyeOff, LogOut, Pencil, RotateCcw, TriangleAlert, Undo2 } from "lucide-react"
+import { ArrowLeft, Ban, Clock, EyeOff, LogOut, Pencil, RotateCcw, Trash2, TriangleAlert, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -11,6 +11,7 @@ import {
   addUserNote,
   banUser,
   deleteUserNote,
+  deleteUser,
   forceLogout,
   reinstateUser,
   revokeWarning,
@@ -24,7 +25,16 @@ import type { AdminNote, AdminUserRow, AdminWarning, AuditEntry } from "@/lib/ad
 import { UserAvatar, UserStatusBadge } from "@/components/admin/moderation-ui"
 import { AuditLog } from "@/components/admin/audit-log"
 
-type ActionKind = "warn" | "suspend" | "ban" | "reinstate" | "logout" | "unpublish" | "editWarning" | "revokeWarning"
+type ActionKind =
+  | "warn"
+  | "suspend"
+  | "ban"
+  | "reinstate"
+  | "logout"
+  | "unpublish"
+  | "delete"
+  | "editWarning"
+  | "revokeWarning"
 
 interface UserDetailProps {
   account: AdminUserRow
@@ -47,6 +57,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
   const [days, setDays] = useState("7")
   const [blacklistEmail, setBlacklistEmail] = useState(true)
   const [note, setNote] = useState("")
+  const [confirmEmail, setConfirmEmail] = useState("")
   const [selectedWarning, setSelectedWarning] = useState<AdminWarning | null>(null)
 
   const openWarning = (kind: "editWarning" | "revokeWarning", w: AdminWarning) => {
@@ -63,6 +74,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
     setAction(null)
     setError("")
     setMessage("")
+    setConfirmEmail("")
   }
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => {
@@ -93,6 +105,9 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
         return run(() => forceLogout({ userId }), close)
       case "unpublish":
         return run(() => unpublishProfessional({ userId }), close)
+      case "delete":
+        // The account no longer exists afterwards, so leave its page.
+        return run(() => deleteUser({ userId, confirmEmail }), () => router.push("/admin/gebruikers"))
       case "editWarning":
         if (!selectedWarning) return
         return run(() => updateWarning({ warningId: selectedWarning.id, userId, message, severity }), close)
@@ -111,6 +126,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
     reinstate: { title: t.reinstateTitle, desc: t.reinstateDesc },
     logout: { title: t.logoutTitle, desc: t.logoutDesc },
     unpublish: { title: t.unpublishTitle, desc: t.unpublishDesc },
+    delete: { title: t.deleteTitle, desc: t.deleteDesc },
     editWarning: { title: t.editWarningTitle, desc: t.editWarningDesc },
     revokeWarning: { title: t.revokeWarningTitle, desc: t.revokeWarningDesc },
   }[action ?? "warn"]
@@ -205,6 +221,10 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
                 {t.unpublish}
               </Button>
             )}
+            <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => setAction("delete")}>
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              {t.deleteAccount}
+            </Button>
           </div>
         </section>
       )}
@@ -360,6 +380,22 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
             </label>
           )}
 
+          {action === "delete" && (
+            <div className="space-y-2">
+              <label htmlFor="delete-confirm-email" className="text-sm text-foreground">
+                {t.deleteConfirmLabel}: <span className="font-semibold">{account.email}</span>
+              </label>
+              <input
+                id="delete-confirm-email"
+                type="email"
+                autoComplete="off"
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+              />
+            </div>
+          )}
+
           {error && (
             <p role="alert" className="text-sm text-red-500">
               {error}
@@ -372,7 +408,11 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
             </Button>
             <Button
               onClick={confirm}
-              disabled={pending || (needsText && !message.trim())}
+              disabled={
+                pending ||
+                (needsText && !message.trim()) ||
+                (action === "delete" && confirmEmail.trim().toLowerCase() !== account.email.toLowerCase())
+              }
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {pending ? t.saving : t.confirm}
