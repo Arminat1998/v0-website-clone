@@ -3,38 +3,18 @@
 import { useState, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Ban, Clock, EyeOff, LogOut, Pencil, RotateCcw, Trash2, TriangleAlert, Undo2 } from "lucide-react"
+import { ArrowLeft, Pencil, Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-  addUserNote,
-  banUser,
-  deleteUserNote,
-  deleteUser,
-  forceLogout,
-  reinstateUser,
-  revokeWarning,
-  suspendUser,
-  unpublishProfessional,
-  updateWarning,
-  warnUser,
-} from "@/app/actions/admin-users"
+import { addUserNote, deleteUserNote, revokeWarning, updateWarning } from "@/app/actions/admin-users"
 import { useUsersT } from "@/lib/admin-users-i18n"
 import type { AdminNote, AdminUserRow, AdminWarning, AuditEntry } from "@/lib/admin/users"
 import { UserAvatar, UserStatusBadge } from "@/components/admin/moderation-ui"
 import { AuditLog } from "@/components/admin/audit-log"
+import { UserActions } from "@/components/admin/user-actions"
 
-type ActionKind =
-  | "warn"
-  | "suspend"
-  | "ban"
-  | "reinstate"
-  | "logout"
-  | "unpublish"
-  | "delete"
-  | "editWarning"
-  | "revokeWarning"
+type ActionKind = "editWarning" | "revokeWarning"
 
 interface UserDetailProps {
   account: AdminUserRow
@@ -54,10 +34,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
   const [severity, setSeverity] = useState("warning")
-  const [days, setDays] = useState("7")
-  const [blacklistEmail, setBlacklistEmail] = useState(true)
   const [note, setNote] = useState("")
-  const [confirmEmail, setConfirmEmail] = useState("")
   const [selectedWarning, setSelectedWarning] = useState<AdminWarning | null>(null)
 
   const openWarning = (kind: "editWarning" | "revokeWarning", w: AdminWarning) => {
@@ -74,7 +51,6 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
     setAction(null)
     setError("")
     setMessage("")
-    setConfirmEmail("")
   }
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) => {
@@ -91,45 +67,18 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
   }
 
   const confirm = () => {
+    if (!selectedWarning) return
     const userId = account.id
-    switch (action) {
-      case "warn":
-        return run(() => warnUser({ userId, message, severity }), close)
-      case "suspend":
-        return run(() => suspendUser({ userId, days: Number(days), reason: message }), close)
-      case "ban":
-        return run(() => banUser({ userId, reason: message, addToBlacklist: blacklistEmail }), close)
-      case "reinstate":
-        return run(() => reinstateUser({ userId }), close)
-      case "logout":
-        return run(() => forceLogout({ userId }), close)
-      case "unpublish":
-        return run(() => unpublishProfessional({ userId }), close)
-      case "delete":
-        // The account no longer exists afterwards, so leave its page.
-        return run(() => deleteUser({ userId, confirmEmail }), () => router.push("/admin/gebruikers"))
-      case "editWarning":
-        if (!selectedWarning) return
-        return run(() => updateWarning({ warningId: selectedWarning.id, userId, message, severity }), close)
-      case "revokeWarning":
-        if (!selectedWarning) return
-        return run(() => revokeWarning({ warningId: selectedWarning.id, userId }), close)
+    if (action === "editWarning") {
+      return run(() => updateWarning({ warningId: selectedWarning.id, userId, message, severity }), close)
     }
+    return run(() => revokeWarning({ warningId: selectedWarning.id, userId }), close)
   }
 
-  const needsText = action === "warn" || action === "suspend" || action === "ban" || action === "editWarning"
-  const showSeverity = action === "warn" || action === "editWarning"
-  const dialog = {
-    warn: { title: t.warnTitle, desc: t.warnDesc },
-    suspend: { title: t.suspendTitle, desc: t.suspendDesc },
-    ban: { title: t.banTitle, desc: t.banDesc },
-    reinstate: { title: t.reinstateTitle, desc: t.reinstateDesc },
-    logout: { title: t.logoutTitle, desc: t.logoutDesc },
-    unpublish: { title: t.unpublishTitle, desc: t.unpublishDesc },
-    delete: { title: t.deleteTitle, desc: t.deleteDesc },
-    editWarning: { title: t.editWarningTitle, desc: t.editWarningDesc },
-    revokeWarning: { title: t.revokeWarningTitle, desc: t.revokeWarningDesc },
-  }[action ?? "warn"]
+  const dialog =
+    action === "revokeWarning"
+      ? { title: t.revokeWarningTitle, desc: t.revokeWarningDesc }
+      : { title: t.editWarningTitle, desc: t.editWarningDesc }
 
   return (
     <div className="space-y-8">
@@ -176,58 +125,11 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
         </div>
       </header>
 
-      {!isAdmin && (
-        <section aria-labelledby="actions-heading" className="rounded-lg border border-border bg-card p-5">
-          <h2 id="actions-heading" className="text-lg font-semibold text-foreground">
-            {t.actions}
-          </h2>
-          <p className="mb-4 text-sm text-muted-foreground">{t.actionsHint}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setAction("warn")}>
-              <TriangleAlert className="h-4 w-4" aria-hidden="true" />
-              {t.warn}
-            </Button>
-            {account.status === "active" && (
-              <>
-                <Button variant="outline" onClick={() => setAction("suspend")}>
-                  <Clock className="h-4 w-4" aria-hidden="true" />
-                  {t.suspend}
-                </Button>
-                <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => setAction("ban")}>
-                  <Ban className="h-4 w-4" aria-hidden="true" />
-                  {t.ban}
-                </Button>
-              </>
-            )}
-            {account.status === "suspended" && (
-              <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => setAction("ban")}>
-                <Ban className="h-4 w-4" aria-hidden="true" />
-                {t.ban}
-              </Button>
-            )}
-            {restricted && (
-              <Button variant="outline" onClick={() => setAction("reinstate")}>
-                <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                {t.reinstate}
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => setAction("logout")}>
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              {t.forceLogout}
-            </Button>
-            {account.role === "professional" && account.reviewStatus === "goedgekeurd" && (
-              <Button variant="outline" onClick={() => setAction("unpublish")}>
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
-                {t.unpublish}
-              </Button>
-            )}
-            <Button className="bg-red-600 text-white hover:bg-red-700" onClick={() => setAction("delete")}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-              {t.deleteAccount}
-            </Button>
-          </div>
-        </section>
-      )}
+      <UserActions
+        account={account}
+        // The account no longer exists after deletion, so leave its page.
+        onDone={(done) => (done === "delete" ? router.push("/admin/gebruikers") : router.refresh())}
+      />
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section aria-labelledby="warnings-heading">
@@ -323,77 +225,33 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
             <DialogDescription>{dialog.desc}</DialogDescription>
           </DialogHeader>
 
-          {showSeverity && (
-            <div className="space-y-2">
-              <label htmlFor="severity" className="text-sm font-medium text-foreground">
-                {t.severity}
-              </label>
-              <select id="severity" value={severity} onChange={(e) => setSeverity(e.target.value)} className={selectClass}>
-                {Object.entries(t.severities).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {action === "suspend" && (
-            <div className="space-y-2">
-              <label htmlFor="duration" className="text-sm font-medium text-foreground">
-                {t.duration}
-              </label>
-              <select id="duration" value={days} onChange={(e) => setDays(e.target.value)} className={selectClass}>
-                {[1, 3, 7, 14, 30, 90].map((n) => (
-                  <option key={n} value={n}>
-                    {t.days(n)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {needsText && (
-            <div className="space-y-2">
-              <label htmlFor="moderation-message" className="text-sm font-medium text-foreground">
-                {showSeverity ? t.message : t.reason}
-              </label>
-              <Textarea
-                id="moderation-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={showSeverity ? t.messagePlaceholder : t.reasonPlaceholder}
-                rows={4}
-              />
-            </div>
-          )}
-
-          {action === "ban" && (
-            <label className="flex items-start gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={blacklistEmail}
-                onChange={(e) => setBlacklistEmail(e.target.checked)}
-                className="mt-1"
-              />
-              {t.alsoBlacklist}
-            </label>
-          )}
-
-          {action === "delete" && (
-            <div className="space-y-2">
-              <label htmlFor="delete-confirm-email" className="text-sm text-foreground">
-                {t.deleteConfirmLabel}: <span className="font-semibold">{account.email}</span>
-              </label>
-              <input
-                id="delete-confirm-email"
-                type="email"
-                autoComplete="off"
-                value={confirmEmail}
-                onChange={(e) => setConfirmEmail(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-              />
-            </div>
+          {action === "editWarning" && (
+            <>
+              <div className="space-y-2">
+                <label htmlFor="edit-severity" className="text-sm font-medium text-foreground">
+                  {t.severity}
+                </label>
+                <select id="edit-severity" value={severity} onChange={(e) => setSeverity(e.target.value)} className={selectClass}>
+                  {Object.entries(t.severities).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="edit-warning-message" className="text-sm font-medium text-foreground">
+                  {t.message}
+                </label>
+                <Textarea
+                  id="edit-warning-message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={t.messagePlaceholder}
+                  rows={4}
+                />
+              </div>
+            </>
           )}
 
           {error && (
@@ -408,11 +266,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
             </Button>
             <Button
               onClick={confirm}
-              disabled={
-                pending ||
-                (needsText && !message.trim()) ||
-                (action === "delete" && confirmEmail.trim().toLowerCase() !== account.email.toLowerCase())
-              }
+              disabled={pending || (action === "editWarning" && !message.trim())}
               className="bg-red-600 text-white hover:bg-red-700"
             >
               {pending ? t.saving : t.confirm}

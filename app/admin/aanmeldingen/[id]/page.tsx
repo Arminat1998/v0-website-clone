@@ -20,6 +20,7 @@ import { useAdmin, type ChecklistState } from "@/contexts/admin-submissions-cont
 import { statusClasses, formatDateTime } from "@/lib/admin-status"
 import { useAdminT } from "@/lib/admin-i18n"
 import { ReviewActions } from "@/components/admin/review-actions"
+import { ArtistAccountActions } from "@/components/admin/artist-account-actions"
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -256,6 +257,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         {/* Right: review workspace */}
         <div className="space-y-6">
           <ReviewActions submission={submission} />
+          <ArtistAccountActions userId={submission.id} />
 
           {/* Checklist */}
           <div className="bg-card border border-border rounded-xl p-5">

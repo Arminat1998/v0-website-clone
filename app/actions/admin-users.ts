@@ -23,6 +23,7 @@ import {
   userWarnings,
 } from "@/lib/db/schema"
 import { requireAdmin, requireUser } from "@/lib/session"
+import { type AdminUserRow, listAdminUsers } from "@/lib/admin/users"
 import { BLACKLIST_TYPES, type BlacklistType, logAdminAction, normalizeValue } from "@/lib/moderation"
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -47,6 +48,12 @@ function refresh(userId?: string) {
   revalidatePath("/admin/blacklist")
   revalidatePath("/admin/activiteit")
   if (userId) revalidatePath(`/admin/gebruikers/${userId}`)
+}
+
+/** The account row for the moderation buttons on an artist's page. */
+export async function getAdminAccount(input: { userId: string }): Promise<AdminUserRow | null> {
+  await requireAdmin()
+  return (await listAdminUsers()).find((row) => row.id === input.userId) ?? null
 }
 
 export async function warnUser(input: { userId: string; message: string; severity: string }): Promise<Result> {
