@@ -1,5 +1,6 @@
-// The music genres and event types a professional can choose from in the registration form.
-// Genres are stored by their value; event types are stored by their label, as before.
+// Choices for the registration form and the filters on the artist page.
+// Genres are stored by a stable value. Event types are stored by their English name.
+// Both come with Dutch and English labels.
 
 export interface OptionGroup {
   nl: string
@@ -124,44 +125,45 @@ export const GENRE_GROUPS: OptionGroup[] = [
   },
 ]
 
-const event = (nl: string, en: string) => ({ value: nl, nl, en })
+// The stored value of an event type is its English name.
+const event = (en: string, nl: string) => ({ value: en, nl, en })
 
 export const EVENT_TYPE_GROUPS: OptionGroup[] = [
   {
     nl: "Privé",
     en: "Private",
     options: [
-      event("Verjaardag", "Birthday"),
-      event("Bruiloft", "Wedding"),
-      event("Verloving", "Engagement"),
-      event("Jubileum", "Anniversary"),
-      event("Vrijgezellenfeest", "Bachelor(ette) party"),
-      event("Babyshower", "Baby shower"),
-      event("Afstudeerfeest", "Graduation party"),
+      event("Birthday", "Verjaardag"),
+      event("Wedding", "Bruiloft"),
+      event("Engagement", "Verloving"),
+      event("Anniversary", "Jubileum"),
+      event("Bachelor Party", "Vrijgezellenfeest"),
+      event("Baby Shower", "Babyshower"),
+      event("Graduation Party", "Afstudeerfeest"),
       event("Sweet 16", "Sweet 16"),
-      event("Huisfeest", "House party"),
-      event("Tuinfeest", "Garden party"),
-      event("Privédiner", "Private dinner"),
-      event("Privéfeest", "Private Party"),
-      event("Religieuze viering", "Religious celebration"),
-      event("Afscheid of herdenking", "Farewell or memorial"),
+      event("House Party", "Huisfeest"),
+      event("Garden Party", "Tuinfeest"),
+      event("Private Dinner", "Privédiner"),
+      event("Private Party", "Privéfeest"),
+      event("Religious Celebration", "Religieuze viering"),
+      event("Farewell or Memorial", "Afscheid of herdenking"),
     ],
   },
   {
     nl: "Zakelijk",
     en: "Corporate",
     options: [
-      event("Bedrijfsfeest", "Company party"),
-      event("Personeelsfeest", "Staff party"),
-      event("Netwerkborrel", "Networking drinks"),
-      event("Productlancering", "Product launch"),
+      event("Corporate Event", "Bedrijfsfeest"),
+      event("Staff Party", "Personeelsfeest"),
+      event("Networking Drinks", "Netwerkborrel"),
+      event("Product Launch", "Productlancering"),
       event("Opening", "Opening"),
-      event("Congres", "Conference"),
-      event("Beurs", "Trade fair"),
+      event("Conference", "Congres"),
+      event("Trade Fair", "Beurs"),
       event("Gala", "Gala"),
-      event("Kerstborrel", "Christmas party"),
-      event("Nieuwjaarsreceptie", "New Year's reception"),
-      event("Teamuitje", "Team outing"),
+      event("Christmas Party", "Kerstborrel"),
+      event("New Year's Reception", "Nieuwjaarsreceptie"),
+      event("Team Outing", "Teamuitje"),
     ],
   },
   {
@@ -169,21 +171,45 @@ export const EVENT_TYPE_GROUPS: OptionGroup[] = [
     en: "Public",
     options: [
       event("Festival", "Festival"),
-      event("Clubavond", "Club Night"),
+      event("Club Night", "Clubavond"),
       event("Concert", "Concert"),
-      event("Café of bar", "Café or bar"),
+      event("Café or Bar", "Café of bar"),
       event("Restaurant", "Restaurant"),
-      event("Studentenfeest", "Student party"),
-      event("Schoolfeest", "School party"),
-      event("Straatfeest", "Street party"),
-      event("Sportevenement", "Sports event"),
-      event("Modeshow", "Fashion show"),
-      event("Benefiet", "Charity event"),
-      event("Koningsdag", "King's Day"),
-      event("Oud en nieuw", "New Year's Eve"),
-      event("Carnaval", "Carnival"),
+      event("Student Party", "Studentenfeest"),
+      event("School Party", "Schoolfeest"),
+      event("Street Party", "Straatfeest"),
+      event("Sports Event", "Sportevenement"),
+      event("Fashion Show", "Modeshow"),
+      event("Charity Event", "Benefiet"),
+      event("King's Day", "Koningsdag"),
+      event("New Year's Eve", "Oud en nieuw"),
+      event("Carnival", "Carnaval"),
     ],
   },
+]
+
+/** Stored values stay the same; only the labels are translated. */
+export const ARTIST_TYPES: { value: string; nl: string; en: string; descNl: string; descEn: string }[] = [
+  { value: "DJ", nl: "DJ", en: "DJ", descNl: "Draait muziek met een eigen set", descEn: "Plays music with their own set" },
+  { value: "Band", nl: "Band", en: "Band", descNl: "Meerdere muzikanten, live", descEn: "Several musicians, live" },
+  { value: "Singer", nl: "Zanger(es)", en: "Singer", descNl: "Zang, solo of met begeleiding", descEn: "Vocals, solo or accompanied" },
+  { value: "Saxophonist", nl: "Saxofonist", en: "Saxophonist", descNl: "Live saxofoon, solo of bij een DJ", descEn: "Live saxophone, solo or alongside a DJ" },
+  { value: "Pianist", nl: "Pianist", en: "Pianist", descNl: "Piano of keyboard", descEn: "Piano or keyboard" },
+  { value: "Guitarist", nl: "Gitarist", en: "Guitarist", descNl: "Akoestisch of elektrisch", descEn: "Acoustic or electric" },
+  { value: "Violinist", nl: "Violist", en: "Violinist", descNl: "Viool, solo of ensemble", descEn: "Violin, solo or ensemble" },
+]
+
+export const SOCIAL_PLATFORMS: { value: string; label: string }[] = [
+  { value: "instagram", label: "Instagram" },
+  { value: "facebook", label: "Facebook" },
+  { value: "twitter", label: "Twitter / X" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "youtube", label: "YouTube" },
+  { value: "spotify", label: "Spotify" },
+  { value: "soundcloud", label: "SoundCloud" },
+  { value: "bandcamp", label: "Bandcamp" },
+  { value: "applemusic", label: "Apple Music" },
+  { value: "linkedin", label: "LinkedIn" },
 ]
 
 export function genreLabel(value: string, dutch: boolean) {
@@ -192,4 +218,51 @@ export function genreLabel(value: string, dutch: boolean) {
     if (option) return dutch ? option.nl : option.en
   }
   return value
+}
+
+export function eventTypeLabel(value: string, dutch: boolean) {
+  for (const group of EVENT_TYPE_GROUPS) {
+    const option = group.options.find((item) => item.value === value)
+    if (option) return dutch ? option.nl : option.en
+  }
+  return value
+}
+
+// Older profiles stored other names for the same event types.
+const EVENT_ALIASES: Record<string, string> = {
+  zakelijk: "Corporate Event",
+  corporate: "Corporate Event",
+  club: "Club Night",
+  private: "Private Party",
+  birthday: "Birthday",
+  wedding: "Wedding",
+  festival: "Festival",
+}
+
+/** Maps a stored event type (any language, older names included) to its current value; unknown names stay as they are. */
+export function canonicalEventType(stored: string) {
+  const key = stored.trim().toLowerCase()
+  for (const group of EVENT_TYPE_GROUPS) {
+    for (const option of group.options) {
+      if ([option.value, option.nl, option.en].some((name) => name.toLowerCase() === key)) return option.value
+    }
+  }
+  return EVENT_ALIASES[key] ?? stored
+}
+
+const FILLER_WORDS = new Set(["party", "event", "celebration", "night"])
+
+/**
+ * Comparable form of a genre or event type, so "Hip-Hop", "hiphop" and "hip hop" match, and
+ * "Club Night" matches "club". Generic words like "party" are ignored.
+ */
+export function tagKey(raw: string) {
+  const words = raw
+    .toLowerCase()
+    .replace(/&/g, "n")
+    .replace(/[^a-z0-9\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
+  const meaningful = words.filter((word) => !FILLER_WORDS.has(word))
+  return (meaningful.length ? meaningful : words).join("")
 }
