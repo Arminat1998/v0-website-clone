@@ -14,21 +14,47 @@ const selectClass =
 export function UsersTable({ users }: { users: AdminUserRow[] }) {
   const { t, formatDate } = useUsersT()
   const [query, setQuery] = useState("")
-  const [role, setRole] = useState("all")
+  const [role, setRole] = useState("user")
   const [status, setStatus] = useState("all")
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return users.filter(
       (u) =>
-        (role === "all" || u.role === role) &&
+        u.role === role &&
         (status === "all" || u.status === status) &&
         (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)),
     )
   }, [users, query, role, status])
 
+  const counts = useMemo(() => {
+    const result: Record<string, number> = {}
+    for (const u of users) result[u.role] = (result[u.role] ?? 0) + 1
+    return result
+  }, [users])
+
   return (
     <div className="space-y-4">
+      <div role="tablist" aria-label={t.columns.role} className="flex gap-1 overflow-x-auto border-b border-border">
+        {Object.entries(t.roleTabs).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={role === value}
+            onClick={() => setRole(value)}
+            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              role === value
+                ? "border-red-500 text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{counts[value] ?? 0}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -40,14 +66,6 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
             className="pl-9"
           />
         </div>
-        <select value={role} onChange={(e) => setRole(e.target.value)} className={selectClass} aria-label={t.columns.role}>
-          <option value="all">{t.allRoles}</option>
-          {Object.entries(t.roles).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass} aria-label={t.columns.status}>
           <option value="all">{t.allStatuses}</option>
           {Object.entries(t.statuses).map(([value, label]) => (
@@ -63,7 +81,6 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <th className="px-4 py-3 font-medium">{t.columns.user}</th>
-              <th className="px-4 py-3 font-medium">{t.columns.role}</th>
               <th className="px-4 py-3 font-medium">{t.columns.status}</th>
               <th className="px-4 py-3 font-medium">{t.columns.warnings}</th>
               <th className="px-4 py-3 font-medium">{t.columns.joined}</th>
@@ -73,7 +90,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
                   {t.noUsers}
                 </td>
               </tr>
@@ -89,7 +106,6 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
                     </span>
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-foreground">{t.roles[u.role] ?? u.role}</td>
                 <td className="px-4 py-3">
                   <UserStatusBadge status={u.status} />
                 </td>
