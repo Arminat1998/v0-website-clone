@@ -83,6 +83,9 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
   const genres = list(input.genres)
   const eventTypes = list(input.eventTypes)
   const genreLabels = list(input.genreLabels)
+  // The form checks this too; here it stops a profile that skips the form's checks.
+  const completeEquipment = Object.values(minimumEquipment).filter((item) => item.name && item.price && item.description && item.image)
+  if (genres.length === 0 || eventTypes.length === 0 || completeEquipment.length === 0) return { ok: false, error: "invalid" }
   const avatarPath = cleanImage(input.avatarPath) ?? null
   const bannerPath = cleanImage(input.bannerPath) ?? null
   const phone = text(input.phone, 40)

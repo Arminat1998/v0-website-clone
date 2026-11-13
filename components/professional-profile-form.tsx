@@ -123,6 +123,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const [fullName, setFullName] = useState<string>(initialProfile?.fullName ?? "")
   const [email, setEmail] = useState<string>(initialProfile?.email ?? "")
   const [artistTypeError, setArtistTypeError] = useState("")
+  const [genresError, setGenresError] = useState("")
+  const [eventTypesError, setEventTypesError] = useState("")
+  const [equipmentError, setEquipmentError] = useState("")
   const { data: sessionData, isPending: sessionPending, error: sessionError } = authClient.useSession()
   const sessionEmail = sessionData?.user?.email
   // A new professional has no account yet: it is created together with the profile on submit.
@@ -752,6 +755,29 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       setArtistTypeError(L ? "Kies je artiest type." : "Choose your artist type.")
       document.getElementById("artistType")?.focus()
       return
+    }
+
+    // A profile without genres, event types or a complete equipment package may not be submitted.
+    const fail = (reason: string, elementId: string) => {
+      if (!isEdit) trackUserTest("profile_error", { reason })
+      document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+    if (selectedGenres.length === 0) {
+      setGenresError(L ? "Kies minimaal één muziekgenre." : "Choose at least one music genre.")
+      return fail("genres_missing", "genres-field")
+    }
+    if (selectedEventTypes.length === 0) {
+      setEventTypesError(L ? "Kies minimaal één evenement type." : "Choose at least one event type.")
+      return fail("event_types_missing", "event-types-field")
+    }
+    const missingEquipment = getMinimumEquipmentConfig().filter((config) => !isEquipmentComplete(config.id))
+    if (missingEquipment.length > 0) {
+      setEquipmentError(
+        L
+          ? `Vul het apparatuurpakket volledig in. Bij ${missingEquipment.length} van de ${getMinimumEquipmentConfig().length} onderdelen ontbreekt nog een naam, prijs, beschrijving of foto.`
+          : `Complete the equipment package. ${missingEquipment.length} of ${getMinimumEquipmentConfig().length} items still lack a name, price, description or photo.`,
+      )
+      return fail("equipment_incomplete", "equipment-field")
     }
 
     const accountPassword = hasPendingPassword ? getPendingPassword() : password
@@ -1553,10 +1579,16 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               </div>
 
               {artistType && (
-                <div className="space-y-2">
+                <div id="genres-field" className="space-y-2">
                   <Label className="text-sm sm:text-base font-medium text-foreground">
                     {L ? "Muziekgenres" : "Music Genres"}
+                    <RequiredMark />
                   </Label>
+                  {genresError && selectedGenres.length === 0 && (
+                    <p role="alert" className="text-sm text-red-500">
+                      {genresError}
+                    </p>
+                  )}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1611,10 +1643,16 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {/* Event Types */}
               {artistType && (
-                <div className="space-y-2">
+                <div id="event-types-field" className="space-y-2">
                   <Label className="text-sm sm:text-base font-medium text-foreground">
                     {L ? "Evenement types" : "Event Types"}
+                    <RequiredMark />
                   </Label>
+                  {eventTypesError && selectedEventTypes.length === 0 && (
+                    <p role="alert" className="text-sm text-red-500">
+                      {eventTypesError}
+                    </p>
+                  )}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1675,10 +1713,21 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {/* Package Equipment Section */}
               {artistType && (
-                <div className="rounded-lg p-4 sm:p-6 space-y-4 bg-gray-100 dark:!bg-gray-950">
+                <div id="equipment-field" className="rounded-lg p-4 sm:p-6 space-y-4 bg-gray-100 dark:!bg-gray-950">
                   <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                     {L ? "Pakket apparatuur verhuur" : "Package Equipment Rental"}
+                    <RequiredMark />
                   </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {L
+                      ? "Verplicht: vul elk onderdeel in met naam, prijs, beschrijving en foto."
+                      : "Required: complete every item with a name, price, description and photo."}
+                  </p>
+                  {equipmentError && getMinimumEquipmentConfig().some((config) => !isEquipmentComplete(config.id)) && (
+                    <p role="alert" className="text-sm text-red-500">
+                      {equipmentError}
+                    </p>
+                  )}
                   <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">{getPackageDescription()}</p>
 
                   <div className="space-y-3">

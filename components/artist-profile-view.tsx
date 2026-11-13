@@ -20,6 +20,8 @@ import type { Artist } from "@/lib/smart-search";
 import { ArtistPortfolio } from "@/components/artist-portfolio";
 import { FavoriteButton } from "@/components/account/favorite-button";
 import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
+import { useLanguage } from "@/contexts/language-context";
+import { digitsOnlyPrice, formatRentalPrice, imageSrc } from "@/lib/professional-profile-types";
 
 interface ArtistProfileViewProps {
   artist: Artist;
@@ -36,6 +38,14 @@ export function ArtistProfileView({
 }: ArtistProfileViewProps) {
   const router = useRouter();
   const bookGuard = useBookGuard();
+  const { language } = useLanguage();
+  const nl = language === "nl";
+  // Real accounts always carry their own equipment list. Only the demo artists may fall back to sample content.
+  const isReal = !!artist.equipmentDetails;
+  const packageItems = artist.equipmentDetails?.packageItems ?? [];
+  const extraItems = artist.equipmentDetails?.extraItems ?? [];
+  const packageTotal = packageItems.reduce((sum, item) => sum + (Number(digitsOnlyPrice(item.price)) || 0), 0);
+  const notProvided = nl ? "Niet opgegeven" : "Not specified";
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
@@ -295,7 +305,7 @@ export function ArtistProfileView({
               </span>
             </div>
             <div className="text-lg sm:text-2xl font-bold text-foreground">
-              10y
+              {isReal ? (artist.experience ? `${artist.experience}y` : "–") : "10y"}
             </div>
           </div>
 
@@ -308,9 +318,9 @@ export function ArtistProfileView({
               </span>
             </div>
             <div className="text-lg sm:text-2xl font-bold text-foreground">
-              10k
+              {isReal ? "–" : "10k"}
             </div>
-            <div className="text-xs text-muted-foreground">km</div>
+            {!isReal && <div className="text-xs text-muted-foreground">km</div>}
           </div>
         </div>
 
@@ -349,7 +359,9 @@ export function ArtistProfileView({
             </h3>
             <p className="text-xs sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
               {artist.description ||
-                `Armin A.T is a passionate artist whose deep musical roots as a pianist and guitarist shape his dynamic DJ sets.`}
+                (isReal
+                  ? notProvided
+                  : `Armin A.T is a passionate artist whose deep musical roots as a pianist and guitarist shape his dynamic DJ sets.`)}
             </p>
 
             <div className="mb-6 sm:mb-8">
@@ -357,14 +369,17 @@ export function ArtistProfileView({
                 Event Types
               </h4>
               <div className="flex flex-wrap gap-1 sm:gap-2">
+                {isReal && !artist.eventTypes?.length && (
+                  <span className="text-xs sm:text-sm text-muted-foreground">{notProvided}</span>
+                )}
                 {(
-                  artist.eventTypes || [
+                  artist.eventTypes || (isReal ? [] : [
                     "Birthday Party",
                     "Wedding",
                     "Private Dinner",
                     "House Party",
                     "Graduation Party",
-                  ]
+                  ])
                 ).map((event) => (
                   <button
                     key={event}
@@ -381,14 +396,17 @@ export function ArtistProfileView({
                 Music Genres
               </h4>
               <div className="flex flex-wrap gap-1 sm:gap-2">
+                {isReal && !artist.musicStyles?.length && (
+                  <span className="text-xs sm:text-sm text-muted-foreground">{notProvided}</span>
+                )}
                 {(
-                  artist.musicStyles || [
+                  artist.musicStyles || (isReal ? [] : [
                     "House",
                     "Techno",
                     "Deep House",
                     "Tech House",
                     "Trance",
-                  ]
+                  ])
                 ).map((genre) => (
                   <span
                     key={genre}
@@ -480,6 +498,73 @@ export function ArtistProfileView({
           </TabsContent>
 
           <TabsContent value="equipment" className="mt-0">
+            {isReal ? (
+              <>
+                <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
+                  {nl ? "Apparatuur" : "Equipment"}
+                </h3>
+                {packageItems.length === 0 && extraItems.length === 0 && (
+                  <p className="rounded-lg border-2 border-border bg-card p-4 text-xs sm:text-base text-muted-foreground">
+                    {nl ? "Deze artiest heeft nog geen apparatuur opgegeven." : "This artist has not listed any equipment yet."}
+                  </p>
+                )}
+                {packageItems.length > 0 && (
+                  <div className="bg-card border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 mb-6 sm:mb-8">
+                    <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <h4 className="text-base sm:text-xl font-bold text-foreground">
+                        {nl ? "Apparatuurpakket" : "Equipment package"}
+                      </h4>
+                      {packageTotal > 0 && (
+                        <span className="rounded-full border-2 border-border px-3 py-1 sm:px-4 text-xs sm:text-base font-bold text-foreground">
+                          {nl ? "Totaal " : "Total "}
+                          {formatRentalPrice(String(packageTotal), nl ? "/dag" : "/day")}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+                      {packageItems.map((item) => (
+                        <div key={item.name} className="flex gap-3">
+                          {item.image && (
+                            <img
+                              src={imageSrc(item.image) || "/placeholder.svg"}
+                              alt={item.name}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <h5 className="font-semibold text-foreground">{item.name}</h5>
+                            {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {extraItems.length > 0 && (
+                  <>
+                    <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-6 text-foreground">
+                      {nl ? "Extra opties" : "Extra Options"}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+                      {extraItems.map((item) => (
+                        <div key={item.name} className="border-2 border-border rounded-lg sm:rounded-xl p-4 sm:p-6 bg-card">
+                          <h5 className="font-semibold text-sm sm:text-base text-foreground mb-2">{item.name}</h5>
+                          {item.description && (
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">{item.description}</p>
+                          )}
+                          {Number(digitsOnlyPrice(item.price)) > 0 && (
+                            <div className="text-base sm:text-lg font-bold text-red-600">
+                              +{formatRentalPrice(item.price, nl ? "/dag" : "/day")}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
             <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
               Equipment Options
             </h3>
@@ -650,6 +735,8 @@ export function ArtistProfileView({
                 </div>
               </div>
             </div>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="availability" className="mt-0">
