@@ -28,6 +28,8 @@ import { NumericInput } from "@/components/numeric-input"
 import { clearPendingPassword, getPendingPassword } from "@/lib/pending-signup"
 import { authClient } from "@/lib/auth-client"
 import { lettersOnly, phoneChars } from "@/lib/input-filters"
+import { ChipMultiSelect } from "@/components/chip-multi-select"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
 /** Visible marker for required fields; the field itself carries `required` for screen readers. */
@@ -731,6 +733,35 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     }
   }
 
+  // What is still missing before the form may be sent; the submit button stays grey until this is empty.
+  const missingFields: string[] = []
+  {
+    const need = (ok: boolean, nl: string, en: string) => {
+      if (!ok) missingFields.push(L ? nl : en)
+    }
+    need(!!stageName.trim(), "Artiestennaam", "Stage name")
+    need(!!fullName.trim(), "Volledige naam", "Full name")
+    need(/^\S+@\S+\.\S+$/.test(email.trim()), "E-mail", "Email")
+    if (needsAccount && !hasPendingPassword) need(password.length >= 8, "Wachtwoord (minimaal 8 tekens)", "Password (at least 8 characters)")
+    need(!!phone.trim(), "Telefoonnummer", "Phone number")
+    need(/^\d{8}$/.test(kvkNumber), "KVK-nummer (8 cijfers)", "KVK number (8 digits)")
+    need(!!bio.trim(), "Bio", "Bio")
+    need(!!city.trim(), "Stad", "City")
+    need(yearsExperience.trim() !== "", "Jaren ervaring", "Years of experience")
+    need(Number(hourlyRate) > 0, "Tarief per uur", "Fee per hour")
+    need(!!artistType, "Artiest type", "Artist type")
+    need(selectedGenres.length > 0, "Muziekgenres", "Music genres")
+    need(selectedEventTypes.length > 0, "Evenement types", "Event types")
+    if (artistType) {
+      const config = getMinimumEquipmentConfig()
+      const done = config.filter((item) => isEquipmentComplete(item.id)).length
+      need(done === config.length, `Apparatuurpakket (${done} van ${config.length} compleet)`, `Equipment package (${done} of ${config.length} complete)`)
+    } else {
+      need(false, "Apparatuurpakket", "Equipment package")
+    }
+  }
+  const formComplete = missingFields.length === 0
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (saving) return
@@ -839,9 +870,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       )
       const avatarPath = profileImage ? await uploadImage(profileImage, "avatar") : null
       const bannerPath = bannerImage ? await uploadImage(bannerImage, "banner") : null
-      const genreLabels = selectedGenres.map(
-        (value) => getGenreOptions().find((option) => option.value === value)?.label ?? value,
-      )
+      const genreLabels = selectedGenres.map((value) => genreLabel(value, L))
 
       const result = await saveProfessionalProfile({
         stageName,
@@ -1430,10 +1459,14 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     id="experience"
                     maxLength={2}
                     value={yearsExperience}
-                    onValueChange={setYearsExperience}
+                    onValueChange={(value) => setYearsExperience(Number(value) > 60 ? "60" : value)}
                     className={inputClassName}
                     required
+                    aria-describedby="experience-help"
                   />
+                  <p id="experience-help" className="text-xs sm:text-sm text-gray-500">
+                    {L ? "Maximaal 60 jaar." : "At most 60 years."}
+                  </p>
                 </div>
 
                 {/* Fee per hour */}
@@ -1589,55 +1622,19 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       {genresError}
                     </p>
                   )}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="h-12 w-full justify-between rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base font-normal hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        {selectedGenres.length > 0
-                          ? `${selectedGenres.length} ${L ? "genre(s) geselecteerd" : "genre(s) selected"}`
-                          : L
-                            ? "Selecteer genres"
-                            : "Select genres"}
-                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-2 dark:bg-gray-950 border border-gray-300 dark:border-gray-600">
-                      {getGenreOptions().map((genre) => (
-                        <div
-                          key={genre.value}
-                          className="flex items-center space-x-2 rounded-md px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => {
-                            setSelectedGenres((prev) =>
-                              prev.includes(genre.value)
-                                ? prev.filter((g) => g !== genre.value)
-                                : [...prev, genre.value],
-                            )
-                          }}
-                        >
-                          <Checkbox checked={selectedGenres.includes(genre.value)} />
-                          <span className="text-sm text-gray-900 dark:text-white">{genre.label}</span>
-                        </div>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
-                  {selectedGenres.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedGenres.map((g) => (
-                        <span
-                          key={g}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-full text-xs"
-                        >
-                          {g}
-                          <button type="button" onClick={() => setSelectedGenres((prev) => prev.filter((x) => x !== g))}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <ChipMultiSelect
+                    groups={GENRE_GROUPS.map((group) => ({
+                      label: L ? group.nl : group.en,
+                      options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
+                    }))}
+                    selected={selectedGenres}
+                    onChange={setSelectedGenres}
+                    searchPlaceholder={L ? "Zoek een genre..." : "Search a genre..."}
+                    countLabel={(count) => (L ? `${count} gekozen` : `${count} selected`)}
+                    clearLabel={L ? "Wis alles" : "Clear all"}
+                    emptyLabel={L ? "Geen genre gevonden." : "No genre found."}
+                    invalid={!!genresError && selectedGenres.length === 0}
+                  />
                 </div>
               )}
 
@@ -1653,61 +1650,23 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       {eventTypesError}
                     </p>
                   )}
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="h-12 w-full justify-between rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base font-normal hover:bg-gray-50 dark:hover:bg-gray-700"
-                      >
-                        {selectedEventTypes.length > 0
-                          ? `${selectedEventTypes.length} ${L ? "type(s) geselecteerd" : "type(s) selected"}`
-                          : L
-                            ? "Selecteer evenement types"
-                            : "Select event types"}
-                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-2 dark:bg-gray-950 border border-gray-300 dark:border-gray-600">
-                      {(L
-                        ? ["Verjaardag", "Bruiloft", "Zakelijk", "Festival", "Clubavond", "Jubileum", "Privéfeest"]
-                        : ["Birthday", "Wedding", "Corporate", "Festival", "Club Night", "Anniversary", "Private Party"]
-                      ).map(
-                        (type) => (
-                          <div
-                            key={type}
-                            className="flex items-center space-x-2 rounded-md px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                            onClick={() => {
-                              setSelectedEventTypes((prev) =>
-                                prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
-                              )
-                            }}
-                          >
-                            <Checkbox checked={selectedEventTypes.includes(type)} />
-                            <span className="text-sm text-gray-900 dark:text-white">{type}</span>
-                          </div>
-                        ),
-                      )}
-                    </PopoverContent>
-                  </Popover>
-                  {selectedEventTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedEventTypes.map((t) => (
-                        <span
-                          key={t}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-full text-xs"
-                        >
-                          {t}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedEventTypes((prev) => prev.filter((x) => x !== t))}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <ChipMultiSelect
+                    groups={EVENT_TYPE_GROUPS.map((group) => ({
+                      label: L ? group.nl : group.en,
+                      // Stored by label, in the language the artist registers in (as before).
+                      options: group.options.map((option) => ({
+                        value: L ? option.nl : option.en,
+                        label: L ? option.nl : option.en,
+                      })),
+                    }))}
+                    selected={selectedEventTypes}
+                    onChange={setSelectedEventTypes}
+                    searchPlaceholder={L ? "Zoek een evenement type..." : "Search an event type..."}
+                    countLabel={(count) => (L ? `${count} gekozen` : `${count} selected`)}
+                    clearLabel={L ? "Wis alles" : "Clear all"}
+                    emptyLabel={L ? "Geen evenement type gevonden." : "No event type found."}
+                    invalid={!!eventTypesError && selectedEventTypes.length === 0}
+                  />
                 </div>
               )}
 
@@ -1906,8 +1865,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Register Button */}
               <Button
                 type="submit"
-                className="h-12 w-full bg-red-700 text-base font-semibold text-white hover:bg-red-600"
-                disabled={saving}
+                className="h-12 w-full bg-red-700 text-base font-semibold text-white hover:bg-red-600 disabled:bg-gray-400 disabled:text-white disabled:opacity-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-300"
+                disabled={saving || !formComplete}
+                aria-describedby={formComplete ? undefined : "missing-fields"}
               >
                 {saving
                   ? L
@@ -1921,6 +1881,20 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       ? "Registreren"
                       : "Register"}
               </Button>
+              {!formComplete && (
+                <div id="missing-fields" className="rounded-lg border border-gray-300 p-3 text-sm dark:border-gray-600">
+                  <p className="font-medium text-foreground">
+                    {L
+                      ? `Nog ${missingFields.length} ${missingFields.length === 1 ? "onderdeel" : "onderdelen"} invullen voordat je kunt ${isEdit ? "opslaan" : "registreren"}:`
+                      : `${missingFields.length} ${missingFields.length === 1 ? "item" : "items"} left before you can ${isEdit ? "save" : "register"}:`}
+                  </p>
+                  <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                    {missingFields.map((field) => (
+                      <li key={field}>{field}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {saveError && (
                 <p role="alert" className="text-center text-sm text-red-500">
                   {saveError}

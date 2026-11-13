@@ -98,7 +98,7 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
     kvkNumber: text(input.kvkNumber, 8),
     vatNumber: text(input.vatNumber, 20),
     bio: text(input.bio, 2000),
-    yearsExperience: int(input.yearsExperience, 0, 80, 0),
+    yearsExperience: int(input.yearsExperience, 0, 60, 0),
     hourlyRate: hourlyRate.toFixed(2),
     minHours,
     maxHours,
