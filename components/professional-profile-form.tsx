@@ -131,8 +131,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const sessionEmail = sessionData?.user?.email
   // A new professional has no account yet: it is created together with the profile on submit.
   const needsAccount = !isEdit && !sessionData?.user && (!sessionPending || !!sessionError)
-  const [password, setPassword] = useState("")
-  const [passwordError, setPasswordError] = useState("")
   const [signupCategory, setSignupCategory] = useState("artist")
   // Name, email and phone were entered in the signup window and are fixed here,
   // because email and phone are verified later.
@@ -741,7 +739,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(!!stageName.trim(), "Artiestennaam", "Stage name")
     need(!!fullName.trim(), "Volledige naam", "Full name")
     need(/^\S+@\S+\.\S+$/.test(email.trim()), "E-mail", "Email")
-    if (needsAccount && !hasPendingPassword) need(password.length >= 8, "Wachtwoord (minimaal 8 tekens)", "Password (at least 8 characters)")
+    if (needsAccount) need(hasPendingPassword, "Wachtwoord (opnieuw beginnen via Sign Up)", "Password (start again via Sign Up)")
     need(!!phone.trim(), "Telefoonnummer", "Phone number")
     need(/^\d{8}$/.test(kvkNumber), "KVK-nummer (8 cijfers)", "KVK number (8 digits)")
     need(!!bio.trim(), "Bio", "Bio")
@@ -810,11 +808,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       return fail("equipment_incomplete", "equipment-field")
     }
 
-    const accountPassword = hasPendingPassword ? getPendingPassword() : password
+    const accountPassword = getPendingPassword()
     if (needsAccount && accountPassword.length < 8) {
-      trackUserTest("signup_error", { reason: "password_too_short" })
-      setPasswordError(L ? "Je wachtwoord moet minimaal 8 tekens hebben." : "Your password must be at least 8 characters.")
-      document.getElementById("password")?.focus()
+      trackUserTest("signup_error", { reason: "password_missing" })
+      setSaveError(L ? "Je wachtwoord ontbreekt. Begin opnieuw via Sign Up." : "Your password is missing. Start again via Sign Up.")
       return
     }
 
@@ -846,7 +843,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
           return
         }
         trackUserTest("signup_completed", { account_type: "professional" })
-        setPassword("")
         clearPendingPassword()
       }
 
@@ -1204,28 +1200,22 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 </div>
 
                 {needsAccount && !hasPendingPassword && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
-                      {L ? "Wachtwoord" : "Password"}
-                      <RequiredMark />
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      className={inputClassName}
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value)
-                        setPasswordError("")
-                      }}
-                      required
-                      autoComplete="new-password"
-                      aria-invalid={!!passwordError}
-                      aria-describedby="password-help"
-                    />
-                    <p id="password-help" className={`text-xs sm:text-sm ${passwordError ? "text-[var(--rf-red-text)]" : "text-[var(--rf-muted)]"}`}>
-                      {passwordError || (L ? "Minimaal 8 tekens." : "At least 8 characters.")}
+                  <div role="alert" className="rounded-lg border border-[var(--rf-red-text)] p-3 text-sm text-[var(--rf-text)] space-y-2">
+                    <p>
+                      {L
+                        ? "Je wachtwoord staat niet meer in dit scherm (bijvoorbeeld na verversen). Om veiligheidsredenen bewaren we dat niet. Begin opnieuw via Sign Up; dat kost een halve minuut."
+                        : "Your password is no longer in this screen (for example after a refresh). For security we do not store it. Start again via Sign Up; it takes half a minute."}
                     </p>
+                    <button
+                      type="button"
+                      className="underline font-medium"
+                      onClick={() => {
+                        try { sessionStorage.removeItem("professionalSignupData") } catch {}
+                        window.location.href = "/"
+                      }}
+                    >
+                      {L ? "Opnieuw beginnen" : "Start again"}
+                    </button>
                   </div>
                 )}
 

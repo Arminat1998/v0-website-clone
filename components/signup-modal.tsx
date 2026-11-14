@@ -32,6 +32,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const [password2, setPassword2] = useState("")
 
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
@@ -60,6 +61,11 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       setError(language === "nl" ? "Je wachtwoord moet minimaal 8 tekens hebben." : "Your password must be at least 8 characters.")
       return
     }
+    if (password !== password2) {
+      trackUserTest("signup_error", { reason: "password_mismatch" })
+      setError(language === "nl" ? "De twee wachtwoorden zijn niet hetzelfde." : "The two passwords do not match.")
+      return
+    }
     if (accountType === "professional") {
       setLoading(true)
       const available = await isEmailAvailable({ email }).catch(() => true)
@@ -81,6 +87,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       )
       setPendingPassword(password)
       setPassword("")
+      setPassword2("")
       onOpenChange(false)
       router.push("/register/professional")
       return
@@ -106,6 +113,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
       return
     }
     setPassword("")
+    setPassword2("")
     trackUserTest("signup_completed", { account_type: accountType })
 
     onOpenChange(false)
@@ -245,6 +253,19 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
+              </div>
+
+              <div>
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder={language === "nl" ? "Herhaal wachtwoord" : "Repeat password"}
+                  aria-label={language === "nl" ? "Herhaal wachtwoord" : "Repeat password"}
+                  value={password2}
+                  onChange={(e) => setPassword2(e.target.value)}
+                  className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
+                  required
+                  autoComplete="new-password"
+                />
               </div>
 
               <p id="signup-password-help" className="text-xs text-gray-500 dark:text-gray-400">
