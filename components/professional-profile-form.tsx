@@ -744,7 +744,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(/^\d{8}$/.test(kvkNumber), "KVK-nummer (8 cijfers)", "KVK number (8 digits)")
     need(!!bio.trim(), "Bio", "Bio")
     need(!!city.trim(), "Stad", "City")
-    need(yearsExperience.trim() !== "", "Jaren ervaring", "Years of experience")
+    need(yearsExperience.trim() !== "" && Number(yearsExperience) <= 60, "Jaren ervaring (maximaal 60)", "Years of experience (at most 60)")
     need(Number(hourlyRate) > 0, "Tarief per uur", "Fee per hour")
     need(!!artistType, "Artiest type", "Artist type")
     need(selectedGenres.length > 0, "Muziekgenres", "Music genres")
@@ -1327,14 +1327,17 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     id="experience"
                     maxLength={2}
                     value={yearsExperience}
-                    onValueChange={(value) => setYearsExperience(Number(value) > 60 ? "60" : value)}
+                    onValueChange={setYearsExperience}
                     className={inputClassName}
                     required
-                    aria-describedby="experience-help"
+                    aria-invalid={Number(yearsExperience) > 60}
+                    aria-describedby={Number(yearsExperience) > 60 ? "experience-help" : undefined}
                   />
-                  <p id="experience-help" className="text-xs sm:text-sm text-[var(--rf-muted)]">
-                    {L ? "Maximaal 60 jaar." : "At most 60 years."}
-                  </p>
+                  {Number(yearsExperience) > 60 && (
+                    <p id="experience-help" role="alert" className="text-xs sm:text-sm text-[var(--rf-red-text)]">
+                      {L ? "Maximaal 60 jaar ervaring." : "At most 60 years of experience."}
+                    </p>
+                  )}
                 </div>
 
                 {/* Fee per hour */}
