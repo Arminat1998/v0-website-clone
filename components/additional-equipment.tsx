@@ -45,18 +45,18 @@ export function AdditionalEquipment({ category, items, onAdd, onUpdate, onRemove
         : nl ? "Naam apparatuur" : "Equipment name"
 
   return (
-    <div className={category ? "space-y-3 border-t border-gray-200 pt-3 dark:border-gray-700" : "space-y-3"}>
+    <div className={category ? "space-y-3 border-t border-[var(--rf-line-soft)] pt-3" : "space-y-3"}>
       {items.map((item, index) => (
-        <div key={item.id} className="space-y-3 rounded-md border border-gray-300 p-3 dark:border-gray-600">
+        <div key={item.id} className="space-y-3 rounded-xl border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-3">
           <div className="flex items-center justify-between">
-            <h5 className="text-sm font-semibold text-foreground">
+            <h5 className="text-sm font-semibold text-[var(--rf-text)]">
               {label} {category ? index + 1 : ""}
             </h5>
             <button
               type="button"
               onClick={() => onRemove(item.id)}
               aria-label={nl ? "Verwijderen" : "Remove"}
-              className="text-gray-400 transition-colors hover:text-red-500"
+              className="grid size-9 place-items-center rounded-md text-[var(--rf-muted)] transition-colors hover:text-[var(--rf-red-text)]"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -76,7 +76,7 @@ export function AdditionalEquipment({ category, items, onAdd, onUpdate, onRemove
         variant="outline"
         size="sm"
         onClick={() => onAdd({ id: crypto.randomUUID(), name: "", price: "", description: "", image: "", category })}
-        className="w-full sm:w-auto"
+        className="h-10 w-full rounded-lg border-[var(--rf-line)] bg-[var(--rf-field)] text-[var(--rf-text)] hover:bg-[var(--rf-line-soft)] dark:bg-[var(--rf-field)] dark:hover:bg-[var(--rf-line-soft)] sm:w-auto"
       >
         <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
         {addLabel}

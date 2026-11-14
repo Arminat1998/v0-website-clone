@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import { tagKey } from "@/lib/profile-options"
 import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles, Zap, Music, Loader2, X } from "lucide-react"
@@ -209,14 +210,15 @@ export function ArtiestGrid({
       console.log("[v0] Filtering by genres:", genresToFilter)
 
       artists = artists.filter((artist) => {
-        const artistStyles = (artist.musicStyles || []).map((s) => s.toLowerCase())
+        const artistStyles = (artist.musicStyles || []).map((s) => tagKey(s)).filter(Boolean)
         const artistSpecialty = artist.specialty.toLowerCase()
 
         return genresToFilter.some((genre: string) => {
           const genreLower = genre.toLowerCase()
+          const genreKey = tagKey(genre)
 
-          // Check if any music style contains the genre (partial match)
-          const styleMatch = artistStyles.some((style) => style.includes(genreLower) || genreLower.includes(style))
+          // "Hip-Hop", "hiphop" and "hip hop" are the same genre; a style also matches when one contains the other.
+          const styleMatch = artistStyles.some((style) => style.includes(genreKey) || genreKey.includes(style))
 
           // Check if specialty contains the genre
           const specialtyMatch = artistSpecialty.includes(genreLower)
@@ -239,7 +241,11 @@ export function ArtiestGrid({
     if (allFilters.eventTypes && allFilters.eventTypes.length > 0) {
       artists = artists.filter((artist) =>
         allFilters.eventTypes.some((eventType: string) =>
-          artist.eventTypes?.some((type) => type.toLowerCase().includes(eventType.toLowerCase())),
+          artist.eventTypes?.some((type) => {
+            const typeKey = tagKey(type)
+            const filterKey = tagKey(eventType)
+            return typeKey.includes(filterKey) || filterKey.includes(typeKey)
+          }),
         ),
       )
     }

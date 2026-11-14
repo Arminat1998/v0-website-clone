@@ -7,10 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Music, Plus, X, Camera, Speaker, Mic, Lightbulb, Piano, Guitar, ChevronDown, Check, Moon, Sun } from "lucide-react"
+import { Music, Plus, X, Camera, Speaker, Mic, Lightbulb, Piano, Guitar, ChevronDown, Check, Moon, Sun, Lock } from "lucide-react"
 import { DualRangeSlider } from "@/components/dual-range-slider"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/contexts/language-context"
@@ -28,14 +27,14 @@ import { NumericInput } from "@/components/numeric-input"
 import { clearPendingPassword, getPendingPassword } from "@/lib/pending-signup"
 import { authClient } from "@/lib/auth-client"
 import { lettersOnly, phoneChars } from "@/lib/input-filters"
-import { ChipMultiSelect } from "@/components/chip-multi-select"
-import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
+import { ComboSelect } from "@/components/combo-select"
+import { ARTIST_TYPES, EVENT_TYPE_GROUPS, GENRE_GROUPS, SOCIAL_PLATFORMS, canonicalEventType, genreLabel } from "@/lib/profile-options"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
 /** Visible marker for required fields; the field itself carries `required` for screen readers. */
 function RequiredMark() {
   return (
-    <span aria-hidden="true" className="text-red-600">
+    <span aria-hidden="true" className="text-[var(--rf-red-text)]">
       {" "}
       *
     </span>
@@ -152,7 +151,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const [kvkError, setKvkError] = useState<string>("")
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>(initialProfile?.genres ?? [])
-  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(initialProfile?.eventTypes ?? [])
+  const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>((initialProfile?.eventTypes ?? []).map(canonicalEventType))
 
   const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>(initialProfile?.socials ?? [])
   const [currentSocialMedia, setCurrentSocialMedia] = useState({ platform: "", url: "" })
@@ -920,138 +919,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     }
   }
 
-  const inputClassName =
-    "h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-950 dark:bg-gray-950 px-4 py-3 text-base text-gray-900 dark:text-white focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-  const textareaClassName =
-    "w-full resize-none rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-950 dark:bg-gray-950 px-4 py-3 text-base text-gray-900 dark:text-white focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
-
-  const getGenreOptions = (): { value: string; label: string }[] => {
-    const genresByArtist: Record<string, { value: string; label: string }[]> = {
-      DJ: [
-        { value: "house", label: "House" },
-        { value: "techno", label: "Techno" },
-        { value: "hiphop", label: "Hip Hop" },
-        { value: "rnb", label: "R&B" },
-        { value: "edm", label: "EDM" },
-        { value: "trance", label: "Trance" },
-        { value: "dubstep", label: "Dubstep" },
-        { value: "disco", label: "Disco" },
-      ],
-      Saxophonist: [
-        { value: "jazz", label: "Jazz" },
-        { value: "blues", label: "Blues" },
-        { value: "soul", label: "Soul" },
-        { value: "funk", label: "Funk" },
-        { value: "classical", label: L ? "Klassiek" : "Classical" },
-        { value: "contemporary", label: L ? "Hedendaags" : "Contemporary" },
-      ],
-      Band: [
-        { value: "rock", label: "Rock" },
-        { value: "pop", label: "Pop" },
-        { value: "indie", label: "Indie" },
-        { value: "alternative", label: L ? "Alternatief" : "Alternative" },
-        { value: "metal", label: "Metal" },
-        { value: "punk", label: "Punk" },
-        { value: "folk", label: "Folk" },
-      ],
-      Singer: [
-        { value: "pop", label: "Pop" },
-        { value: "rnb", label: "R&B" },
-        { value: "soul", label: "Soul" },
-        { value: "jazz", label: "Jazz" },
-        { value: "opera", label: "Opera" },
-        { value: "musical", label: L ? "Musical" : "Musical Theatre" },
-        { value: "country", label: "Country" },
-      ],
-      Pianist: [
-        { value: "classical", label: L ? "Klassiek" : "Classical" },
-        { value: "jazz", label: "Jazz" },
-        { value: "contemporary", label: L ? "Hedendaags" : "Contemporary" },
-        { value: "pop", label: "Pop" },
-        { value: "blues", label: "Blues" },
-        { value: "ragtime", label: "Ragtime" },
-      ],
-      Guitarist: [
-        { value: "rock", label: "Rock" },
-        { value: "blues", label: "Blues" },
-        { value: "jazz", label: "Jazz" },
-        { value: "classical", label: L ? "Klassiek" : "Classical" },
-        { value: "flamenco", label: "Flamenco" },
-        { value: "folk", label: "Folk" },
-        { value: "metal", label: "Metal" },
-      ],
-      Violinist: [
-        { value: "classical", label: L ? "Klassiek" : "Classical" },
-        { value: "folk", label: "Folk" },
-        { value: "jazz", label: "Jazz" },
-        { value: "contemporary", label: L ? "Hedendaags" : "Contemporary" },
-        { value: "bluegrass", label: "Bluegrass" },
-        { value: "celtic", label: "Celtic" },
-      ],
-    }
-    return genresByArtist[artistType] || []
-  }
-
-  const getEventTypeOptions = (): { value: string; label: string }[] => {
-    const eventTypesByArtist: Record<string, { value: string; label: string }[]> = {
-      DJ: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "birthday", label: "Birthday Party" },
-        { value: "festival", label: "Festival" },
-        { value: "club", label: "Club Night" },
-        { value: "private", label: "Private Party" },
-      ],
-      Saxophonist: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "cocktail", label: "Cocktail Party" },
-        { value: "dinner", label: "Dinner Event" },
-        { value: "jazz-club", label: "Jazz Club" },
-      ],
-      Band: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "festival", label: "Festival" },
-        { value: "concert", label: "Concert" },
-        { value: "private", label: "Private Party" },
-        { value: "pub", label: "Pub/Bar" },
-      ],
-      Singer: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "birthday", label: "Birthday Party" },
-        { value: "concert", label: "Concert" },
-        { value: "theater", label: "Theater" },
-        { value: "church", label: "Church Event" },
-      ],
-      Pianist: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "cocktail", label: "Cocktail Party" },
-        { value: "dinner", label: "Dinner Event" },
-        { value: "concert", label: "Concert" },
-        { value: "recital", label: "Recital" },
-      ],
-      Guitarist: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "restaurant", label: "Restaurant" },
-        { value: "private", label: "Private Party" },
-        { value: "concert", label: "Concert" },
-        { value: "street", label: "Street Performance" },
-      ],
-      Violinist: [
-        { value: "wedding", label: "Wedding" },
-        { value: "corporate", label: "Corporate Event" },
-        { value: "cocktail", label: "Cocktail Party" },
-        { value: "concert", label: "Concert" },
-        { value: "recital", label: "Recital" },
-        { value: "church", label: "Church Event" },
-      ],
-    }
-    return eventTypesByArtist[artistType] || []
-  }
+  const fieldBase =
+    "w-full rounded-[10px] border border-[var(--rf-line)] bg-[var(--rf-field)] text-[var(--rf-text)] shadow-none placeholder:text-[var(--rf-placeholder)] dark:bg-[var(--rf-field)] focus-visible:border-[var(--rf-focus)] focus-visible:ring-2 focus-visible:ring-[var(--rf-focus)]/40 aria-invalid:border-[var(--rf-red-text)] read-only:cursor-not-allowed read-only:border-dashed read-only:border-[var(--rf-line-soft)] read-only:bg-[var(--rf-field-locked)] read-only:text-[var(--rf-muted)] dark:read-only:bg-[var(--rf-field-locked)]"
+  const inputClassName = `${fieldBase} h-12 px-3.5 py-3 text-base`
+  const textareaClassName = `${fieldBase} resize-none px-3.5 py-3 text-base`
 
   const addGenre = (genre: string) => {
     if (!selectedGenres.includes(genre)) {
@@ -1076,12 +947,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const handleArtistTypeChange = (value: string) => {
     setArtistType(value)
     setArtistTypeError("")
-    setSelectedGenres([])
-    setSelectedEventTypes([])
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`rf min-h-screen ${isEdit ? "bg-background" : "bg-[var(--rf-page)]"}`}>
       {/* Header */}
       {!isEdit && (
       <header className="bg-card px-4 sm:px-6 py-4 border-b border-border">
@@ -1110,7 +979,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="text-foreground hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
+              className="text-[var(--rf-text)] hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
               title={!mounted || theme === "light" ? t.darkMode : t.lightMode}
             >
               {!mounted || theme === "light" ? (
@@ -1124,7 +993,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       </header>
       )}
 
-      <div className={isEdit ? "p-4 sm:p-6 md:p-8 lg:p-10" : "bg-card p-4 sm:p-6 md:p-10"}>
+      <div className={isEdit ? "p-4 sm:p-6 md:p-8 lg:p-10" : "bg-[var(--rf-page)] p-4 sm:p-6 md:p-10"}>
         <div className="mx-auto max-w-4xl space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="flex items-center gap-3">
@@ -1132,7 +1001,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               <Music className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--rf-red-text)]">
                 {isEdit
                   ? L
                     ? "Bewerk je profiel"
@@ -1141,7 +1010,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     ? "Registreer als Professional"
                     : "Register as Professional"}
               </h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
+              <p className="text-sm sm:text-base text-[var(--rf-muted)]">
                 {isEdit
                   ? L
                     ? "Werk je gegevens, apparatuur en tarieven bij"
@@ -1173,11 +1042,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <Image src={imageSrc(bannerImage) || "/placeholder.svg"} alt="Banner" fill className="object-cover" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center p-4 bg-muted group-hover:bg-accent transition-colors">
-                  <Camera className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400 mb-2" />
-                  <p className="text-sm sm:text-base text-gray-600 text-center font-medium">
+                  <Camera className="h-8 w-8 sm:h-10 sm:w-10 text-[var(--rf-muted)] mb-2" />
+                  <p className="text-sm sm:text-base text-[var(--rf-muted)] text-center font-medium">
                     {L ? "Klik om banner toe te voegen" : "Click to add banner"}
                   </p>
-                  <p className="text-xs sm:text-sm text-red-600 mt-1">Max. 15MB</p>
+                  <p className="text-xs sm:text-sm text-[var(--rf-red-text)] mt-1">Max. 15MB</p>
                 </div>
               )}
 
@@ -1190,7 +1059,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   e.stopPropagation()
                   bannerInputRef.current?.click()
                 }}
-                className="absolute top-2 right-2 sm:top-4 sm:right-4 text-muted-foreground hover:text-foreground bg-card/90 hover:bg-card text-xs sm:text-sm z-10 shadow-sm"
+                className="absolute top-2 right-2 sm:top-4 sm:right-4 text-[var(--rf-muted)] hover:text-[var(--rf-text)] bg-card/90 hover:bg-card text-xs sm:text-sm z-10 shadow-sm"
               >
                 <Camera className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">{L ? "Bannerfoto toevoegen" : "Add Banner Photo"}</span>
@@ -1222,9 +1091,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       />
                     ) : (
                       <>
-                        <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
-                        <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Upload</p>
-                        <p className="text-[9px] sm:text-xs text-red-600">Max. 15MB</p>
+                        <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--rf-muted)]" />
+                        <p className="text-[10px] sm:text-xs text-[var(--rf-muted)] mt-1">Upload</p>
+                        <p className="text-[9px] sm:text-xs text-[var(--rf-red-text)]">Max. 15MB</p>
                       </>
                     )}
                   </div>
@@ -1257,21 +1126,21 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               }}
               className="space-y-6"
             >
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-[var(--rf-muted)]">
                 {L ? "Velden met " : "Fields marked "}
-                <span className="text-red-600">*</span>
+                <span className="text-[var(--rf-red-text)]">*</span>
                 {L ? " zijn verplicht." : " are required."}
               </p>
               <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
                 {/* Stage Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="stageName" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="stageName" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Artiestennaam" : "Stage Name"}
                     <RequiredMark />
                   </Label>
                   <Input
                     id="stageName"
-                    placeholder={L ? "DJ Voorbeeld" : "DJ Example"}
+                    placeholder={L ? "Bijvoorbeeld: DJ Voorbeeld" : "For example: DJ Example"}
                     className={inputClassName}
                     value={stageName}
                     onChange={(e) => setStageName(e.target.value)}
@@ -1281,31 +1150,35 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                 {/* Full Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="fullName" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Volledige naam" : "Full Name"}
                     <RequiredMark />
                   </Label>
+                  <div className="relative">
                   <Input
                     id="fullName"
-                    placeholder={L ? "Tekst" : "Text"}
-                    className={inputClassName + (lockSignupFields ? " cursor-not-allowed opacity-70" : "")}
+                    placeholder={L ? "Voor- en achternaam" : "First and last name"}
+                    className={inputClassName}
                     value={fullName}
                     onChange={(e) => setFullName(lettersOnly(e.target.value))}
                     readOnly={lockSignupFields}
                     required
                   />
+                  {lockSignupFields && <Lock aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--rf-muted)]" />}
+                  </div>
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="email" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "E-mail" : "Email"}
                     {needsAccount && <RequiredMark />}
                   </Label>
+                  <div className="relative">
                   <Input
                     id="email"
                     type="email"
-                    className={inputClassName + (lockSignupFields ? " cursor-not-allowed opacity-70" : "")}
+                    className={inputClassName}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     readOnly={!needsAccount || lockSignupFields}
@@ -1313,7 +1186,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     autoComplete="email"
                     aria-describedby="email-help"
                   />
-                  <p id="email-help" className="text-xs sm:text-sm text-gray-500">
+                  {(lockSignupFields || !needsAccount) && <Lock aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--rf-muted)]" />}
+                  </div>
+                  <p id="email-help" className="text-xs sm:text-sm text-[var(--rf-muted)]">
                     {lockSignupFields
                       ? L
                         ? "Hiermee log je straks in. Naam, e-mail en telefoonnummer heb je bij het aanmelden opgegeven en zijn hier niet aan te passen. Typfout? Begin opnieuw via Sign Up."
@@ -1330,7 +1205,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                 {needsAccount && !hasPendingPassword && (
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm sm:text-base font-medium text-gray-900">
+                    <Label htmlFor="password" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                       {L ? "Wachtwoord" : "Password"}
                       <RequiredMark />
                     </Label>
@@ -1348,7 +1223,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       aria-invalid={!!passwordError}
                       aria-describedby="password-help"
                     />
-                    <p id="password-help" className={`text-xs sm:text-sm ${passwordError ? "text-red-500" : "text-gray-500"}`}>
+                    <p id="password-help" className={`text-xs sm:text-sm ${passwordError ? "text-[var(--rf-red-text)]" : "text-[var(--rf-muted)]"}`}>
                       {passwordError || (L ? "Minimaal 8 tekens." : "At least 8 characters.")}
                     </p>
                   </div>
@@ -1356,25 +1231,28 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                 {/* Phone */}
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="phone" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Telefoonnummer" : "Phone number"}
                     <RequiredMark />
                   </Label>
+                  <div className="relative">
                   <Input
                     id="phone"
                     type="tel"
-                    className={inputClassName + (lockSignupFields ? " cursor-not-allowed opacity-70" : "")}
+                    className={inputClassName}
                     inputMode="tel"
                     value={phone}
                     onChange={(e) => setPhone(phoneChars(e.target.value))}
                     readOnly={lockSignupFields}
                     required
                   />
+                  {lockSignupFields && <Lock aria-hidden="true" className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--rf-muted)]" />}
+                  </div>
                 </div>
 
                 {/* Company Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="companyName" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="companyName" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Bedrijfsnaam / Handelsnaam" : "Company Name / Trade Name"}
                   </Label>
                   <Input
@@ -1388,14 +1266,14 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                 {/* KVK Number */}
                 <div className="space-y-2">
-                  <Label htmlFor="kvkNumber" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="kvkNumber" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "KVK-nummer" : "Chamber of Commerce (KVK) number"}
                     <RequiredMark />
                   </Label>
                   <Input
                     id="kvkNumber"
                     inputMode="numeric"
-                    placeholder="12345678"
+                    placeholder={L ? "8 cijfers" : "8 digits"}
                     className={inputClassName}
                     value={kvkNumber}
                     onChange={handleKvkChange}
@@ -1405,7 +1283,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     required
                   />
                   {kvkError && (
-                    <p id="kvkNumber-error" className="text-sm text-red-500">
+                    <p id="kvkNumber-error" className="text-sm text-[var(--rf-red-text)]">
                       {kvkError}
                     </p>
                   )}
@@ -1413,9 +1291,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                 {/* VAT Number */}
                 <div className="space-y-2">
-                  <Label htmlFor="vatNumber" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="vatNumber" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "BTW-identificatienummer" : "VAT identification number"}{" "}
-                    <span className="text-gray-400">{L ? "(optioneel)" : "(optional)"}</span>
+                    <span className="text-[var(--rf-muted)]">{L ? "(optioneel)" : "(optional)"}</span>
                   </Label>
                   <Input
                     id="vatNumber"
@@ -1429,7 +1307,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {/* Bio - Full width */}
               <div className="space-y-2">
-                <Label htmlFor="bio" className="text-sm sm:text-base font-medium text-gray-900">
+                <Label htmlFor="bio" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                   Bio
                   <RequiredMark />
                 </Label>
@@ -1437,8 +1315,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   id="bio"
                   placeholder={
                     L
-                      ? "Vertel ons over jezelf, je stijl en je DJ-carrière..."
-                      : "Tell us about yourself, your style, and your DJ journey..."
+                      ? "Vertel over jezelf, je stijl en je ervaring..."
+                      : "Tell us about yourself, your style and your experience..."
                   }
                   rows={5}
                   className={textareaClassName}
@@ -1451,7 +1329,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
                 {/* Years of Experience */}
                 <div className="space-y-2">
-                  <Label htmlFor="experience" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="experience" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Jaren ervaring" : "Years of Experience"}
                     <RequiredMark />
                   </Label>
@@ -1464,25 +1342,25 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     required
                     aria-describedby="experience-help"
                   />
-                  <p id="experience-help" className="text-xs sm:text-sm text-gray-500">
+                  <p id="experience-help" className="text-xs sm:text-sm text-[var(--rf-muted)]">
                     {L ? "Maximaal 60 jaar." : "At most 60 years."}
                   </p>
                 </div>
 
                 {/* Fee per hour */}
                 <div className="space-y-2">
-                  <Label htmlFor="fee" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="fee" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Tarief (€ per uur)" : "Fee (€ per hour)"}
                     <RequiredMark />
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">€</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--rf-muted)]">€</span>
                     <NumericInput
                       id="fee"
                       allowDecimal
                       value={hourlyRate}
                       onValueChange={setHourlyRate}
-                      className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white py-3 pl-8 pr-4 text-base focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+                      className={`${inputClassName} pl-8 pr-4`}
                       required
                     />
                   </div>
@@ -1492,11 +1370,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Minimum and Maximum Booking Hours */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-bold text-[var(--rf-text)]">
                     {L ? "Stel je boekingsuren bereik in" : "Set Your Booking Hours Range"}
                   </h3>
-                  <p className="text-sm text-gray-600 flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex-shrink-0">
+                  <p className="text-sm text-[var(--rf-muted)] flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--rf-line-soft)] text-[var(--rf-text)] text-xs font-bold flex-shrink-0">
                       ↔
                     </span>
                     {L
@@ -1506,7 +1384,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 </div>
 
                 {/* Booking Hours Slider */}
-                <div className="py-4 px-2 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <div className="rounded-xl border border-[var(--rf-line-soft)] bg-[var(--rf-card)] px-4 py-5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--rf-focus)]">
                   <DualRangeSlider
                     min={1}
                     max={8}
@@ -1521,20 +1399,20 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="grid gap-4 sm:gap-6 grid-cols-2 md:grid-cols-2">
                   {/* Minimum Booking Hours */}
                   <div className="space-y-2">
-                    <Label htmlFor="minHours" className="text-sm sm:text-base font-medium text-gray-900">
+                    <Label htmlFor="minHours" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                       {L ? "Minimum boekingsuren" : "Minimum Booking Hours"}
                     </Label>
-                    <div className="h-12 w-full rounded-md dark:bg-gray-950 border-2 border-gray-300 dark:border-gray-600 px-4 py-3 text-base font-bold text-gray-900 dark:text-white flex items-center justify-center cursor-default">
+                    <div className="h-12 w-full rounded-[10px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] px-4 py-3 text-base font-bold text-[var(--rf-text)] flex items-center justify-center cursor-default">
                       {minHours}
                     </div>
                   </div>
 
                   {/* Maximum Booking Hours */}
                   <div className="space-y-2">
-                    <Label htmlFor="maxHours" className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                    <Label htmlFor="maxHours" className="text-sm sm:text-base font-medium text-[var(--rf-text)] ">
                       {L ? "Maximum boekingsuren" : "Maximum Booking Hours"}
                     </Label>
-                    <div className="h-12 w-full rounded-md dark:bg-gray-950 border-2 border-gray-300 dark:border-gray-600 px-4 py-3 text-base font-bold text-gray-900 dark:text-white flex items-center justify-center cursor-default">
+                    <div className="h-12 w-full rounded-[10px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] px-4 py-3 text-base font-bold text-[var(--rf-text)] flex items-center justify-center cursor-default">
                       {maxHours}
                     </div>
                   </div>
@@ -1544,13 +1422,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
                 {/* City */}
                 <div className="space-y-2">
-                  <Label htmlFor="city" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="city" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Stad" : "City"}
                     <RequiredMark />
                   </Label>
                   <Input
                     id="city"
-                    placeholder="Amsterdam"
+                    placeholder={L ? "Bijvoorbeeld: Amsterdam" : "For example: Amsterdam"}
                     className={inputClassName}
                     value={city}
                     onChange={(e) => setCity(lettersOnly(e.target.value))}
@@ -1560,7 +1438,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                 {/* Range (km) */}
                 <div className="space-y-2">
-                  <Label htmlFor="range" className="text-sm sm:text-base font-medium text-gray-900">
+                  <Label htmlFor="range" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Bereik (km)" : "Range (km)"}
                     <RequiredMark />
                   </Label>
@@ -1577,34 +1455,37 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {/* Artist Type selector */}
               <div className="space-y-2">
-                <Label htmlFor="artistType" className="text-sm sm:text-base font-medium text-gray-900">
+                <Label id="artistType-label" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                   {L ? "Artiest type" : "Artist Type"}
                   <RequiredMark />
                 </Label>
-                <Select value={artistType} onValueChange={handleArtistTypeChange}>
-                  <SelectTrigger
-                    id="artistType"
-                    aria-invalid={!!artistTypeError}
-                    aria-describedby={artistTypeError ? "artistType-error" : undefined}
-                    className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base">
-                    <SelectValue placeholder={L ? "Selecteer je artiest type" : "Select your artist type"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DJ">DJ</SelectItem>
-                    <SelectItem value="Saxophonist">Saxophonist</SelectItem>
-                    <SelectItem value="Band">Band</SelectItem>
-                    <SelectItem value="Singer">Singer</SelectItem>
-                    <SelectItem value="Pianist">Pianist</SelectItem>
-                    <SelectItem value="Guitarist">Guitarist</SelectItem>
-                    <SelectItem value="Violinist">Violinist</SelectItem>
-                  </SelectContent>
-                </Select>
+                <ComboSelect
+                  id="artistType"
+                  labelledBy="artistType-label"
+                  describedBy={artistTypeError ? "artistType-error" : undefined}
+                  nl={L}
+                  value={artistType}
+                  onChange={handleArtistTypeChange}
+                  invalid={!!artistTypeError}
+                  placeholder={L ? "Selecteer je artiest type" : "Select your artist type"}
+                  searchPlaceholder={L ? "Zoek een type..." : "Search a type..."}
+                  groups={[
+                    {
+                      options: ARTIST_TYPES.map((type) => ({
+                        value: type.value,
+                        label: L ? type.nl : type.en,
+                        description: L ? type.descNl : type.descEn,
+                        icon: <Music className="size-[18px]" />,
+                      })),
+                    },
+                  ]}
+                />
                 {artistTypeError && (
-                  <p id="artistType-error" role="alert" className="text-sm text-red-500">
+                  <p id="artistType-error" role="alert" className="text-sm text-[var(--rf-red-text)]">
                     {artistTypeError}
                   </p>
                 )}
-                <p className="text-xs sm:text-sm text-gray-500">
+                <p className="text-xs sm:text-sm text-[var(--rf-muted)]">
                   {L
                     ? "Dit helpt klanten je te vinden op basis van het type optreden dat je aanbiedt"
                     : "This helps clients find you based on the type of performance you offer"}
@@ -1613,27 +1494,30 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {artistType && (
                 <div id="genres-field" className="space-y-2">
-                  <Label className="text-sm sm:text-base font-medium text-foreground">
+                  <Label id="genres-label" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Muziekgenres" : "Music Genres"}
                     <RequiredMark />
                   </Label>
                   {genresError && selectedGenres.length === 0 && (
-                    <p role="alert" className="text-sm text-red-500">
+                    <p role="alert" className="text-sm text-[var(--rf-red-text)]">
                       {genresError}
                     </p>
                   )}
-                  <ChipMultiSelect
+                  <ComboSelect
+                    id="genres"
+                    labelledBy="genres-label"
+                    multiple
+                    nl={L}
+                    value={selectedGenres}
+                    onChange={setSelectedGenres}
+                    invalid={!!genresError && selectedGenres.length === 0}
+                    placeholder={L ? "Selecteer genres" : "Select genres"}
+                    searchPlaceholder={L ? "Zoek een genre..." : "Search a genre..."}
+                    labelFor={(value) => genreLabel(value, L)}
                     groups={GENRE_GROUPS.map((group) => ({
                       label: L ? group.nl : group.en,
                       options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
                     }))}
-                    selected={selectedGenres}
-                    onChange={setSelectedGenres}
-                    searchPlaceholder={L ? "Zoek een genre..." : "Search a genre..."}
-                    countLabel={(count) => (L ? `${count} gekozen` : `${count} selected`)}
-                    clearLabel={L ? "Wis alles" : "Clear all"}
-                    emptyLabel={L ? "Geen genre gevonden." : "No genre found."}
-                    invalid={!!genresError && selectedGenres.length === 0}
                   />
                 </div>
               )}
@@ -1641,59 +1525,57 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Event Types */}
               {artistType && (
                 <div id="event-types-field" className="space-y-2">
-                  <Label className="text-sm sm:text-base font-medium text-foreground">
+                  <Label id="event-types-label" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Evenement types" : "Event Types"}
                     <RequiredMark />
                   </Label>
                   {eventTypesError && selectedEventTypes.length === 0 && (
-                    <p role="alert" className="text-sm text-red-500">
+                    <p role="alert" className="text-sm text-[var(--rf-red-text)]">
                       {eventTypesError}
                     </p>
                   )}
-                  <ChipMultiSelect
+                  <ComboSelect
+                    id="event-types"
+                    labelledBy="event-types-label"
+                    multiple
+                    nl={L}
+                    value={selectedEventTypes}
+                    onChange={setSelectedEventTypes}
+                    invalid={!!eventTypesError && selectedEventTypes.length === 0}
+                    placeholder={L ? "Selecteer evenement types" : "Select event types"}
+                    searchPlaceholder={L ? "Zoek een evenement type..." : "Search an event type..."}
                     groups={EVENT_TYPE_GROUPS.map((group) => ({
                       label: L ? group.nl : group.en,
-                      // Stored by label, in the language the artist registers in (as before).
-                      options: group.options.map((option) => ({
-                        value: L ? option.nl : option.en,
-                        label: L ? option.nl : option.en,
-                      })),
+                      options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
                     }))}
-                    selected={selectedEventTypes}
-                    onChange={setSelectedEventTypes}
-                    searchPlaceholder={L ? "Zoek een evenement type..." : "Search an event type..."}
-                    countLabel={(count) => (L ? `${count} gekozen` : `${count} selected`)}
-                    clearLabel={L ? "Wis alles" : "Clear all"}
-                    emptyLabel={L ? "Geen evenement type gevonden." : "No event type found."}
-                    invalid={!!eventTypesError && selectedEventTypes.length === 0}
                   />
                 </div>
               )}
 
               {/* Package Equipment Section */}
               {artistType && (
-                <div id="equipment-field" className="rounded-lg p-4 sm:p-6 space-y-4 bg-gray-100 dark:!bg-gray-950">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                <div id="equipment-field" className="rounded-[14px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-4 sm:p-6 space-y-4">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[var(--rf-text)]">
                     {L ? "Pakket apparatuur verhuur" : "Package Equipment Rental"}
                     <RequiredMark />
                   </h2>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-[var(--rf-muted)]">
                     {L
                       ? "Verplicht: vul elk onderdeel in met naam, prijs, beschrijving en foto."
                       : "Required: complete every item with a name, price, description and photo."}
                   </p>
                   {equipmentError && getMinimumEquipmentConfig().some((config) => !isEquipmentComplete(config.id)) && (
-                    <p role="alert" className="text-sm text-red-500">
+                    <p role="alert" className="text-sm text-[var(--rf-red-text)]">
                       {equipmentError}
                     </p>
                   )}
-                  <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">{getPackageDescription()}</p>
+                  <p className="text-sm sm:text-base leading-relaxed text-[var(--rf-muted)]">{getPackageDescription()}</p>
 
                   <div className="space-y-3">
-                    <h3 className="text-sm sm:text-base font-semibold text-foreground">
+                    <h3 className="text-sm sm:text-base font-semibold text-[var(--rf-text)]">
                       {L ? "Apparatuur die bij dit pakket hoort:" : "Equipment that belongs to this package:"}
                     </h3>
-                    <ul className="list-disc space-y-1.5 pl-5 text-sm sm:text-base leading-relaxed text-muted-foreground">
+                    <ul className="list-disc space-y-1.5 pl-5 text-sm sm:text-base leading-relaxed text-[var(--rf-muted)]">
                       {getMinimumEquipmentRequirements().map((req, index) => (
                         <li key={index}>{req}</li>
                       ))}
@@ -1710,28 +1592,35 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       return (
                         <div
                           key={config.id}
-                          className={`rounded-lg border p-3 sm:p-4 ${
+                          className={`rounded-xl border p-3 sm:p-4 bg-[var(--rf-page)] ${
                             isComplete
-                              ? "border-green-500 dark:border-green-600 bg-green-50 dark:!bg-gray-900"
+                              ? "border-[var(--rf-ok)]"
                               : isAccessible
-                                ? "border-gray-300 dark:border-gray-600 bg-white dark:!bg-gray-900"
-                                : "border-gray-200 dark:border-zinc-800 bg-gray-100 dark:!bg-gray-800 opacity-60"
+                                ? "border-[var(--rf-line)]"
+                                : "border-dashed border-[var(--rf-line-soft)]"
                           }`}
                         >
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2.5 mb-3">
                             <div
-                              className={`flex h-8 w-8 items-center justify-center rounded-full ${isComplete ? "bg-green-500" : "bg-gray-300 dark:bg-gray-700"}`}
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${isComplete ? "border-[#15803d] bg-[#15803d] text-white" : "border-[var(--rf-line-soft)] bg-[var(--rf-field)] text-[var(--rf-muted)]"}`}
                             >
-                              {isComplete ? (
-                                <Check className="h-4 w-4 text-white" />
-                              ) : (
-                                <IconComponent className="h-4 w-4 text-gray-700 dark:text-white" />
-                              )}
+                              {isComplete ? <Check className="h-4 w-4" aria-hidden="true" /> : <IconComponent className="h-4 w-4" aria-hidden="true" />}
                             </div>
-                            <div>
-                              <h4 className="text-sm font-semibold text-foreground">{config.name}</h4>
-                              <p className="text-xs text-muted-foreground">{config.description}</p>
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-semibold text-[var(--rf-text)]">{config.name}</h4>
+                              <p className="text-xs text-[var(--rf-muted)]">{config.description}</p>
                             </div>
+                            <span
+                              className={`ml-auto shrink-0 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                                isComplete
+                                  ? "border-[var(--rf-ok)] text-[var(--rf-ok)]"
+                                  : isAccessible
+                                    ? "border-[var(--rf-red-text)] text-[var(--rf-red-text)]"
+                                    : "border-[var(--rf-line-soft)] text-[var(--rf-muted)]"
+                              }`}
+                            >
+                              {isComplete ? (L ? "Compleet" : "Complete") : isAccessible ? (L ? "Nu invullen" : "Fill in now") : L ? "Wacht" : "Waiting"}
+                            </span>
                           </div>
 
                           {isAccessible && (
@@ -1757,6 +1646,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                               )}
                             </div>
                           )}
+                          {!isAccessible && (
+                            <p className="text-xs text-[var(--rf-muted)]">
+                              {L
+                                ? `Vul eerst "${getMinimumEquipmentConfig()[index - 1]?.name}" in.`
+                                : `Complete "${getMinimumEquipmentConfig()[index - 1]?.name}" first.`}
+                            </p>
+                          )}
                         </div>
                       )
                     })}
@@ -1766,11 +1662,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {/* Extra Equipment Section */}
               {artistType && (
-                <div className="rounded-lg p-4 sm:p-6 space-y-4 bg-gray-100 dark:!bg-gray-950">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                <div className="rounded-[14px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-4 sm:p-6 space-y-4">
+                  <h2 className="text-xl sm:text-2xl font-bold text-[var(--rf-text)]">
                     {L ? "Extra apparatuur (optioneel)" : "Extra Equipment (Optional)"}
                   </h2>
-                  <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">
+                  <p className="text-sm sm:text-base leading-relaxed text-[var(--rf-muted)]">
                     {L
                       ? "Voeg extra apparatuur toe die je aanbiedt als optionele extra's voor klanten."
                       : "Add any additional equipment you offer as optional extras for clients."}
@@ -1790,7 +1686,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
               {/* Social Media Links */}
               <div className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                <h2 className="text-xl sm:text-2xl font-bold text-[var(--rf-text)]">
                   {L ? "Social media & links" : "Social Media & Links"}
                 </h2>
 
@@ -1799,17 +1695,18 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     {socialMediaLinks.map((link) => (
                       <div
                         key={link.id}
-                        className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 p-3 sm:p-4"
+                        className="rounded-xl border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-3 sm:p-4"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-semibold text-sm text-foreground">{getPlatformName(link.platform)}</p>
-                            <p className="text-xs text-muted-foreground truncate max-w-xs">{link.url}</p>
+                            <p className="font-semibold text-sm text-[var(--rf-text)]">{getPlatformName(link.platform)}</p>
+                            <p className="text-xs text-[var(--rf-muted)] truncate max-w-xs">{link.url}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => removeSocialMedia(link.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors ml-2 flex-shrink-0"
+                            aria-label={L ? `Verwijder ${getPlatformName(link.platform)}` : `Remove ${getPlatformName(link.platform)}`}
+                            className="ml-2 grid size-9 flex-shrink-0 place-items-center rounded-md text-[var(--rf-muted)] transition-colors hover:text-[var(--rf-red-text)]"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -1820,26 +1717,15 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 )}
 
                 <div className="space-y-3">
-                  <Select
+                  <ComboSelect
+                    id="social-platform"
+                    nl={L}
                     value={currentSocialMedia.platform}
-                    onValueChange={(value) => setCurrentSocialMedia({ ...currentSocialMedia, platform: value })}
-                  >
-                    <SelectTrigger className="h-12 w-full rounded-md border border-gray-300 dark:border-gray-600 !dark:bg-gray-950 dark:!bg-slate-800 text-gray-900 dark:text-white px-4 py-3 text-base">
-                      <SelectValue placeholder={L ? "Selecteer platform" : "Select platform"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="instagram">Instagram</SelectItem>
-                      <SelectItem value="facebook">Facebook</SelectItem>
-                      <SelectItem value="twitter">Twitter / X</SelectItem>
-                      <SelectItem value="tiktok">TikTok</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="spotify">Spotify</SelectItem>
-                      <SelectItem value="soundcloud">SoundCloud</SelectItem>
-                      <SelectItem value="bandcamp">Bandcamp</SelectItem>
-                      <SelectItem value="applemusic">Apple Music</SelectItem>
-                      <SelectItem value="linkedin">LinkedIn</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    onChange={(platform) => setCurrentSocialMedia({ ...currentSocialMedia, platform })}
+                    placeholder={L ? "Selecteer platform" : "Select platform"}
+                    searchPlaceholder={L ? "Zoek een platform..." : "Search a platform..."}
+                    groups={[{ options: SOCIAL_PLATFORMS }]}
+                  />
 
                   <Input
                     type="url"
@@ -1855,7 +1741,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   variant="outline"
                   size="sm"
                   onClick={addSocialMedia}
-                  className="h-9 border-gray-300 dark:border-gray-600 dark:bg-gray-950 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 w-full sm:w-auto"
+                  className="h-10 w-full rounded-lg border-[var(--rf-line)] bg-[var(--rf-field)] text-[var(--rf-text)] hover:bg-[var(--rf-line-soft)] dark:bg-[var(--rf-field)] dark:hover:bg-[var(--rf-line-soft)] sm:w-auto"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   {L ? "Social media toevoegen" : "Add social media"}
@@ -1865,7 +1751,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Register Button */}
               <Button
                 type="submit"
-                className="h-12 w-full bg-red-700 text-base font-semibold text-white hover:bg-red-600 disabled:bg-gray-400 disabled:text-white disabled:opacity-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-300"
+                className="h-12 w-full rounded-[10px] bg-[var(--rf-red)] text-base font-semibold text-white hover:bg-[var(--rf-red-hover)] disabled:bg-[var(--rf-track)] disabled:text-[var(--rf-muted)] disabled:opacity-100"
                 disabled={saving || !formComplete}
                 aria-describedby={formComplete ? undefined : "missing-fields"}
               >
@@ -1882,13 +1768,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       : "Register"}
               </Button>
               {!formComplete && (
-                <div id="missing-fields" className="rounded-lg border border-gray-300 p-3 text-sm dark:border-gray-600">
-                  <p className="font-medium text-foreground">
+                <div id="missing-fields" className="rounded-xl border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-3.5 text-sm">
+                  <p className="font-medium text-[var(--rf-text)]">
                     {L
                       ? `Nog ${missingFields.length} ${missingFields.length === 1 ? "onderdeel" : "onderdelen"} invullen voordat je kunt ${isEdit ? "opslaan" : "registreren"}:`
                       : `${missingFields.length} ${missingFields.length === 1 ? "item" : "items"} left before you can ${isEdit ? "save" : "register"}:`}
                   </p>
-                  <ul className="mt-1 list-disc pl-5 text-muted-foreground">
+                  <ul className="mt-1 list-disc pl-5 text-[var(--rf-muted)]">
                     {missingFields.map((field) => (
                       <li key={field}>{field}</li>
                     ))}
@@ -1896,7 +1782,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 </div>
               )}
               {saveError && (
-                <p role="alert" className="text-center text-sm text-red-500">
+                <p role="alert" className="text-center text-sm text-[var(--rf-red-text)]">
                   {saveError}
                 </p>
               )}

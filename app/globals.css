@@ -5,6 +5,25 @@
 @variant dark (.dark &);
 
 :root {
+  /* Registratie- en profielformulier: één vaste set kleuren per modus (contrast nagerekend: tekst 4,5:1; randen en focus 3:1). */
+  --rf-page: #f4f4f6;
+  --rf-card: #ffffff;
+  --rf-field: #ffffff;
+  --rf-field-locked: #ececf0;
+  --rf-line: #767683;
+  --rf-line-soft: #d9d9e0;
+  --rf-text: #16161a;
+  --rf-muted: #55555f;
+  --rf-placeholder: #6e6e7a;
+  --rf-red: #b91c1c;
+  --rf-red-hover: #991b1b;
+  --rf-red-text: #b91c1c;
+  --rf-red-soft: rgba(185, 28, 28, 0.1);
+  --rf-chip-text: #7f1d1d;
+  --rf-ok: #15803d;
+  --rf-focus: #b91c1c;
+  --rf-track: #d4d4db;
+  --rf-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -41,6 +60,25 @@
 }
 
 .dark {
+  /* Registratie- en profielformulier: één vaste set kleuren per modus (contrast nagerekend: tekst 4,5:1; randen en focus 3:1). */
+  --rf-page: #0d0d0f;
+  --rf-card: #151518;
+  --rf-field: #1d1d22;
+  --rf-field-locked: #131316;
+  --rf-line: #6b6b78;
+  --rf-line-soft: #2a2a31;
+  --rf-text: #f4f4f5;
+  --rf-muted: #a8a8b4;
+  --rf-placeholder: #8d8d9a;
+  --rf-red: #dc2626;
+  --rf-red-hover: #ef4444;
+  --rf-red-text: #f87171;
+  --rf-red-soft: rgba(220, 38, 38, 0.18);
+  --rf-chip-text: #fecaca;
+  --rf-ok: #4ade80;
+  --rf-focus: #f87171;
+  --rf-track: #34343d;
+  --rf-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
   --background: oklch(0.12 0 0);
   --foreground: oklch(0.95 0 0);
   --card: oklch(0.17 0 0);
@@ -157,45 +195,3 @@
   border-color: rgb(51 65 85);
 }
 
-/* Registratie- en profielformulier: één vaste set kleuren per modus.
-   Alle contrastverhoudingen zijn nagerekend (tekst 4,5:1; randen en focus 3:1). */
-.rf {
-  --rf-page: #f4f4f6;
-  --rf-card: #ffffff;
-  --rf-field: #ffffff;
-  --rf-field-locked: #ececf0;
-  --rf-line: #767683;
-  --rf-line-soft: #d9d9e0;
-  --rf-text: #16161a;
-  --rf-muted: #55555f;
-  --rf-placeholder: #6e6e7a;
-  --rf-red: #b91c1c;
-  --rf-red-hover: #991b1b;
-  --rf-red-text: #b91c1c;
-  --rf-red-soft: rgba(185, 28, 28, 0.1);
-  --rf-chip-text: #7f1d1d;
-  --rf-ok: #15803d;
-  --rf-focus: #b91c1c;
-  --rf-track: #d4d4db;
-  --rf-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
-}
-.dark .rf {
-  --rf-page: #0d0d0f;
-  --rf-card: #151518;
-  --rf-field: #1d1d22;
-  --rf-field-locked: #131316;
-  --rf-line: #6b6b78;
-  --rf-line-soft: #2a2a31;
-  --rf-text: #f4f4f5;
-  --rf-muted: #a8a8b4;
-  --rf-placeholder: #8d8d9a;
-  --rf-red: #dc2626;
-  --rf-red-hover: #ef4444;
-  --rf-red-text: #f87171;
-  --rf-red-soft: rgba(220, 38, 38, 0.18);
-  --rf-chip-text: #fecaca;
-  --rf-ok: #4ade80;
-  --rf-focus: #f87171;
-  --rf-track: #34343d;
-  --rf-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-}

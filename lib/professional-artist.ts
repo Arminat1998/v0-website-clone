@@ -6,6 +6,7 @@ import { professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { slugify } from "@/lib/artist-slug"
 import { getRestriction } from "@/lib/moderation"
 import { digitsOnlyPrice } from "@/lib/professional-profile-types"
+import { canonicalEventType, genreLabel } from "@/lib/profile-options"
 import type { Artist, EquipmentDetail } from "@/lib/smart-search"
 
 interface ProfessionalAccount {
@@ -53,8 +54,9 @@ export function buildProfessionalArtist(account: ProfessionalAccount, profile?: 
     specialty: profile?.artistType || (CATEGORY_LABELS[account.category ?? ""] ?? "Professional"),
     location: profile?.city ?? "",
     description: profile?.bio || undefined,
-    eventTypes: profile?.eventTypes.length ? profile.eventTypes : undefined,
-    musicStyles: profile?.genres.length ? profile.genres : undefined,
+    eventTypes: profile?.eventTypes.length ? [...new Set(profile.eventTypes.map(canonicalEventType))] : undefined,
+    // Genres are stored by value; show and filter on their English names, like the other artists.
+    musicStyles: profile?.genres.length ? [...new Set(profile.genres.map((value) => genreLabel(value, false)))] : undefined,
     experience: profile?.yearsExperience ? `${profile.yearsExperience}` : undefined,
     equipment: profile?.equipment.length ? profile.equipment : undefined,
     equipmentDetails: { packageItems: profile?.packageItems ?? [], extraItems: profile?.extraItems ?? [] },

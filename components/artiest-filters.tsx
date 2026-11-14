@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react"
 import type { FilterSuggestions } from "@/lib/adaptive-filters"
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
+import { ComboSelect } from "@/components/combo-select"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
 import { useLanguage } from "@/contexts/language-context"
 import { lettersOnly, rangeChars } from "@/lib/input-filters"
 
@@ -40,7 +42,7 @@ export function ArtiestFilters({
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialState?.categories ?? [])
   const [selectedDate, setSelectedDate] = useState<string>(initialState?.selectedDate ?? "")
 
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   // When restoring a saved state, ignore the suggestions that were derived on mount so they don't overwrite it.
   const restoredSuggestionsRef = useRef<string | null>(initialState ? JSON.stringify(filterSuggestions ?? null) : null)
@@ -415,48 +417,37 @@ export function ArtiestFilters({
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.musicGenres}</h3>
-        <MultiSelectDropdown
-          options={musicGenres}
-          selectedValues={selectedGenres}
-          onSelectionChange={setSelectedGenres}
+        <ComboSelect
+          id="filter-genres"
+          multiple
+          nl={language === "nl"}
+          value={selectedGenres}
+          onChange={setSelectedGenres}
           placeholder={t.selectGenres}
-          searchPlaceholder={t.searchCity}
+          searchPlaceholder={language === "nl" ? "Zoek een genre..." : "Search a genre..."}
+          labelFor={(value) => genreLabel(value, language === "nl")}
+          groups={GENRE_GROUPS.map((group) => ({
+            label: language === "nl" ? group.nl : group.en,
+            options: group.options.map((option) => ({ value: option.value, label: language === "nl" ? option.nl : option.en })),
+          }))}
         />
-        {selectedGenres.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {selectedGenres.map((genre) => (
-              <Badge key={genre} variant="default" className="text-xs">
-                {genre}
-                <button onClick={() => toggleGenre(genre)} className="ml-1 hover:text-red-200">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.eventTypes}</h3>
-        <MultiSelectDropdown
-          options={eventTypes}
-          selectedValues={selectedEventTypes}
-          onSelectionChange={setSelectedEventTypes}
+        <ComboSelect
+          id="filter-event-types"
+          multiple
+          nl={language === "nl"}
+          value={selectedEventTypes}
+          onChange={setSelectedEventTypes}
           placeholder={t.selectEventTypes}
-          searchPlaceholder={t.searchCity}
+          searchPlaceholder={language === "nl" ? "Zoek een evenement type..." : "Search an event type..."}
+          groups={EVENT_TYPE_GROUPS.map((group) => ({
+            label: language === "nl" ? group.nl : group.en,
+            options: group.options.map((option) => ({ value: option.value, label: language === "nl" ? option.nl : option.en })),
+          }))}
         />
-        {selectedEventTypes.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {selectedEventTypes.map((eventType) => (
-              <Badge key={eventType} variant="default" className="text-xs">
-                {eventType}
-                <button onClick={() => toggleEventType(eventType)} className="ml-1 hover:text-red-200">
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
