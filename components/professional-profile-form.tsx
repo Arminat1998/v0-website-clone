@@ -730,6 +730,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     }
   }
 
+  const priceOf = (value: string | undefined) => Number(digitsOnlyPrice(value)) || 0
+  const formatEuro = (amount: number) =>
+    `€${Number.isInteger(amount) ? amount : amount.toFixed(2).replace(".", ",")}`
+  const packageTotal = Object.values(minimumEquipment).reduce((sum, item) => sum + priceOf(item?.price), 0)
+  const completeCount = getMinimumEquipmentConfig().filter((config) => isEquipmentComplete(config.id)).length
+  const extrasTotal = extraEquipment.reduce((sum, item) => sum + priceOf(item.price), 0)
   // What is still missing before the form may be sent; the submit button stays grey until this is empty.
   const missingFields: string[] = []
   {
@@ -741,6 +747,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(/^\S+@\S+\.\S+$/.test(email.trim()), "E-mail", "Email")
     if (needsAccount) need(hasPendingPassword, "Wachtwoord (opnieuw beginnen via Sign Up)", "Password (start again via Sign Up)")
     need(!!phone.trim(), "Telefoonnummer", "Phone number")
+    need(!!companyName.trim(), "Bedrijfsnaam / Handelsnaam", "Company name / trade name")
     need(/^\d{8}$/.test(kvkNumber), "KVK-nummer (8 cijfers)", "KVK number (8 digits)")
     need(!!bio.trim(), "Bio", "Bio")
     need(!!city.trim(), "Stad", "City")
@@ -1244,6 +1251,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 <div className="space-y-2">
                   <Label htmlFor="companyName" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                     {L ? "Bedrijfsnaam / Handelsnaam" : "Company Name / Trade Name"}
+                    <RequiredMark />
                   </Label>
                   <Input
                     id="companyName"
@@ -1251,6 +1259,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     className={inputClassName}
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
+                    required
                   />
                 </div>
 
@@ -1649,6 +1658,30 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                         </div>
                       )
                     })}
+                  </div>
+
+                  <div
+                    aria-live="polite"
+                    className="rounded-xl border border-[var(--rf-line)] bg-[var(--rf-page)] p-3 sm:p-4 space-y-1.5"
+                  >
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-sm sm:text-base font-semibold text-[var(--rf-text)]">
+                        {L ? "Totaalprijs pakket per dag" : "Package total per day"}
+                      </span>
+                      <span className="text-lg sm:text-xl font-bold text-[var(--rf-text)]">{formatEuro(packageTotal)}</span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-[var(--rf-muted)]">
+                      {L
+                        ? `Som van de ${completeCount} ingevulde onderdelen van ${getMinimumEquipmentConfig().length}. Dit bedrag zien klanten op je profiel.`
+                        : `Sum of the ${completeCount} completed items out of ${getMinimumEquipmentConfig().length}. Clients see this amount on your profile.`}
+                    </p>
+                    {extrasTotal > 0 && (
+                      <p className="text-xs sm:text-sm text-[var(--rf-muted)]">
+                        {L ? "Extra's staan los van het pakket: " : "Extras are separate from the package: "}
+                        {formatEuro(extrasTotal)}
+                        {L ? " per dag in totaal." : " per day in total."}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

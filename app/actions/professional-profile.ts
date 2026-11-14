@@ -57,7 +57,7 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
 
   const stageName = text(input.stageName, 80)
   const fullName = text(input.fullName, 120)
-  if (!stageName || !fullName) return { ok: false, error: "invalid" }
+  if (!stageName || !fullName || !text(input.companyName, 120)) return { ok: false, error: "invalid" }
 
   const minHours = int(input.minHours, 1, 24, 1)
   const maxHours = Math.max(minHours, int(input.maxHours, 1, 24, 8))
