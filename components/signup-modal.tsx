@@ -26,7 +26,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
   const router = useRouter()
   const { t, language } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
-  const [accountType, setAccountType] = useState<"user" | "professional" | null>(null)
+  const [accountType, setAccountType] = useState<"user" | "professional" | null>("user")
   const [category, setCategory] = useState<string>("")
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
