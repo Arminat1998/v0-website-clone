@@ -1213,6 +1213,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       className="underline font-medium"
                       onClick={() => {
                         try { sessionStorage.removeItem("professionalSignupData") } catch {}
+                        clearPendingPassword()
                         window.location.href = "/"
                       }}
                     >
