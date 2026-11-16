@@ -177,15 +177,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         }
         if (data.category) {
           setSignupCategory(data.category)
-          // Map category to artist type
-          const categoryMap: Record<string, string> = {
-            artist: "DJ", // Default to DJ for artist category
-            "photo-video": "",
-            venue: "",
-            catering: "",
-          }
-          const mappedArtistType = categoryMap[data.category] || ""
-          if (mappedArtistType) setArtistType(mappedArtistType)
         }
 
       } catch (error) {
@@ -733,9 +724,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const priceOf = (value: string | undefined) => Number(digitsOnlyPrice(value)) || 0
   const formatEuro = (amount: number) =>
     `€${Number.isInteger(amount) ? amount : amount.toFixed(2).replace(".", ",")}`
-  const packageTotal = Object.values(minimumEquipment).reduce((sum, item) => sum + priceOf(item?.price), 0)
+  // Everything added inside the package section belongs to the package; only the separate "Extra equipment" section stays out.
+  const packageTotal =
+    [...Object.values(minimumEquipment), ...extraEquipment.filter((item) => item.category)]
+      .filter((item) => item?.name)
+      .reduce((sum, item) => sum + priceOf(item.price), 0)
   const completeCount = getMinimumEquipmentConfig().filter((config) => isEquipmentComplete(config.id)).length
-  const extrasTotal = extraEquipment.reduce((sum, item) => sum + priceOf(item.price), 0)
+  const packageExtraCount = extraEquipment.filter((item) => item.category).length
   // What is still missing before the form may be sent; the submit button stays grey until this is empty.
   const missingFields: string[] = []
   {
@@ -1672,16 +1667,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     </div>
                     <p className="text-xs sm:text-sm text-[var(--rf-muted)]">
                       {L
-                        ? `Som van de ${completeCount} ingevulde onderdelen van ${getMinimumEquipmentConfig().length}. Dit bedrag zien klanten op je profiel.`
-                        : `Sum of the ${completeCount} completed items out of ${getMinimumEquipmentConfig().length}. Clients see this amount on your profile.`}
+                        ? `${completeCount} van de ${getMinimumEquipmentConfig().length} onderdelen ingevuld${packageExtraCount > 0 ? `, plus ${packageExtraCount} extra bij het pakket` : ""}. Dit bedrag zien klanten op je profiel.`
+                        : `${completeCount} of ${getMinimumEquipmentConfig().length} items completed${packageExtraCount > 0 ? `, plus ${packageExtraCount} extra in the package` : ""}. Clients see this amount on your profile.`}
                     </p>
-                    {extrasTotal > 0 && (
-                      <p className="text-xs sm:text-sm text-[var(--rf-muted)]">
-                        {L ? "Extra's staan los van het pakket: " : "Extras are separate from the package: "}
-                        {formatEuro(extrasTotal)}
-                        {L ? " per dag in totaal." : " per day in total."}
-                      </p>
-                    )}
                   </div>
                 </div>
               )}
