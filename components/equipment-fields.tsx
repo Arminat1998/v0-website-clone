@@ -21,13 +21,16 @@ interface EquipmentFieldsProps {
   namePlaceholder: string
   photoId: string
   nl: boolean
+  /** Part of the required package: every field is marked with * and announced as required. */
+  required?: boolean
 }
 
 export const equipmentFieldClass =
   "h-10 w-full rounded-[10px] border border-[var(--rf-line)] bg-[var(--rf-field)] px-3 py-2 text-sm text-[var(--rf-text)] shadow-none placeholder:text-[var(--rf-placeholder)] dark:bg-[var(--rf-field)] focus-visible:border-[var(--rf-focus)] focus-visible:ring-2 focus-visible:ring-[var(--rf-focus)]/40"
 
-export function EquipmentFields({ value, onChange, namePlaceholder, photoId, nl }: EquipmentFieldsProps) {
+export function EquipmentFields({ value, onChange, namePlaceholder, photoId, nl, required = false }: EquipmentFieldsProps) {
   const { requestCrop, cropDialog } = useImageCrop()
+  const star = required ? " *" : ""
 
   async function handlePhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -43,21 +46,23 @@ export function EquipmentFields({ value, onChange, namePlaceholder, photoId, nl 
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_11rem]">
         <Input
-          placeholder={namePlaceholder}
+          placeholder={`${namePlaceholder}${star}`}
           value={value.name ?? ""}
           onChange={(e) => onChange({ name: e.target.value })}
           className={equipmentFieldClass}
           aria-label={nl ? "Naam apparatuur" : "Equipment name"}
+          aria-required={required || undefined}
         />
         <div className="relative">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--rf-muted)]">€</span>
           <NumericInput
             allowDecimal
-            placeholder={nl ? "Prijs per dag" : "Price per day"}
+            placeholder={`${nl ? "Prijs per dag" : "Price per day"}${star}`}
             value={value.price ?? ""}
             onValueChange={(price) => onChange({ price })}
             className={`${equipmentFieldClass} pl-7 pr-12`}
             aria-label={nl ? "Huurprijs per dag" : "Rental price per day"}
+            aria-required={required || undefined}
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--rf-muted)]">
             {nl ? "/dag" : "/day"}
@@ -66,9 +71,11 @@ export function EquipmentFields({ value, onChange, namePlaceholder, photoId, nl 
       </div>
 
       <Textarea
-        placeholder={nl ? "Korte beschrijving" : "Short description"}
+        placeholder={`${nl ? "Korte beschrijving" : "Short description"}${star}`}
         value={value.description ?? ""}
         onChange={(e) => onChange({ description: e.target.value })}
+        aria-label={nl ? "Korte beschrijving" : "Short description"}
+        aria-required={required || undefined}
         rows={2}
         className="w-full resize-none rounded-[10px] border border-[var(--rf-line)] bg-[var(--rf-field)] px-3 py-2 text-sm text-[var(--rf-text)] shadow-none placeholder:text-[var(--rf-placeholder)] dark:bg-[var(--rf-field)] focus-visible:border-[var(--rf-focus)] focus-visible:ring-2 focus-visible:ring-[var(--rf-focus)]/40"
       />
@@ -87,7 +94,7 @@ export function EquipmentFields({ value, onChange, namePlaceholder, photoId, nl 
           className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-[var(--rf-line)] bg-[var(--rf-field)] px-3 text-sm font-semibold text-[var(--rf-text)] hover:bg-[var(--rf-line-soft)] focus-within:outline-2 focus-within:outline-[var(--rf-focus)]"
         >
           <Camera className="h-4 w-4" aria-hidden="true" />
-          {hasImage ? (nl ? "Foto wijzigen" : "Change photo") : nl ? "Foto toevoegen" : "Add photo"}
+          {hasImage ? (nl ? "Foto wijzigen" : "Change photo") : `${nl ? "Foto toevoegen" : "Add photo"}${star}`}
         </label>
         {hasImage && (
           <button

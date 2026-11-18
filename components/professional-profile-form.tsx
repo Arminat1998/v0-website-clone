@@ -1629,7 +1629,21 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                                 namePlaceholder={config.placeholder}
                                 photoId={`equipment-file-${config.id}`}
                                 nl={L}
+                                required
                               />
+                              {!isComplete && (
+                                <p aria-live="polite" className="text-xs text-[var(--rf-red-text)]">
+                                  {(L ? "Nog nodig voor dit onderdeel: " : "Still needed for this item: ") +
+                                    [
+                                      !equipment?.name?.trim() && (L ? "naam" : "name"),
+                                      !equipment?.price && (L ? "prijs" : "price"),
+                                      !equipment?.description?.trim() && (L ? "beschrijving" : "description"),
+                                      !equipment?.image && (L ? "foto" : "photo"),
+                                    ]
+                                      .filter(Boolean)
+                                      .join(", ")}
+                                </p>
+                              )}
                               {ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id] && (
                                 <AdditionalEquipment
                                   category={ADDITIONAL_CATEGORY_BY_EQUIPMENT_ID[config.id]}
@@ -1647,8 +1661,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                           {!isAccessible && (
                             <p className="text-xs text-[var(--rf-muted)]">
                               {L
-                                ? `Vul eerst "${getMinimumEquipmentConfig()[index - 1]?.name}" in.`
-                                : `Complete "${getMinimumEquipmentConfig()[index - 1]?.name}" first.`}
+                                ? `Vul eerst "${getMinimumEquipmentConfig()[index - 1]?.name}" helemaal in: naam, prijs, beschrijving en foto.`
+                                : `First complete "${getMinimumEquipmentConfig()[index - 1]?.name}": name, price, description and photo.`}
                             </p>
                           )}
                         </div>
