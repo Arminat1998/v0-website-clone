@@ -6,8 +6,8 @@ import { professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { slugify } from "@/lib/artist-slug"
 import { getRestriction } from "@/lib/moderation"
 import { digitsOnlyPrice } from "@/lib/professional-profile-types"
-import { canonicalEventType, genreLabel } from "@/lib/profile-options"
-import type { Artist, EquipmentDetail } from "@/lib/smart-search"
+import { canonicalEventType, genreLabel, isPhotoVideo } from "@/lib/profile-options"
+import type { Artist, EquipmentDetail, Photographer } from "@/lib/smart-search"
 
 interface ProfessionalAccount {
   id: string
@@ -67,11 +67,14 @@ export function buildProfessionalArtist(account: ProfessionalAccount, profile?: 
     available: true,
     category: account.category ?? undefined,
     image: account.image ?? undefined,
+    kind: isPhotoVideo(account.category) ? "photo-video" : "artist",
   }
 }
 
+/** Artists live under /artiest, photographers and videographers under /foto-video. */
 export function getProfessionalArtistPath(account: ProfessionalAccount) {
-  return `/artiest/${slugify(account.name) || "professional"}-${account.id}`
+  const base = isPhotoVideo(account.category) ? "/foto-video" : "/artiest"
+  return `${base}/${slugify(account.name) || "professional"}-${account.id}`
 }
 
 export async function getProfessionalProfileSummary(professionalId: string): Promise<ProfessionalProfileSummary | null> {
@@ -119,25 +122,30 @@ export async function getProfessionalProfileSummary(professionalId: string): Pro
 }
 
 /** All professionals whose profile was approved in the admin dashboard and whose account is not restricted. */
+async function listLiveAccounts() {
+  const rows = await db
+    .select({
+      id: userTable.id,
+      name: userTable.name,
+      image: userTable.image,
+      category: userTable.category,
+      status: userTable.status,
+      statusReason: userTable.statusReason,
+      suspendedUntil: userTable.suspendedUntil,
+    })
+    .from(userTable)
+    .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
+    .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
+  return rows.filter((account) => !getRestriction(account))
+}
+
+/** Approved artists. Photographers and videographers have their own list. */
 export async function listLiveProfessionalArtists(): Promise<Artist[]> {
   try {
-    const rows = await db
-      .select({
-        id: userTable.id,
-        name: userTable.name,
-        image: userTable.image,
-        category: userTable.category,
-        status: userTable.status,
-        statusReason: userTable.statusReason,
-        suspendedUntil: userTable.suspendedUntil,
-      })
-      .from(userTable)
-      .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
-      .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
-
+    const rows = await listLiveAccounts()
     const artists = await Promise.all(
       rows
-        .filter((account) => !getRestriction(account))
+        .filter((account) => !isPhotoVideo(account.category))
         .map(async (account) => {
           const profile = await getProfessionalProfileSummary(account.id)
           const artist = buildProfessionalArtist(account, profile)
@@ -152,7 +160,48 @@ export async function listLiveProfessionalArtists(): Promise<Artist[]> {
   }
 }
 
-export async function getProfessionalArtistBySlug(slug: string): Promise<Artist | null> {
+/** Approved photographers and videographers, in the shape of the photo & video page. */
+export async function listLivePhotographers(): Promise<Photographer[]> {
+  try {
+    const rows = await listLiveAccounts()
+    return await Promise.all(
+      rows
+        .filter((account) => isPhotoVideo(account.category))
+        .map(async (account) => {
+          const profile = await getProfessionalProfileSummary(account.id)
+          const artist = buildProfessionalArtist(account, profile)
+          const type = profile?.artistType || "Photographer"
+          return {
+            id: artist.id,
+            name: artist.name,
+            specialty: type,
+            location: artist.location,
+            rating: 0,
+            reviews: 0,
+            price: artist.price,
+            available: true,
+            description: artist.description,
+            eventTypes: artist.eventTypes,
+            serviceTypes: artist.musicStyles,
+            experience: artist.experience,
+            // The page filters on "Photographer", "Videographer" or both.
+            category: type,
+            image: artist.image,
+            href: getProfessionalArtistPath(account),
+          }
+        }),
+    )
+  } catch (error) {
+    console.error("Failed to list live photographers:", error)
+    return []
+  }
+}
+
+/** A live professional by the slug of their page; `kind` keeps artists and photographers on their own pages. */
+export async function getProfessionalArtistBySlug(
+  slug: string,
+  kind: "artist" | "photo-video" = "artist",
+): Promise<Artist | null> {
   const separator = slug.lastIndexOf("-")
   if (separator < 1) return null
   const id = slug.slice(separator + 1)
@@ -173,6 +222,7 @@ export async function getProfessionalArtistBySlug(slug: string): Promise<Artist 
       .where(and(eq(userTable.id, id), eq(userTable.role, "professional")))
       .limit(1)
     if (!account || getRestriction(account)) return null
+    if (isPhotoVideo(account.category) !== (kind === "photo-video")) return null
     // Only profiles approved in the admin dashboard are live on the platform.
     const [review] = await db
       .select({ status: professionalProfiles.reviewStatus })

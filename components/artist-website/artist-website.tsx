@@ -13,6 +13,8 @@ import type { Artist } from "@/lib/smart-search"
 import {
   WebsiteProvider,
   websiteCopy,
+  photoVideoCopy,
+  bookingHref,
   type DialogKey,
   type TabKey,
   type WebsiteEditApi,
@@ -42,7 +44,8 @@ interface ArtistWebsiteProps {
 export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
   const bookGuard = useBookGuard()
   const { language } = useLanguage()
-  const t = websiteCopy[language === "en" ? "en" : "nl"]
+  const lang = language === "en" ? "en" : "nl"
+  const t = artist.kind === "photo-video" ? { ...websiteCopy[lang], ...photoVideoCopy[lang] } : websiteCopy[lang]
   const [tab, setTab] = useState<TabKey>("overview")
   const [dialog, setDialog] = useState<DialogKey | null>(null)
   const [photoIndex, setPhotoIndex] = useState<number | null>(null)
@@ -199,7 +202,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                   {t.chat}
                 </Button>
                 <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-                  <Link href={`/booking?artistId=${artist.id}&type=artist`} onClick={(event) => bookGuard(`/booking?artistId=${artist.id}&type=artist`, event)}>{t.book}</Link>
+                  <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
                 </Button>
               </>
             )}

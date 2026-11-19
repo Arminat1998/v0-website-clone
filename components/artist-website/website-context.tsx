@@ -199,6 +199,45 @@ export const websiteCopy = {
 
 export type WebsiteCopy = (typeof websiteCopy)["nl"]
 
+/** Labels that differ on the page of a photographer or videographer. */
+export const photoVideoCopy: Record<"nl" | "en", Partial<WebsiteCopy>> = {
+  nl: {
+    tabs: { ...websiteCopy.nl.tabs, equipment: "Extra's" },
+    rateNote: "excl. extra's",
+    aboutPlaceholder: "Vertel je verhaal: je stijl, je ervaring en wat je foto's of video's bijzonder maakt.",
+    genres: "Specialisaties",
+    editTags: "Evenementtypes en specialisaties bewerken",
+    tagsAdd: "Evenementtypes en specialisaties toevoegen",
+    tagsEmpty: "Nog geen types of specialisaties toegevoegd.",
+    taglinePlaceholder: "Bijv. Bruiloft- en eventfotograaf uit Utrecht",
+    bookTitle: "Boek deze fotograaf",
+    equipmentTitle: "Extra's",
+    equipmentOptions: "Extra's",
+  },
+  en: {
+    tabs: { ...websiteCopy.en.tabs, equipment: "Extras" },
+    rateNote: "excl. extras",
+    aboutPlaceholder: "Tell your story: your style, your experience and what makes your photos or videos special.",
+    genres: "Specialisations",
+    editTags: "Edit event types and specialisations",
+    tagsAdd: "Add event types and specialisations",
+    tagsEmpty: "No event types or specialisations added yet.",
+    taglinePlaceholder: "e.g. Wedding and event photographer from Utrecht",
+    bookTitle: "Book this photographer",
+    equipmentTitle: "Extras",
+    equipmentOptions: "Extras",
+  },
+}
+
+/** Where the "Book" buttons on a page lead to. */
+export function bookingHref(artist: Artist, date?: string) {
+  const base =
+    artist.kind === "photo-video"
+      ? `/booking?professionalId=${artist.id}&type=photographer`
+      : `/booking?artistId=${artist.id}&type=artist`
+  return date ? `${base}&date=${date}` : base
+}
+
 interface WebsiteContextValue {
   artist: Artist
   content: ArtistPageContent

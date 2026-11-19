@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { artistPages, billingProfiles, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
+import { isPhotoVideo } from "@/lib/profile-options"
 import { SOCIAL_KEYS, mediaUrl, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
 import type {
   ProfessionalProfileData,
@@ -85,7 +86,15 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
   const genreLabels = list(input.genreLabels)
   // The form checks this too; here it stops a profile that skips the form's checks.
   const completeEquipment = Object.values(minimumEquipment).filter((item) => item.name && item.price && item.description && item.image)
-  if (genres.length === 0 || eventTypes.length === 0 || completeEquipment.length === 0) return { ok: false, error: "invalid" }
+  // Photographers and videographers have no required equipment package.
+  let photo = false
+  try {
+    const [account] = await db.select({ category: userTable.category }).from(userTable).where(eq(userTable.id, professionalId)).limit(1)
+    photo = isPhotoVideo(account?.category)
+  } catch {
+    return { ok: false, error: "failed" }
+  }
+  if (genres.length === 0 || eventTypes.length === 0 || (!photo && completeEquipment.length === 0)) return { ok: false, error: "invalid" }
   const avatarPath = cleanImage(input.avatarPath) ?? null
   const bannerPath = cleanImage(input.bannerPath) ?? null
   const phone = text(input.phone, 40)
@@ -203,5 +212,6 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
 
   revalidatePath("/dashboard", "layout")
   revalidatePath("/artiest/[slug]", "page")
+  revalidatePath("/foto-video/[slug]", "page")
   return { ok: true }
 }

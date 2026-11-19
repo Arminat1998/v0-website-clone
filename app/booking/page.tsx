@@ -150,7 +150,16 @@ export default function BookingPage() {
     ? liveData?.artists.find((a) => String(a.id) === artistId)
     : null
   const artist = staticArtist || liveArtist || null
-  const photographer = professionalId ? photographers.find(p => p.id === Number(professionalId)) : null
+  const staticPhotographer = professionalId ? photographers.find(p => p.id === Number(professionalId)) : null
+  const needsPhotographerLookup = Boolean(professionalId) && !staticPhotographer
+  const { data: livePhotographerData, isLoading: livePhotographerLoading } = useSWR<{ photographers: typeof photographers }>(
+    needsPhotographerLookup ? "/api/photographers/live" : null,
+    (url: string) => fetch(url).then((response) => response.json()),
+  )
+  const livePhotographer = needsPhotographerLookup
+    ? livePhotographerData?.photographers.find((p) => String(p.id) === professionalId)
+    : null
+  const photographer = staticPhotographer || livePhotographer || null
   const professional = artist || photographer
 
   useEffect(() => {
@@ -163,10 +172,12 @@ export default function BookingPage() {
   }, [initialDate])
 
   useEffect(() => {
-    if (!professional && !liveLoading && (!needsLiveLookup || liveData)) {
+    const artistLookupDone = !liveLoading && (!needsLiveLookup || liveData)
+    const photographerLookupDone = !livePhotographerLoading && (!needsPhotographerLookup || livePhotographerData)
+    if (!professional && artistLookupDone && photographerLookupDone) {
       router.push("/")
     }
-  }, [professional, router, liveLoading, needsLiveLookup, liveData])
+  }, [professional, router, liveLoading, needsLiveLookup, liveData, livePhotographerLoading, needsPhotographerLookup, livePhotographerData])
 
   if (!professional) {
     return null

@@ -7,7 +7,7 @@ import { Clock, MapPin, Pencil, Plus, Target, Wallet, Music2 } from "lucide-reac
 import { Button } from "@/components/ui/button"
 import { SOCIAL_META } from "@/components/artist-portfolio"
 import { SOCIAL_KEYS, getVideoEmbed, mediaUrl } from "@/lib/artist-page-types"
-import { useWebsite } from "@/components/artist-website/website-context"
+import { bookingHref, useWebsite } from "@/components/artist-website/website-context"
 
 export function EditPencil({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
   const className =
@@ -60,7 +60,7 @@ export function BookingCard() {
       <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.bookText}</p>
       <div className="mt-4 flex flex-col gap-2">
         <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-          <Link href={`/booking?artistId=${artist.id}&type=artist`} onClick={(event) => bookGuard(`/booking?artistId=${artist.id}&type=artist`, event)}>{t.book}</Link>
+          <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
         </Button>
         <Button type="button" variant="outline" onClick={() => goToTab("availability")}>
           {t.checkAvailability}

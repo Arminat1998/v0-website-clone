@@ -199,6 +199,61 @@ export const ARTIST_TYPES: { value: string; nl: string; en: string; descNl: stri
   { value: "Violinist", nl: "Violist", en: "Violinist", descNl: "Viool, solo of ensemble", descEn: "Violin, solo or ensemble" },
 ]
 
+/** Types for photographers and videographers; the values match the filters on the photo & video page. */
+export const PHOTO_VIDEO_TYPES: { value: string; nl: string; en: string; descNl: string; descEn: string }[] = [
+  { value: "Photographer", nl: "Fotograaf", en: "Photographer", descNl: "Legt het event vast in foto's", descEn: "Captures the event in photos" },
+  { value: "Videographer", nl: "Videograaf", en: "Videographer", descNl: "Filmt het event, bijvoorbeeld een aftermovie", descEn: "Films the event, for example an aftermovie" },
+  {
+    value: "Photographer & Videographer",
+    nl: "Fotograaf & videograaf",
+    en: "Photographer & videographer",
+    descNl: "Doet zowel foto als video",
+    descEn: "Does both photo and video",
+  },
+]
+
+/** Specialisations of photographers and videographers. They are stored in the same column as music genres. */
+export const PHOTO_SPECIALTY_GROUPS: OptionGroup[] = [
+  {
+    nl: "Foto",
+    en: "Photo",
+    options: [
+      { value: "event-photography", nl: "Eventfotografie", en: "Event photography" },
+      { value: "wedding-photography", nl: "Bruidsfotografie", en: "Wedding photography" },
+      { value: "portrait", nl: "Portretten", en: "Portraits" },
+      { value: "corporate-photography", nl: "Bedrijfsfotografie", en: "Corporate photography" },
+      { value: "concert-photography", nl: "Concert- en festivalfotografie", en: "Concert and festival photography" },
+      { value: "photobooth", nl: "Photobooth", en: "Photo booth" },
+    ],
+  },
+  {
+    nl: "Video",
+    en: "Video",
+    options: [
+      { value: "aftermovie", nl: "Aftermovie", en: "Aftermovie" },
+      { value: "wedding-film", nl: "Trouwfilm", en: "Wedding film" },
+      { value: "corporate-video", nl: "Bedrijfsvideo", en: "Corporate video" },
+      { value: "livestream", nl: "Livestream", en: "Livestream" },
+      { value: "social-content", nl: "Social media content", en: "Social media content" },
+    ],
+  },
+  {
+    nl: "Extra",
+    en: "Extra",
+    options: [
+      { value: "drone", nl: "Drone-opnames", en: "Drone footage" },
+      { value: "same-day-edit", nl: "Same-day edit", en: "Same-day edit" },
+    ],
+  },
+]
+
+/** The signup category of photographers and videographers. */
+export const PHOTO_VIDEO_CATEGORY = "photo-video"
+
+export function isPhotoVideo(category: string | null | undefined) {
+  return category === PHOTO_VIDEO_CATEGORY
+}
+
 export const SOCIAL_PLATFORMS: { value: string; label: string }[] = [
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
@@ -213,7 +268,7 @@ export const SOCIAL_PLATFORMS: { value: string; label: string }[] = [
 ]
 
 export function genreLabel(value: string, dutch: boolean) {
-  for (const group of GENRE_GROUPS) {
+  for (const group of [...GENRE_GROUPS, ...PHOTO_SPECIALTY_GROUPS]) {
     const option = group.options.find((item) => item.value === value)
     if (option) return dutch ? option.nl : option.en
   }

@@ -22,27 +22,31 @@ interface AdditionalEquipmentProps {
   onUpdate: (id: string, patch: Partial<EquipmentValue>) => void
   onRemove: (id: string) => void
   nl: boolean
+  /** Photographers and videographers add extras (second shooter, drone, album) instead of equipment. */
+  extras?: boolean
 }
 
-export function AdditionalEquipment({ category, items, onAdd, onUpdate, onRemove, nl }: AdditionalEquipmentProps) {
+export function AdditionalEquipment({ category, items, onAdd, onUpdate, onRemove, nl, extras = false }: AdditionalEquipmentProps) {
   const label =
     category === "lighting"
       ? nl ? "Extra lichtset" : "Extra lighting set"
       : category === "sound"
         ? nl ? "Extra geluidsset" : "Extra sound set"
-        : nl ? "Extra apparatuur" : "Extra equipment"
+        : extras ? "Extra" : nl ? "Extra apparatuur" : "Extra equipment"
   const addLabel =
     category === "lighting"
       ? nl ? "Nog een lichtset toevoegen" : "Add another lighting set"
       : category === "sound"
         ? nl ? "Nog een geluidsset toevoegen" : "Add another sound set"
-        : nl ? "Apparatuur toevoegen" : "Add equipment"
+        : extras ? (nl ? "Extra toevoegen" : "Add extra") : nl ? "Apparatuur toevoegen" : "Add equipment"
   const namePlaceholder =
     category === "lighting"
       ? nl ? "bijv. 8x draadloze LED-uplighters" : "e.g. 8x wireless LED uplighters"
       : category === "sound"
         ? nl ? "bijv. Subwoofer, extra speakers" : "e.g. Subwoofer, extra speakers"
-        : nl ? "Naam apparatuur" : "Equipment name"
+        : extras
+          ? nl ? "bijv. Drone-opnames, tweede fotograaf" : "e.g. Drone footage, second shooter"
+          : nl ? "Naam apparatuur" : "Equipment name"
 
   return (
     <div className={category ? "space-y-3 border-t border-[var(--rf-line-soft)] pt-3" : "space-y-3"}>

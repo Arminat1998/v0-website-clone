@@ -22,6 +22,8 @@ export interface Artist {
   equipment?: string[]
   /** Real professionals only: the equipment they entered during sign-up. */
   equipmentDetails?: { packageItems: EquipmentDetail[]; extraItems: EquipmentDetail[] }
+  /** Real professionals only: an artist or a photographer/videographer; decides the labels on their page. */
+  kind?: "artist" | "photo-video"
 }
 
 export interface EquipmentDetail {
@@ -58,6 +60,8 @@ export interface Photographer {
   unavailableDates?: string[]
   category?: string
   image?: string
+  /** Real professionals only: their public profile page. */
+  href?: string
 }
 
 // Synonym mapping for better search understanding

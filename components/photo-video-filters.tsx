@@ -29,7 +29,7 @@ export function PhotoVideoFilters({
 }: PhotoVideoFiltersProps) {
   const [currentMonth, setCurrentMonth] = useState("September")
   const [currentYear, setCurrentYear] = useState("2025")
-  const [priceRange, setPriceRange] = useState([200, 5000])
+  const [priceRange, setPriceRange] = useState([0, 5000])
   const [selectedCity, setSelectedCity] = useState("")
   const [selectedDuration, setSelectedDuration] = useState("")
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([])

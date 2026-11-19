@@ -43,7 +43,7 @@ export default async function EditProfilePage() {
       <div className="px-4 pt-16 sm:px-6 sm:pt-16 md:px-8 lg:px-10">
         <ProfileLinks current="profile" publicPath={getProfessionalArtistPath(account)} />
       </div>
-      <ProfessionalProfileForm mode="edit" initialProfile={initialProfile} />
+      <ProfessionalProfileForm mode="edit" initialProfile={initialProfile} category={account.category} />
     </DashboardLayout>
   )
 }

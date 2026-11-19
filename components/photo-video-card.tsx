@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import type { Photographer } from "@/lib/smart-search"
 import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
+import { useRouter } from "next/navigation"
+import { useBookGuard } from "@/hooks/use-book-guard"
 
 interface PhotoVideoCardProps {
   professional: Photographer
@@ -16,6 +18,8 @@ interface PhotoVideoCardProps {
 
 export function PhotoVideoCard({ professional, onClick, isVisited = false }: PhotoVideoCardProps) {
   const { t } = useLanguage()
+  const router = useRouter()
+  const bookGuard = useBookGuard()
 
   const displayedServices = professional.serviceTypes?.slice(0, 2) || []
   const remainingServices = (professional.serviceTypes?.length || 0) - 2
@@ -149,6 +153,8 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
             className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
             onClick={(e) => {
               e.stopPropagation()
+              const href = `/booking?professionalId=${encodeURIComponent(String(professional.id))}&type=photographer`
+              if (bookGuard(href)) router.push(href)
             }}
           >
             {t.bookNow}

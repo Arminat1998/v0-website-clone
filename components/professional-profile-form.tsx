@@ -28,7 +28,17 @@ import { clearPendingPassword, getPendingPassword } from "@/lib/pending-signup"
 import { authClient } from "@/lib/auth-client"
 import { lettersOnly, phoneChars } from "@/lib/input-filters"
 import { ComboSelect } from "@/components/combo-select"
-import { ARTIST_TYPES, EVENT_TYPE_GROUPS, GENRE_GROUPS, SOCIAL_PLATFORMS, canonicalEventType, genreLabel } from "@/lib/profile-options"
+import {
+  ARTIST_TYPES,
+  EVENT_TYPE_GROUPS,
+  GENRE_GROUPS,
+  PHOTO_SPECIALTY_GROUPS,
+  PHOTO_VIDEO_TYPES,
+  SOCIAL_PLATFORMS,
+  canonicalEventType,
+  genreLabel,
+  isPhotoVideo,
+} from "@/lib/profile-options"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
 /** Visible marker for required fields; the field itself carries `required` for screen readers. */
@@ -81,6 +91,8 @@ interface EquipmentConfig {
 interface ProfessionalProfileFormProps {
   mode?: "register" | "edit"
   initialProfile?: ProfessionalProfileData | null
+  /** Signup category of the account ("artist", "photo-video", ...); in register mode it comes from the signup window. */
+  category?: string | null
 }
 
 async function uploadImage(dataUrl: string, kind: "banner" | "avatar" | "equipment") {
@@ -95,7 +107,7 @@ async function uploadImage(dataUrl: string, kind: "banner" | "avatar" | "equipme
   return pathname
 }
 
-export function ProfessionalProfileForm({ mode = "register", initialProfile = null }: ProfessionalProfileFormProps) {
+export function ProfessionalProfileForm({ mode = "register", initialProfile = null, category = null }: ProfessionalProfileFormProps) {
   const isEdit = mode === "edit"
   const router = useRouter()
   const [saved, setSaved] = useState(false)
@@ -131,7 +143,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const sessionEmail = sessionData?.user?.email
   // A new professional has no account yet: it is created together with the profile on submit.
   const needsAccount = !isEdit && !sessionData?.user && (!sessionPending || !!sessionError)
-  const [signupCategory, setSignupCategory] = useState("artist")
+  const [signupCategory, setSignupCategory] = useState(category ?? "artist")
+  // Photographers and videographers get their own types and specialisations and no required equipment package.
+  const photo = isPhotoVideo(isEdit ? category : signupCategory)
   // Name, email and phone were entered in the signup window and are fixed here,
   // because email and phone are verified later.
   const [signupLocked, setSignupLocked] = useState(false)
@@ -737,7 +751,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     const need = (ok: boolean, nl: string, en: string) => {
       if (!ok) missingFields.push(L ? nl : en)
     }
-    need(!!stageName.trim(), "Artiestennaam", "Stage name")
+    need(!!stageName.trim(), photo ? "Profielnaam" : "Artiestennaam", photo ? "Profile name" : "Stage name")
     need(!!fullName.trim(), "Volledige naam", "Full name")
     need(/^\S+@\S+\.\S+$/.test(email.trim()), "E-mail", "Email")
     if (needsAccount) need(hasPendingPassword, "Wachtwoord (opnieuw beginnen via Sign Up)", "Password (start again via Sign Up)")
@@ -748,10 +762,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(!!city.trim(), "Stad", "City")
     need(yearsExperience.trim() !== "" && Number(yearsExperience) <= 60, "Jaren ervaring (maximaal 60)", "Years of experience (at most 60)")
     need(Number(hourlyRate) > 0, "Tarief per uur", "Fee per hour")
-    need(!!artistType, "Artiest type", "Artist type")
-    need(selectedGenres.length > 0, "Muziekgenres", "Music genres")
+    need(!!artistType, photo ? "Type" : "Artiest type", photo ? "Type" : "Artist type")
+    need(selectedGenres.length > 0, photo ? "Specialisaties" : "Muziekgenres", photo ? "Specialisations" : "Music genres")
     need(selectedEventTypes.length > 0, "Evenement types", "Event types")
-    if (artistType) {
+    if (photo) {
+      // No equipment package for photographers and videographers.
+    } else if (artistType) {
       const config = getMinimumEquipmentConfig()
       const done = config.filter((item) => isEquipmentComplete(item.id)).length
       need(done === config.length, `Apparatuurpakket (${done} van ${config.length} compleet)`, `Equipment package (${done} of ${config.length} complete)`)
@@ -782,7 +798,15 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
     if (!artistType) {
       if (!isEdit) trackUserTest("profile_error", { reason: "artist_type_missing" })
-      setArtistTypeError(L ? "Kies je artiest type." : "Choose your artist type.")
+      setArtistTypeError(
+        photo
+          ? L
+            ? "Kies of je fotograaf, videograaf of allebei bent."
+            : "Choose whether you are a photographer, a videographer or both."
+          : L
+            ? "Kies je artiest type."
+            : "Choose your artist type.",
+      )
       document.getElementById("artistType")?.focus()
       return
     }
@@ -793,14 +817,22 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" })
     }
     if (selectedGenres.length === 0) {
-      setGenresError(L ? "Kies minimaal één muziekgenre." : "Choose at least one music genre.")
+      setGenresError(
+        photo
+          ? L
+            ? "Kies minimaal één specialisatie."
+            : "Choose at least one specialisation."
+          : L
+            ? "Kies minimaal één muziekgenre."
+            : "Choose at least one music genre.",
+      )
       return fail("genres_missing", "genres-field")
     }
     if (selectedEventTypes.length === 0) {
       setEventTypesError(L ? "Kies minimaal één evenement type." : "Choose at least one event type.")
       return fail("event_types_missing", "event-types-field")
     }
-    const missingEquipment = getMinimumEquipmentConfig().filter((config) => !isEquipmentComplete(config.id))
+    const missingEquipment = photo ? [] : getMinimumEquipmentConfig().filter((config) => !isEquipmentComplete(config.id))
     if (missingEquipment.length > 0) {
       setEquipmentError(
         L
@@ -850,7 +882,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
       const minimumEquipmentUploaded = Object.fromEntries(
         await Promise.all(
-          Object.entries(minimumEquipment).map(async ([key, item]) => [
+          Object.entries(photo ? {} : minimumEquipment).map(async ([key, item]) => [
             key,
             { ...item, image: item.image ? await uploadImage(item.image, "equipment") : undefined },
           ]),
@@ -996,7 +1028,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
           {/* Header */}
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-600 flex-shrink-0">
-              <Music className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              {photo ? (
+                <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              ) : (
+                <Music className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              )}
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--rf-red-text)]">
@@ -1005,8 +1041,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     ? "Bewerk je profiel"
                     : "Edit your profile"
                   : L
-                    ? "Registreer als Professional"
-                    : "Register as Professional"}
+                    ? photo
+                      ? "Registreer als fotograaf of videograaf"
+                      : "Registreer als Professional"
+                    : photo
+                      ? "Register as a photographer or videographer"
+                      : "Register as Professional"}
               </h1>
               <p className="text-sm sm:text-base text-[var(--rf-muted)]">
                 {isEdit
@@ -1133,12 +1173,20 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 {/* Stage Name */}
                 <div className="space-y-2">
                   <Label htmlFor="stageName" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
-                    {L ? "Artiestennaam" : "Stage Name"}
+                    {photo ? (L ? "Profielnaam" : "Profile name") : L ? "Artiestennaam" : "Stage Name"}
                     <RequiredMark />
                   </Label>
                   <Input
                     id="stageName"
-                    placeholder={L ? "Bijvoorbeeld: DJ Voorbeeld" : "For example: DJ Example"}
+                    placeholder={
+                      photo
+                        ? L
+                          ? "Bijvoorbeeld: Studio Voorbeeld"
+                          : "For example: Studio Example"
+                        : L
+                          ? "Bijvoorbeeld: DJ Voorbeeld"
+                          : "For example: DJ Example"
+                    }
                     className={inputClassName}
                     value={stageName}
                     onChange={(e) => setStageName(e.target.value)}
@@ -1454,7 +1502,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Artist Type selector */}
               <div className="space-y-2">
                 <Label id="artistType-label" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
-                  {L ? "Artiest type" : "Artist Type"}
+                  {photo ? "Type" : L ? "Artiest type" : "Artist Type"}
                   <RequiredMark />
                 </Label>
                 <ComboSelect
@@ -1465,15 +1513,23 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   value={artistType}
                   onChange={handleArtistTypeChange}
                   invalid={!!artistTypeError}
-                  placeholder={L ? "Selecteer je artiest type" : "Select your artist type"}
+                  placeholder={
+                    photo
+                      ? L
+                        ? "Fotograaf, videograaf of allebei"
+                        : "Photographer, videographer or both"
+                      : L
+                        ? "Selecteer je artiest type"
+                        : "Select your artist type"
+                  }
                   searchPlaceholder={L ? "Zoek een type..." : "Search a type..."}
                   groups={[
                     {
-                      options: ARTIST_TYPES.map((type) => ({
+                      options: (photo ? PHOTO_VIDEO_TYPES : ARTIST_TYPES).map((type) => ({
                         value: type.value,
                         label: L ? type.nl : type.en,
                         description: L ? type.descNl : type.descEn,
-                        icon: <Music className="size-[18px]" />,
+                        icon: photo ? <Camera className="size-[18px]" /> : <Music className="size-[18px]" />,
                       })),
                     },
                   ]}
@@ -1485,15 +1541,19 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 )}
                 <p className="text-xs sm:text-sm text-[var(--rf-muted)]">
                   {L
-                    ? "Dit helpt klanten je te vinden op basis van het type optreden dat je aanbiedt"
-                    : "This helps clients find you based on the type of performance you offer"}
+                    ? photo
+                      ? "Dit helpt klanten je te vinden op basis van wat je vastlegt"
+                      : "Dit helpt klanten je te vinden op basis van het type optreden dat je aanbiedt"
+                    : photo
+                      ? "This helps clients find you based on what you capture"
+                      : "This helps clients find you based on the type of performance you offer"}
                 </p>
               </div>
 
               {artistType && (
                 <div id="genres-field" className="space-y-2">
                   <Label id="genres-label" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
-                    {L ? "Muziekgenres" : "Music Genres"}
+                    {photo ? (L ? "Specialisaties" : "Specialisations") : L ? "Muziekgenres" : "Music Genres"}
                     <RequiredMark />
                   </Label>
                   {genresError && selectedGenres.length === 0 && (
@@ -1509,10 +1569,14 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     value={selectedGenres}
                     onChange={setSelectedGenres}
                     invalid={!!genresError && selectedGenres.length === 0}
-                    placeholder={L ? "Selecteer genres" : "Select genres"}
-                    searchPlaceholder={L ? "Zoek een genre..." : "Search a genre..."}
+                    placeholder={
+                      photo ? (L ? "Selecteer specialisaties" : "Select specialisations") : L ? "Selecteer genres" : "Select genres"
+                    }
+                    searchPlaceholder={
+                      photo ? (L ? "Zoek een specialisatie..." : "Search a specialisation...") : L ? "Zoek een genre..." : "Search a genre..."
+                    }
                     labelFor={(value) => genreLabel(value, L)}
-                    groups={GENRE_GROUPS.map((group) => ({
+                    groups={(photo ? PHOTO_SPECIALTY_GROUPS : GENRE_GROUPS).map((group) => ({
                       label: L ? group.nl : group.en,
                       options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
                     }))}
@@ -1551,7 +1615,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               )}
 
               {/* Package Equipment Section */}
-              {artistType && (
+              {artistType && !photo && (
                 <div id="equipment-field" className="rounded-[14px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-4 sm:p-6 space-y-4">
                   <h2 className="text-xl sm:text-2xl font-bold text-[var(--rf-text)]">
                     {L ? "Pakket apparatuur verhuur" : "Package Equipment Rental"}
@@ -1693,12 +1757,22 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {artistType && (
                 <div className="rounded-[14px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] p-4 sm:p-6 space-y-4">
                   <h2 className="text-xl sm:text-2xl font-bold text-[var(--rf-text)]">
-                    {L ? "Extra apparatuur (optioneel)" : "Extra Equipment (Optional)"}
+                    {photo
+                      ? L
+                        ? "Extra's (optioneel)"
+                        : "Extras (Optional)"
+                      : L
+                        ? "Extra apparatuur (optioneel)"
+                        : "Extra Equipment (Optional)"}
                   </h2>
                   <p className="text-sm sm:text-base leading-relaxed text-[var(--rf-muted)]">
-                    {L
-                      ? "Voeg extra apparatuur toe die je aanbiedt als optionele extra's voor klanten."
-                      : "Add any additional equipment you offer as optional extras for clients."}
+                    {photo
+                      ? L
+                        ? "Voeg extra's toe die klanten erbij kunnen boeken, zoals een tweede fotograaf, drone-opnames, een fotoalbum of een same-day edit."
+                        : "Add extras clients can book on top, such as a second shooter, drone footage, a photo album or a same-day edit."
+                      : L
+                        ? "Voeg extra apparatuur toe die je aanbiedt als optionele extra's voor klanten."
+                        : "Add any additional equipment you offer as optional extras for clients."}
                   </p>
 
                   <AdditionalEquipment
@@ -1707,6 +1781,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     onUpdate={updateExtraEquipment}
                     onRemove={removeExtraEquipment}
                     nl={L}
+                    extras={photo}
                   />
                 </div>
               )}
