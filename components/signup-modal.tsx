@@ -15,6 +15,18 @@ import { lettersOnly, phoneChars } from "@/lib/input-filters"
 import { setPendingPassword } from "@/lib/pending-signup"
 import { isEmailAvailable } from "@/app/actions/signup-check"
 
+/** Visible label above a field; required fields get a red asterisk. */
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-gray-900 dark:text-gray-100">
+      {children}
+      <span className="ml-0.5 text-red-600 dark:text-red-500" aria-hidden="true">
+        *
+      </span>
+    </label>
+  )
+}
+
 interface SignupModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -180,10 +192,16 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
             </div>
 
             <form onSubmit={handleSignup} className="space-y-3 sm:space-y-4">
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                {language === "nl" ? "Velden met " : "Fields marked "}
+                <span className="text-red-600 dark:text-red-500">*</span>
+                {language === "nl" ? " zijn verplicht." : " are required."}
+              </p>
               {accountType === "professional" && (
                 <div>
+                  <FieldLabel htmlFor="signup-category">{language === "nl" ? "Categorie" : "Category"}</FieldLabel>
                   <Select value={category} onValueChange={setCategory} required>
-                    <SelectTrigger className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:border-red-600 focus:ring-red-600">
+                    <SelectTrigger id="signup-category" className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:border-red-600 focus:ring-red-600">
                       <SelectValue placeholder={t.selectCategory} />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-gray-800">
@@ -198,10 +216,11 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
               )}
 
               <div>
+                <FieldLabel htmlFor="signup-name">{t.fullName}</FieldLabel>
                 <Input
+                  id="signup-name"
                   type="text"
-                  placeholder={t.fullName}
-                  aria-label={t.fullName}
+                  placeholder={language === "nl" ? "Voor- en achternaam" : "First and last name"}
                   value={fullName}
                   onChange={(e) => setFullName(lettersOnly(e.target.value))}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -210,10 +229,11 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
               </div>
 
               <div>
+                <FieldLabel htmlFor="signup-email">{t.email}</FieldLabel>
                 <Input
+                  id="signup-email"
                   type="email"
-                  placeholder={t.email}
-                  aria-label={t.email}
+                  placeholder={language === "nl" ? "naam@voorbeeld.nl" : "name@example.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -222,10 +242,11 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
               </div>
 
               <div>
+                <FieldLabel htmlFor="signup-phone">{t.phoneNumber}</FieldLabel>
                 <Input
+                  id="signup-phone"
                   type="tel"
-                  placeholder={t.phoneNumber}
-                  aria-label={t.phoneNumber}
+                  placeholder={language === "nl" ? "06 12345678" : "+31 6 12345678"}
                   value={phone}
                   onChange={(e) => setPhone(phoneChars(e.target.value))}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -233,11 +254,13 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                 />
               </div>
 
-              <div className="relative">
+              <div>
+                <FieldLabel htmlFor="signup-password">{t.password}</FieldLabel>
+                <div className="relative">
                 <Input
+                  id="signup-password"
                   type={showPassword ? "text" : "password"}
                   placeholder={t.password}
-                    aria-label={t.password}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-12 pr-10 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
@@ -254,12 +277,14 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              </div>
 
               <div>
+                <FieldLabel htmlFor="signup-password2">{language === "nl" ? "Herhaal wachtwoord" : "Repeat password"}</FieldLabel>
                 <Input
+                  id="signup-password2"
                   type={showPassword ? "text" : "password"}
                   placeholder={language === "nl" ? "Herhaal wachtwoord" : "Repeat password"}
-                  aria-label={language === "nl" ? "Herhaal wachtwoord" : "Repeat password"}
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value)}
                   className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-red-600 focus:ring-red-600"
