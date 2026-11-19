@@ -18,7 +18,7 @@ export default async function AccountLayout({
   const user = await requireCustomerUser();
   const unread = await getCustomerUnreadCount();
   return (
-    <AccountShell name={user.name} email={user.email} unread={unread}>
+    <AccountShell name={user.name} email={user.email} image={user.image ?? null} unread={unread}>
       {children}
     </AccountShell>
   );

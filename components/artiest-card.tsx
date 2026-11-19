@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Artist } from "@/lib/smart-search"
 import { useLanguage } from "@/contexts/language-context"
+import { FavoriteButton } from "@/components/account/favorite-button"
 
 interface ArtiestCardProps {
   artist: Artist
@@ -40,6 +41,15 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+
+        <div className="absolute top-3 right-3 z-10">
+          <FavoriteButton
+            variant="icon"
+            professionalId={String(artist.id)}
+            professionalType="artist"
+            name={artist.name}
+          />
+        </div>
 
         {isVisited && (
           <div className="absolute top-3 left-3 z-10">
