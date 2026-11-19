@@ -11,10 +11,13 @@ interface ArtiestProfileModalProps {
   artist: Artist | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** The professional's own page; defaults to the artist page. Null hides the link. */
+  fullPageHref?: string | null
 }
 
-export function ArtiestProfileModal({ artist, open, onOpenChange }: ArtiestProfileModalProps) {
+export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }: ArtiestProfileModalProps) {
   if (!artist) return null
+  const pageHref = fullPageHref === undefined ? getArtistPath(artist) : fullPageHref
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -25,13 +28,15 @@ export function ArtiestProfileModal({ artist, open, onOpenChange }: ArtiestProfi
           onNavigate={() => onOpenChange(false)}
           heroAction={
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+              {pageHref && (
               <Link
-                href={getArtistPath(artist)}
+                href={pageHref}
                 className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-xs font-medium text-white backdrop-blur transition-colors hover:bg-black/80"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Volledige pagina
               </Link>
+              )}
               <DialogClose className="rounded-full bg-red-700 p-2 text-white transition-colors hover:bg-red-600">
                 <X className="h-4 w-4" />
                 <span className="sr-only">Sluiten</span>

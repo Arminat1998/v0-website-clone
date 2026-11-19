@@ -22,6 +22,7 @@ import { FavoriteButton } from "@/components/account/favorite-button";
 import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
 import { useLanguage } from "@/contexts/language-context";
 import { digitsOnlyPrice, formatRentalPrice, imageSrc } from "@/lib/professional-profile-types";
+import { bookingHref } from "@/components/artist-website/website-context";
 
 interface ArtistProfileViewProps {
   artist: Artist;
@@ -42,6 +43,8 @@ export function ArtistProfileView({
   const nl = language === "nl";
   // Real accounts always carry their own equipment list. Only the demo artists may fall back to sample content.
   const isReal = !!artist.equipmentDetails;
+  // Photographers and videographers use the same view with their own labels and booking route.
+  const photo = artist.kind === "photo-video";
   const packageItems = artist.equipmentDetails?.packageItems ?? [];
   const extraItems = artist.equipmentDetails?.extraItems ?? [];
   const packageTotal = packageItems.reduce((sum, item) => sum + (Number(digitsOnlyPrice(item.price)) || 0), 0);
@@ -243,7 +246,7 @@ export function ArtistProfileView({
             </a>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <FavoriteButton professionalId={String(artist.id)} professionalType="artist" />
+            <FavoriteButton professionalId={String(artist.id)} professionalType={photo ? "photographer" : "artist"} />
             <Button
               variant="outline"
               className="flex-1 bg-transparent border-border text-foreground hover:bg-accent text-sm sm:text-base py-2 sm:py-auto"
@@ -254,7 +257,7 @@ export function ArtistProfileView({
             <Button
               className="bg-red-700 hover:bg-red-600 text-white flex-1 text-sm sm:text-base py-2 sm:py-auto"
               onClick={() => {
-                const href = `/booking?artistId=${artist.id}&type=artist`;
+                const href = bookingHref(artist);
                 if (!bookGuard(href)) return;
                 onNavigate?.();
                 router.push(href);
@@ -280,7 +283,7 @@ export function ArtistProfileView({
                 {artist.price.replace("€", "").trim()}
               </span>
             </div>
-            <div className="text-xs text-muted-foreground">excl.eq</div>
+            <div className="text-xs text-muted-foreground">{photo ? "excl. extras" : "excl.eq"}</div>
           </div>
 
           {/* Duration Card */}
@@ -343,7 +346,7 @@ export function ArtistProfileView({
               value="equipment"
               className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
             >
-              Equipment
+              {photo ? "Extras" : "Equipment"}
             </TabsTrigger>
             <TabsTrigger
               value="availability"
@@ -393,7 +396,7 @@ export function ArtistProfileView({
 
             <div>
               <h4 className="text-base sm:text-xl font-bold mb-3 sm:mb-4 text-foreground">
-                Music Genres
+                {photo ? "Specialties" : "Music Genres"}
               </h4>
               <div className="flex flex-wrap gap-1 sm:gap-2">
                 {isReal && !artist.musicStyles?.length && (
@@ -442,6 +445,7 @@ export function ArtistProfileView({
                 </p>
               </div>
 
+              {!photo && (
               <div>
                 <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
                   Connect
@@ -493,6 +497,7 @@ export function ArtistProfileView({
                   </div>
                 </div>
               </div>
+              )}
             </div>
             )}
           </TabsContent>
@@ -501,11 +506,17 @@ export function ArtistProfileView({
             {isReal ? (
               <>
                 <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
-                  {nl ? "Apparatuur" : "Equipment"}
+                  {photo ? (nl ? "Extra's" : "Extras") : nl ? "Apparatuur" : "Equipment"}
                 </h3>
                 {packageItems.length === 0 && extraItems.length === 0 && (
                   <p className="rounded-lg border-2 border-border bg-card p-4 text-xs sm:text-base text-muted-foreground">
-                    {nl ? "Deze artiest heeft nog geen apparatuur opgegeven." : "This artist has not listed any equipment yet."}
+                    {photo
+                      ? nl
+                        ? "Deze fotograaf heeft nog geen extra's opgegeven."
+                        : "This photographer has not listed any extras yet."
+                      : nl
+                        ? "Deze artiest heeft nog geen apparatuur opgegeven."
+                        : "This artist has not listed any equipment yet."}
                   </p>
                 )}
                 {packageItems.length > 0 && (
@@ -815,7 +826,7 @@ export function ArtistProfileView({
                   <Link
                     href={
                       selectedDate
-                        ? `/booking?artistId=${artist.id}&date=${selectedDate}-${currentMonth + 1}-${currentYear}`
+                        ? bookingHref(artist, `${selectedDate}-${currentMonth + 1}-${currentYear}`)
                         : "#"
                     }
                     className={`block w-full mt-3 sm:mt-4 py-2 sm:py-3 rounded-lg font-medium text-sm text-center transition-colors ${
@@ -828,7 +839,7 @@ export function ArtistProfileView({
                         e.preventDefault();
                       } else if (
                         bookGuard(
-                          `/booking?artistId=${artist.id}&date=${selectedDate}-${currentMonth + 1}-${currentYear}`,
+                          bookingHref(artist, `${selectedDate}-${currentMonth + 1}-${currentYear}`),
                           e,
                         )
                       ) {
