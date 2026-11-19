@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles, Zap } from "lucide-react"
@@ -9,9 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SmartSearchInput } from "@/components/smart-search-input"
 import { PhotoVideoCard } from "@/components/photo-video-card"
-import { PhotoVideoProfileModal } from "@/components/photo-video-profile-modal"
+import { ArtiestProfileModal } from "@/components/artiest-profile-modal"
 import { smartSearch, enhancedPhotographers } from "@/lib/smart-search"
-import type { Photographer } from "@/lib/smart-search"
+import type { Artist, Photographer } from "@/lib/smart-search"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import type { FilterState } from "@/lib/conversational-ai"
@@ -25,6 +24,32 @@ interface PhotoVideoGridProps {
   appliedFilters?: any
   searchInsights?: string[]
   onFilterUpdate?: (filters: Partial<FilterState>) => void
+}
+
+/** The artist profile view shows photographers too; specialisations take the place of music genres. */
+function photographerAsArtist(professional: Photographer): Artist {
+  const years = professional.experience?.match(/\d+/)?.[0]
+  return {
+    id: professional.id,
+    name: professional.name,
+    specialty: professional.specialty,
+    location: professional.location,
+    rating: professional.rating,
+    reviews: professional.reviews,
+    price: professional.price,
+    available: professional.available,
+    description: professional.description,
+    eventTypes: professional.eventTypes,
+    musicStyles: professional.serviceTypes,
+    experience: years,
+    availableDates: professional.availableDates,
+    unavailableDates: professional.unavailableDates,
+    category: professional.category,
+    image: professional.image,
+    // No sample DJ equipment: photographers only show the extras they listed.
+    equipmentDetails: { packageItems: [], extraItems: [] },
+    kind: "photo-video",
+  }
 }
 
 export function PhotoVideoGrid({
@@ -45,7 +70,6 @@ export function PhotoVideoGrid({
   const [visitedIds, setVisitedIds] = useState<Set<number>>(new Set())
   const { t } = useLanguage()
   const { toast } = useToast()
-  const router = useRouter()
 
   // Approved photographers and videographers who registered themselves, shown before the example profiles.
   const { data: liveData } = useSWR<{ photographers: Photographer[] }>(
@@ -164,11 +188,6 @@ export function PhotoVideoGrid({
   }, [filteredPhotographers, sortBy])
 
   const handleProfessionalClick = (professional: Photographer) => {
-    // Registered professionals have their own page; the example profiles open in a window.
-    if (professional.href) {
-      router.push(professional.href)
-      return
-    }
     setSelectedProfessional(professional)
     setIsModalOpen(true)
   }
@@ -296,7 +315,13 @@ export function PhotoVideoGrid({
         </div>
       )}
 
-      <PhotoVideoProfileModal professional={selectedProfessional} open={isModalOpen} onOpenChange={handleModalClose} />
+      {/* Same profile window as on the artists page, with photographer labels. */}
+      <ArtiestProfileModal
+        artist={selectedProfessional ? photographerAsArtist(selectedProfessional) : null}
+        open={isModalOpen}
+        onOpenChange={handleModalClose}
+        fullPageHref={selectedProfessional?.href ?? null}
+      />
     </div>
   )
 }
