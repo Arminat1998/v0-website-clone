@@ -19,14 +19,21 @@ const EXTRAS = [
 ]
 
 function RealEquipment({ packageItems, extraItems }: { packageItems: EquipmentDetail[]; extraItems: EquipmentDetail[] }) {
-  const { t } = useWebsite()
+  const { t, artist } = useWebsite()
   const isDutch = t.extraOptions === "Extra opties"
+  const photo = artist.kind === "photo-video"
   const suffix = isDutch ? "/dag" : "/day"
 
   if (!packageItems.length && !extraItems.length) {
     return (
       <section className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-        {isDutch ? "Er is nog geen apparatuur toegevoegd." : "No equipment has been added yet."}
+        {photo
+          ? isDutch
+            ? "Er zijn nog geen extra's toegevoegd."
+            : "No extras have been added yet."
+          : isDutch
+            ? "Er is nog geen apparatuur toegevoegd."
+            : "No equipment has been added yet."}
       </section>
     )
   }

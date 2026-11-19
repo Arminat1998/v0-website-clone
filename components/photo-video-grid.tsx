@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -43,6 +45,19 @@ export function PhotoVideoGrid({
   const [visitedIds, setVisitedIds] = useState<Set<number>>(new Set())
   const { t } = useLanguage()
   const { toast } = useToast()
+  const router = useRouter()
+
+  // Approved photographers and videographers who registered themselves, shown before the example profiles.
+  const { data: liveData } = useSWR<{ photographers: Photographer[] }>(
+    "/api/photographers/live",
+    (url: string) => fetch(url).then((response) => response.json()),
+    { revalidateOnFocus: true },
+  )
+  // The example profiles show right away; registered ones are added on top once they have loaded.
+  const allPhotographers = useMemo(
+    () => [...(liveData?.photographers ?? []), ...enhancedPhotographers],
+    [liveData],
+  )
 
   useEffect(() => {
     if (initialSearch) {
@@ -62,7 +77,7 @@ export function PhotoVideoGrid({
   }
 
   const filteredPhotographers = useMemo(() => {
-    let professionals = enhancedPhotographers
+    let professionals = allPhotographers
 
     if (searchTerm.trim()) {
       if (useAISearch) {
@@ -123,7 +138,7 @@ export function PhotoVideoGrid({
     }
 
     return professionals
-  }, [searchTerm, appliedFilters, urlFilters, useAISearch])
+  }, [allPhotographers, searchTerm, appliedFilters, urlFilters, useAISearch])
 
   const sortedProfessionals = useMemo(() => {
     const professionals = [...filteredPhotographers]
@@ -149,6 +164,11 @@ export function PhotoVideoGrid({
   }, [filteredPhotographers, sortBy])
 
   const handleProfessionalClick = (professional: Photographer) => {
+    // Registered professionals have their own page; the example profiles open in a window.
+    if (professional.href) {
+      router.push(professional.href)
+      return
+    }
     setSelectedProfessional(professional)
     setIsModalOpen(true)
   }

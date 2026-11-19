@@ -5,6 +5,8 @@ import { professionalProfiles, user } from "@/lib/db/schema";
 import { artists, photographers } from "@/lib/smart-search";
 import { getArtistPath } from "@/lib/artist-slug";
 import { getRestriction } from "@/lib/moderation";
+import { getProfessionalArtistPath } from "@/lib/professional-artist";
+import { isPhotoVideo } from "@/lib/profile-options";
 import type { FavoriteItem, FavoriteType } from "@/lib/customer-types";
 
 export async function resolveCustomerProfessional(
@@ -29,12 +31,12 @@ export async function resolveCustomerProfessional(
           ? getArtistPath(staticItem as (typeof artists)[number])
           : `/booking?professionalId=${encodeURIComponent(id)}&type=photographer`,
     };
-  if (type !== "artist") return null;
   const [row] = await db
     .select({
       id: user.id,
       name: user.name,
       image: user.image,
+      category: user.category,
       status: user.status,
       statusReason: user.statusReason,
       suspendedUntil: user.suspendedUntil,
@@ -57,6 +59,8 @@ export async function resolveCustomerProfessional(
     )
     .limit(1);
   if (!row || getRestriction(row)) return null;
+  // Registered photographers and videographers are saved and booked as "photographer".
+  if (isPhotoVideo(row.category) !== (type === "photographer")) return null;
   return {
     professionalId: id,
     professionalType: type,
@@ -66,9 +70,10 @@ export async function resolveCustomerProfessional(
     price: `€${row.rate}`,
     image: row.image,
     available: true,
-    href: getArtistPath({
-      id: id as unknown as number,
+    href: getProfessionalArtistPath({
+      id,
       name: row.stageName || row.name,
-    } as (typeof artists)[number]),
+      category: row.category,
+    }),
   };
 }
