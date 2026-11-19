@@ -38,11 +38,13 @@ export function AccountShell({
   children,
   name,
   email,
+  image = null,
   unread,
 }: {
   children: ReactNode;
   name: string;
   email: string;
+  image?: string | null;
   unread: number;
 }) {
   const nl = useLanguage().language === "nl";
@@ -170,8 +172,12 @@ export function AccountShell({
         {nl ? "Terug naar ontdekken" : "Back to explore"}
       </Link>
       <div className="flex items-center gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold">
-          {name.slice(0, 2).toUpperCase()}
+        <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent text-sm font-semibold">
+          {image ? (
+            <img src={image} alt="" className="size-full object-cover" />
+          ) : (
+            name.slice(0, 2).toUpperCase()
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{name}</p>

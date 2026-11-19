@@ -14,10 +14,16 @@ export function FavoriteButton({
   professionalId,
   professionalType,
   initialSaved = false,
+  variant = "button",
+  name,
 }: {
   professionalId: string;
   professionalType: FavoriteType;
   initialSaved?: boolean;
+  /** "icon": round heart button for on top of a card image. */
+  variant?: "button" | "icon";
+  /** Professional's name, used in the accessible label of the icon variant. */
+  name?: string;
 }) {
   const nl = useLanguage().language === "nl";
   const router = useRouter();
@@ -41,7 +47,9 @@ export function FavoriteButton({
       )
     : initialSaved;
   if (session && !isCustomer) return null;
-  async function toggle() {
+  async function toggle(event?: React.MouseEvent) {
+    // On a card the button sits inside a clickable card: don't open the profile.
+    event?.stopPropagation();
     if (!session) {
       router.push(
         `/?login=1&next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
@@ -69,13 +77,63 @@ export function FavoriteButton({
       setBusy(false);
     }
   }
+  const disabled = busy || isPending || isLoading || Boolean(loadError);
+  const errorText =
+    error ||
+    (loadError
+      ? nl
+        ? "Favorieten niet beschikbaar. Vernieuw de pagina."
+        : "Favorites unavailable. Refresh the page."
+      : "");
+
+  if (variant === "icon") {
+    const label = saved
+      ? nl
+        ? `${name ?? "Professional"} verwijderen uit favorieten`
+        : `Remove ${name ?? "professional"} from favorites`
+      : nl
+        ? `${name ?? "Professional"} bewaren in favorieten`
+        : `Save ${name ?? "professional"} to favorites`;
+    return (
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          aria-pressed={saved}
+          aria-label={label}
+          title={label}
+          disabled={disabled}
+          onClick={toggle}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
+        >
+          {busy ? (
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+          ) : (
+            <Heart
+              className={saved ? "h-5 w-5 text-red-500" : "h-5 w-5"}
+              fill={saved ? "currentColor" : "none"}
+              aria-hidden="true"
+            />
+          )}
+        </button>
+        {errorText && (
+          <p
+            role="alert"
+            className="absolute right-0 top-12 w-48 rounded-md bg-destructive px-2 py-1 text-xs text-white shadow-lg"
+          >
+            {errorText}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <Button
         variant="outline"
         type="button"
         aria-pressed={saved}
-        disabled={busy || isPending || isLoading || Boolean(loadError)}
+        disabled={disabled}
         onClick={toggle}
       >
         {busy ? (
@@ -85,12 +143,9 @@ export function FavoriteButton({
         )}
         {saved ? (nl ? "Bewaard" : "Saved") : nl ? "Bewaren" : "Save"}
       </Button>
-      {(error || loadError) && (
+      {errorText && (
         <p className="text-sm text-destructive" role="alert">
-          {error ||
-            (nl
-              ? "Favorieten niet beschikbaar. Vernieuw de pagina."
-              : "Favorites unavailable. Refresh the page.")}
+          {errorText}
         </p>
       )}
     </div>

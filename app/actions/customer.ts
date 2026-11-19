@@ -28,7 +28,7 @@ async function customerUser() {
 }
 
 export async function getCustomerProfile(): Promise<
-  CustomerProfileInput & { email: string }
+  CustomerProfileInput & { email: string; image: string | null }
 > {
   const account = await customerUser();
   const [row] = await db
@@ -50,6 +50,7 @@ export async function getCustomerProfile(): Promise<
     billingCountry: row?.billingCountry ?? "Nederland",
     vatNumber: row?.vatNumber ?? "",
     email: account.email,
+    image: account.image ?? null,
   };
 }
 

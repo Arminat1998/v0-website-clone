@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { AccountHeading } from "./account-common";
+import { AccountProfilePhoto } from "./profile-photo";
 import { saveCustomerProfile } from "@/app/actions/customer";
 import {
   customerProfileSchema,
@@ -41,11 +42,12 @@ const FIELD_FILTERS: Partial<Record<string, (value: string) => string>> = {
 export function AccountProfileForm({
   profile,
 }: {
-  profile: CustomerProfileInput & { email: string };
+  profile: CustomerProfileInput & { email: string; image: string | null };
 }) {
   const nl = useLanguage().language === "nl";
   const router = useRouter();
-  const [values, setValues] = useState<CustomerProfileInput>(profile);
+  const { email: _email, image: _image, ...initialValues } = profile;
+  const [values, setValues] = useState<CustomerProfileInput>(initialValues);
   const [invalid, setInvalid] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -314,6 +316,11 @@ export function AccountProfileForm({
             )}
           </div>
         </form>
+        <div className="flex flex-col gap-6">
+        <AccountProfilePhoto
+          name={`${profile.firstName} ${profile.lastName}`.trim() || profile.email}
+          image={profile.image}
+        />
         <Card>
           <CardHeader>
             <CardTitle>
@@ -387,6 +394,7 @@ export function AccountProfileForm({
             </form>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
