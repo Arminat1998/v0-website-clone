@@ -7,6 +7,7 @@ import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { artists, photographers } from "@/lib/smart-search"
+import { isDemoProfessional } from "@/lib/demo-professionals"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
@@ -181,6 +182,27 @@ export default function BookingPage() {
 
   if (!professional) {
     return null
+  }
+
+  // Sample profiles cannot be booked: nobody would receive the request.
+  if (isDemoProfessional(professional.id)) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto max-w-xl px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold text-foreground">{tr("Voorbeeldprofiel", "Sample profile")}</h1>
+          <p className="mt-3 text-muted-foreground text-pretty">
+            {tr(
+              `${professional.name} is een voorbeeldprofiel en kan niet geboekt worden. Kies een professional zonder dit label.`,
+              `${professional.name} is a sample profile and cannot be booked. Choose a professional without this label.`,
+            )}
+          </p>
+          <Button asChild className="mt-6 bg-red-700 text-white hover:bg-red-600">
+            <Link href={artist ? "/artiesten" : "/photo-video"}>{tr("Terug naar het overzicht", "Back to the overview")}</Link>
+          </Button>
+        </main>
+      </div>
+    )
   }
 
   const months = [

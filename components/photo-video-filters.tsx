@@ -11,6 +11,7 @@ import type { FilterSuggestions } from "@/lib/adaptive-filters"
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import { useLanguage } from "@/contexts/language-context"
 import { lettersOnly, rangeChars } from "@/lib/input-filters"
+import { calendarStart, calendarYears, isPastDate, mondayOffset } from "@/lib/filter-calendar"
 
 interface PhotoVideoFiltersProps {
   searchQuery?: string
@@ -27,8 +28,8 @@ export function PhotoVideoFilters({
   isMobileOpen,
   onMobileClose,
 }: PhotoVideoFiltersProps) {
-  const [currentMonth, setCurrentMonth] = useState("September")
-  const [currentYear, setCurrentYear] = useState("2025")
+  const [currentMonth, setCurrentMonth] = useState(() => calendarStart().month)
+  const [currentYear, setCurrentYear] = useState(() => calendarStart().year)
   const [priceRange, setPriceRange] = useState([0, 5000])
   const [selectedCity, setSelectedCity] = useState("")
   const [selectedDuration, setSelectedDuration] = useState("")
@@ -108,7 +109,7 @@ export function PhotoVideoFilters({
     "December",
   ]
 
-  const years = ["2024", "2025", "2026"]
+  const years = calendarYears()
 
   const serviceTypes = ["Photographer", "Videographer", "Photographer & Videographer"]
 
@@ -130,7 +131,7 @@ export function PhotoVideoFilters({
 
   const getFirstDayOfMonth = (month: string, year: string) => {
     const monthIndex = months.indexOf(month)
-    return new Date(Number.parseInt(year), monthIndex, 1).getDay()
+    return mondayOffset(monthIndex, Number.parseInt(year))
   }
 
   const renderCalendar = () => {
@@ -145,12 +146,15 @@ export function PhotoVideoFilters({
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentYear}-${(months.indexOf(currentMonth) + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
       const isSelected = selectedDate === dateStr
+      const isPast = isPastDate(dateStr)
 
       days.push(
         <button
           key={day}
+          type="button"
+          disabled={isPast}
           className={`w-8 h-8 text-sm rounded flex items-center justify-center transition-colors text-foreground ${
-            isSelected ? "bg-red-500 text-white" : "hover:bg-accent"
+            isSelected ? "bg-red-500 text-white" : isPast ? "cursor-not-allowed opacity-40" : "hover:bg-accent"
           }`}
           onClick={() => setSelectedDate(isSelected ? "" : dateStr)}
         >

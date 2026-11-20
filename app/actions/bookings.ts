@@ -3,13 +3,14 @@
 import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { bookings, invoices, notifications, type Booking, type Invoice, type Notification } from "@/lib/db/schema"
+import { bookings, customerNotifications, invoices, notifications, type Booking, type Invoice, type Notification } from "@/lib/db/schema"
 import { calculatePricing, parseHourlyRateCents } from "@/lib/bookings/pricing"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
 import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 import { createReviewInvite } from "@/app/actions/reviews"
+import { isDemoProfessional } from "@/lib/demo-professionals"
 
 export type CustomerBooking = Pick<
   Booking,
@@ -133,6 +134,8 @@ export async function createBooking(input: CreateBookingInput) {
       !Array.isArray(input.equipment) || input.equipment.length > 20) {
     throw new Error("Invalid booking details")
   }
+  // Sample profiles have no account behind them, so a request would never reach anyone.
+  if (isDemoProfessional(input.professionalId)) throw new Error("Professional unavailable")
   const professional = await resolveCustomerProfessional(input.professionalId, input.professionalType)
   if (!professional) throw new Error("Professional unavailable")
   if ((await getBlockedDates(input.professionalId)).includes(input.eventDate)) throw new Error("Date unavailable")
@@ -307,8 +310,10 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
         updatedAt: new Date(),
       })
       .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-      .returning({ id: bookings.id })
+      .returning({ id: bookings.id, customerId: bookings.customerId })
     if (!updated.length) return { ok: false, error: "NOT_FOUND" }
+    const customerId = updated[0].customerId
+    if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "accepted" })
 
     await tx
       .update(notifications)
@@ -322,19 +327,25 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
 
 export async function rejectBooking(id: number, reason: string) {
   const professionalId = await getProfessionalId()
-  await db
-    .update(bookings)
-    .set({
-      status: "rejected",
-      rejectionReason: reason.trim() || null,
-      respondedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-  await db
-    .update(notifications)
-    .set({ read: true })
-    .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, professionalId)))
+  await db.transaction(async (tx) => {
+    const updated = await tx
+      .update(bookings)
+      .set({
+        status: "rejected",
+        rejectionReason: reason.trim() || null,
+        respondedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
+      .returning({ customerId: bookings.customerId })
+    if (!updated.length) return
+    const customerId = updated[0].customerId
+    if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "rejected" })
+    await tx
+      .update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, professionalId)))
+  })
   revalidateDashboard(id)
 }
 
@@ -344,10 +355,14 @@ export async function completeBooking(id: number) {
   if (!booking || booking.status !== "accepted") return
   if (booking.eventDate > todayIso()) throw new Error("Event has not taken place yet")
 
-  await db
+  const updated = await db
     .update(bookings)
     .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId)))
+    .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "accepted")))
+    .returning({ customerId: bookings.customerId })
+  if (!updated.length) return
+  const customerId = updated[0].customerId
+  if (customerId) await db.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "completed" })
 
   await db.insert(notifications).values({
     professionalId,

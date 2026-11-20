@@ -5,6 +5,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react"
 import { bookingHref, useWebsite } from "@/components/artist-website/website-context"
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import { DemoBookButton } from "@/components/demo-book-button"
 
 const UPCOMING = [
   { title: "Private Party", date: "Dec 21, 2025", city: "Eindhoven" },
@@ -117,7 +119,8 @@ export function AvailabilitySection() {
             })}
           </div>
 
-          {!edit && (
+          {!edit && isDemoProfessional(artist.id) && <DemoBookButton className="mt-4 w-full" />}
+          {!edit && !isDemoProfessional(artist.id) && (
             <Link
               href={selected ? bookingHref(artist, `${selected}-${month + 1}-${year}`) : "#"}
               aria-disabled={!selected}

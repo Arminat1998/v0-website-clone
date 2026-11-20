@@ -6,6 +6,7 @@ import { Suspense } from "react"
 import { LanguageProvider } from "@/contexts/language-context"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { UserTest } from "@/components/user-test"
+import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
 
 const inter = Inter({
@@ -31,6 +32,7 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <Suspense fallback={null}>{children}</Suspense>
+            <Toaster />
             <UserTest />
             <Analytics />
           </LanguageProvider>

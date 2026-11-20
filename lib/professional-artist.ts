@@ -188,6 +188,7 @@ export async function listLivePhotographers(): Promise<Photographer[]> {
             category: type,
             image: artist.image,
             href: getProfessionalArtistPath(account),
+            equipmentDetails: artist.equipmentDetails,
           }
         }),
     )

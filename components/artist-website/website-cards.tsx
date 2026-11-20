@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { SOCIAL_META } from "@/components/artist-portfolio"
 import { SOCIAL_KEYS, getVideoEmbed, mediaUrl } from "@/lib/artist-page-types"
 import { bookingHref, useWebsite } from "@/components/artist-website/website-context"
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import { DemoBookButton } from "@/components/demo-book-button"
 
 export function EditPencil({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
   const className =
@@ -59,9 +61,13 @@ export function BookingCard() {
       <h2 className="text-xl font-bold text-foreground">{t.bookTitle}</h2>
       <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.bookText}</p>
       <div className="mt-4 flex flex-col gap-2">
-        <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-          <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
-        </Button>
+        {isDemoProfessional(artist.id) ? (
+          <DemoBookButton />
+        ) : (
+          <Button asChild className="bg-red-700 text-white hover:bg-red-600">
+            <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={() => goToTab("availability")}>
           {t.checkAvailability}
         </Button>

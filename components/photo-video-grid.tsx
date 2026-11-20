@@ -47,7 +47,7 @@ function photographerAsArtist(professional: Photographer): Artist {
     category: professional.category,
     image: professional.image,
     // No sample DJ equipment: photographers only show the extras they listed.
-    equipmentDetails: { packageItems: [], extraItems: [] },
+    equipmentDetails: { packageItems: [], extraItems: professional.equipmentDetails?.extraItems ?? [] },
     kind: "photo-video",
   }
 }
@@ -266,7 +266,7 @@ export function PhotoVideoGrid({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
         {sortedProfessionals.map((professional) => (
           <PhotoVideoCard
             key={professional.id}
