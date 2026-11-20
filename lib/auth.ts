@@ -9,6 +9,11 @@ import {
 } from "@/lib/moderation"
 
 const PUBLIC_ROLES = ["user", "professional"] as const
+const PROFESSIONAL_CATEGORIES = ["artist", "photo-video"] as const
+
+// Fields a user may only set when signing up. Afterwards they are changed by the server alone
+// (server actions and admin tools), never through /api/auth/update-user.
+const SIGNUP_ONLY_FIELDS = ["role", "category", "phone", "status", "statusReason", "suspendedUntil"] as const
 
 export const auth = betterAuth({
   database: pool,
@@ -50,7 +55,21 @@ export const auth = betterAuth({
             phone: (user as { phone?: string | null }).phone,
           })
           if (blocked) throw new APIError("FORBIDDEN", { message: BLOCKED_MESSAGE_NL })
-          return { data: { ...user, role: safeRole } }
+          const category = (user as { category?: string | null }).category
+          const safeCategory =
+            safeRole === "professional"
+              ? PROFESSIONAL_CATEGORIES.includes(category as (typeof PROFESSIONAL_CATEGORIES)[number])
+                ? category
+                : "artist"
+              : null
+          return { data: { ...user, role: safeRole, category: safeCategory } }
+        },
+      },
+      update: {
+        before: async (data) => {
+          const safe = { ...data } as Record<string, unknown>
+          for (const field of SIGNUP_ONLY_FIELDS) delete safe[field]
+          return { data: safe }
         },
       },
     },

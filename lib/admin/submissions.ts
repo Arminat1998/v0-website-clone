@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { artistPages, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { mediaUrl } from "@/lib/artist-page-types"
+import { requireAdmin } from "@/lib/session"
 import type { ChecklistState, Submission, SubmissionStatus } from "@/contexts/admin-submissions-context"
 
 export const REVIEW_STATUSES: SubmissionStatus[] = [
@@ -27,6 +28,7 @@ function asStatus(value: string): SubmissionStatus {
 
 /** Every professional profile as an admin submission, newest first. */
 export async function loadSubmissions(): Promise<Submission[]> {
+  await requireAdmin()
   const rows = await db
     .select({
       profile: professionalProfiles,
