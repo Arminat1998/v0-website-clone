@@ -62,6 +62,8 @@ export interface Photographer {
   image?: string
   /** Real professionals only: their public profile page. */
   href?: string
+  /** Real professionals only: the extras they listed (photographers have no package). */
+  equipmentDetails?: Artist["equipmentDetails"]
 }
 
 // Synonym mapping for better search understanding

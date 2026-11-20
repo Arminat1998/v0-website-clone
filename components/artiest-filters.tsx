@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react"
 import type { FilterSuggestions } from "@/lib/adaptive-filters"
+import { calendarStart, calendarYears, isPastDate, mondayOffset, upcomingDate } from "@/lib/filter-calendar"
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import { ComboSelect } from "@/components/combo-select"
 import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
@@ -32,15 +33,15 @@ export function ArtiestFilters({
   isMobileOpen,
   onMobileClose,
 }: ArtiestFiltersProps) {
-  const [currentMonth, setCurrentMonth] = useState<string>(initialState?.month ?? "September")
-  const [currentYear, setCurrentYear] = useState<string>(initialState?.year ?? "2025")
+  const [currentMonth, setCurrentMonth] = useState<string>(() => calendarStart(initialState?.month, initialState?.year).month)
+  const [currentYear, setCurrentYear] = useState<string>(() => calendarStart(initialState?.month, initialState?.year).year)
   const [priceRange, setPriceRange] = useState<number[]>(initialState?.priceRange ?? [0, 5000])
   const [selectedCity, setSelectedCity] = useState<string>(initialState?.city ?? "")
   const [selectedDuration, setSelectedDuration] = useState<string>(initialState?.duration ?? "")
   const [selectedGenres, setSelectedGenres] = useState<string[]>(initialState?.genres ?? [])
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>(initialState?.eventTypes ?? [])
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialState?.categories ?? [])
-  const [selectedDate, setSelectedDate] = useState<string>(initialState?.selectedDate ?? "")
+  const [selectedDate, setSelectedDate] = useState<string>(() => upcomingDate(initialState?.selectedDate))
 
   const { t, language } = useLanguage()
 
@@ -154,7 +155,7 @@ export function ArtiestFilters({
     "December",
   ]
 
-  const years = ["2024", "2025", "2026"]
+  const years = calendarYears()
 
   const musicGenres = [
     "Pop",
@@ -200,7 +201,7 @@ export function ArtiestFilters({
 
   const getFirstDayOfMonth = (month: string, year: string) => {
     const monthIndex = months.indexOf(month)
-    return new Date(Number.parseInt(year), monthIndex, 1).getDay()
+    return mondayOffset(monthIndex, Number.parseInt(year))
   }
 
   const renderCalendar = () => {
@@ -215,12 +216,15 @@ export function ArtiestFilters({
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentYear}-${(months.indexOf(currentMonth) + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
       const isSelected = selectedDate === dateStr
+      const isPast = isPastDate(dateStr)
 
       days.push(
         <button
           key={day}
+          type="button"
+          disabled={isPast}
           className={`w-8 h-8 text-sm rounded flex items-center justify-center transition-colors text-foreground ${
-            isSelected ? "bg-red-500 text-white" : "hover:bg-accent"
+            isSelected ? "bg-red-500 text-white" : isPast ? "cursor-not-allowed opacity-40" : "hover:bg-accent"
           }`}
           onClick={() => setSelectedDate(isSelected ? "" : dateStr)}
         >
