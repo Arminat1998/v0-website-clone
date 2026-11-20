@@ -147,69 +147,93 @@ export async function createBooking(input: CreateBookingInput) {
 
   const capacity = Number.parseInt(input.capacity, 10)
 
-  const [created] = await db
-    .insert(bookings)
-    .values({
-      customerId,
-      professionalId: input.professionalId,
-      professionalName: professional.name,
-      professionalType: input.professionalType,
-      status: "pending",
-      eventName: input.eventName.trim() || `${input.eventTypes[0] ?? "Evenement"} ${input.firstName.trim()}`,
-      eventDate: input.eventDate,
-      startTime: input.startTime,
-      endTime: input.endTime,
-      eventTypes: input.eventTypes,
-      musicGenres: input.musicGenres,
-      capacity: Number.isFinite(capacity) ? capacity : null,
-      description: orNull(input.description),
-      specialRequests: orNull(input.specialRequests),
-      dressCode: orNull(input.dressCode),
-      playlistLink: orNull(input.playlistLink),
-      openingDanceLink: orNull(input.openingDanceLink),
-      openingDanceFileName: orNull(input.openingDanceFileName),
-      lastSongLink: orNull(input.lastSongLink),
-      lastSongFileName: orNull(input.lastSongFileName),
-      street: orNull(input.street),
-      houseNumber: orNull(input.houseNumber),
-      houseNumberExt: orNull(input.houseNumberExt),
-      postalCode: orNull(input.postalCode),
-      city: input.city.trim() || "Onbekend",
-      country: orNull(input.country),
-      distanceKm: Math.max(0, Math.round(input.distanceKm)),
-      equipment: input.equipment,
-      firstName: input.firstName.trim(),
-      lastName: input.lastName.trim(),
-      email: input.email.trim(),
-      phone: input.phone.trim(),
-      customerType: input.customerType,
-      companyName: orNull(input.companyName),
-      billingStreet: orNull(input.billingStreet),
-      billingHouseNumber: orNull(input.billingHouseNumber),
-      billingPostalCode: orNull(input.billingPostalCode),
-      billingCity: orNull(input.billingCity),
-      billingCountry: orNull(input.billingCountry),
-      vatNumber: orNull(input.vatNumber),
-      paymentMethod: input.paymentMethod,
-      hourlyRateCents: pricing.hourlyRateCents,
-      hours: pricing.hours.toString(),
-      equipmentCents: pricing.equipmentCents,
-      travelCents: pricing.travelCents,
-      totalCents: pricing.totalCents,
-      platformFeeCents: pricing.platformFeeCents,
-      payoutCents: pricing.payoutCents,
-    })
-    .returning({ id: bookings.id })
+  const created = await db.transaction(async (tx) => {
+    // Serialise requests from this customer for this professional and date, so a double click,
+    // a retry after a network error or a second tab cannot create the same request twice.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`booking:${customerId}:${input.professionalId}:${input.eventDate}`}))`,
+    )
+    const [existing] = await tx
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.customerId, customerId),
+          eq(bookings.professionalId, input.professionalId),
+          eq(bookings.eventDate, input.eventDate),
+          eq(bookings.startTime, input.startTime),
+          eq(bookings.status, "pending"),
+          gte(bookings.createdAt, sql`now() - interval '10 minutes'`),
+        ),
+      )
+      .limit(1)
+    if (existing) return { id: existing.id, duplicate: true }
 
-  await db.insert(notifications).values({
-    professionalId: input.professionalId,
-    bookingId: created.id,
-    type: "new_request",
-    title: "Nieuwe boekingsaanvraag",
-    body: `${input.firstName.trim()} ${abbreviateLastName(input.lastName)} wil je boeken voor ${input.eventName.trim() || "een evenement"} op ${formatDutchDate(input.eventDate)}.`,
+    const [inserted] = await tx
+      .insert(bookings)
+      .values({
+        customerId,
+        professionalId: input.professionalId,
+        professionalName: professional.name,
+        professionalType: input.professionalType,
+        status: "pending",
+        eventName: input.eventName.trim() || `${input.eventTypes[0] ?? "Evenement"} ${input.firstName.trim()}`,
+        eventDate: input.eventDate,
+        startTime: input.startTime,
+        endTime: input.endTime,
+        eventTypes: input.eventTypes,
+        musicGenres: input.musicGenres,
+        capacity: Number.isFinite(capacity) ? capacity : null,
+        description: orNull(input.description),
+        specialRequests: orNull(input.specialRequests),
+        dressCode: orNull(input.dressCode),
+        playlistLink: orNull(input.playlistLink),
+        openingDanceLink: orNull(input.openingDanceLink),
+        openingDanceFileName: orNull(input.openingDanceFileName),
+        lastSongLink: orNull(input.lastSongLink),
+        lastSongFileName: orNull(input.lastSongFileName),
+        street: orNull(input.street),
+        houseNumber: orNull(input.houseNumber),
+        houseNumberExt: orNull(input.houseNumberExt),
+        postalCode: orNull(input.postalCode),
+        city: input.city.trim() || "Onbekend",
+        country: orNull(input.country),
+        distanceKm: Math.max(0, Math.round(input.distanceKm)),
+        equipment: input.equipment,
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        email: input.email.trim(),
+        phone: input.phone.trim(),
+        customerType: input.customerType,
+        companyName: orNull(input.companyName),
+        billingStreet: orNull(input.billingStreet),
+        billingHouseNumber: orNull(input.billingHouseNumber),
+        billingPostalCode: orNull(input.billingPostalCode),
+        billingCity: orNull(input.billingCity),
+        billingCountry: orNull(input.billingCountry),
+        vatNumber: orNull(input.vatNumber),
+        paymentMethod: input.paymentMethod,
+        hourlyRateCents: pricing.hourlyRateCents,
+        hours: pricing.hours.toString(),
+        equipmentCents: pricing.equipmentCents,
+        travelCents: pricing.travelCents,
+        totalCents: pricing.totalCents,
+        platformFeeCents: pricing.platformFeeCents,
+        payoutCents: pricing.payoutCents,
+      })
+      .returning({ id: bookings.id })
+
+    await tx.insert(notifications).values({
+      professionalId: input.professionalId,
+      bookingId: inserted.id,
+      type: "new_request",
+      title: "Nieuwe boekingsaanvraag",
+      body: `${input.firstName.trim()} ${abbreviateLastName(input.lastName)} wil je boeken voor ${input.eventName.trim() || "een evenement"} op ${formatDutchDate(input.eventDate)}.`,
+    })
+    return { id: inserted.id, duplicate: false }
   })
 
-  revalidateDashboard(created.id)
+  if (!created.duplicate) revalidateDashboard(created.id)
   return { id: created.id }
 }
 
@@ -246,22 +270,54 @@ export async function getBooking(id: number) {
   return booking ? redactContactDetails(booking) : null
 }
 
-export async function acceptBooking(id: number, message: string) {
+export type AcceptBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN" }
+
+export async function acceptBooking(id: number, message: string): Promise<AcceptBookingResult> {
   const professionalId = await getProfessionalId()
-  await db
-    .update(bookings)
-    .set({
-      status: "accepted",
-      responseMessage: message.trim() || null,
-      respondedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-  await db
-    .update(notifications)
-    .set({ read: true })
-    .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, professionalId)))
+  const result = await db.transaction(async (tx): Promise<AcceptBookingResult> => {
+    const [booking] = await tx
+      .select({ eventDate: bookings.eventDate })
+      .from(bookings)
+      .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
+      .limit(1)
+    if (!booking) return { ok: false, error: "NOT_FOUND" }
+    if (booking.eventDate < todayIso()) return { ok: false, error: "DATE_PASSED" }
+
+    // One accepted booking per professional per date, also when two requests are accepted at the same time.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`accept:${professionalId}:${booking.eventDate}`}))`)
+    const [taken] = await tx
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.professionalId, professionalId),
+          eq(bookings.eventDate, booking.eventDate),
+          inArray(bookings.status, ["accepted", "completed"]),
+        ),
+      )
+      .limit(1)
+    if (taken) return { ok: false, error: "DATE_TAKEN" }
+
+    const updated = await tx
+      .update(bookings)
+      .set({
+        status: "accepted",
+        responseMessage: message.trim() || null,
+        respondedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
+      .returning({ id: bookings.id })
+    if (!updated.length) return { ok: false, error: "NOT_FOUND" }
+
+    await tx
+      .update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, professionalId)))
+    return { ok: true }
+  })
   revalidateDashboard(id)
+  return result
 }
 
 export async function rejectBooking(id: number, reason: string) {
