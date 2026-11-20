@@ -1,5 +1,20 @@
 import { generateObject } from "ai"
 import { z } from "zod"
+import { aiRateLimited, readLimitedJson } from "@/lib/ai-guard"
+
+const text = (max: number) => z.coerce.string().trim().max(max).optional().default("")
+const inputSchema = z.object({
+  eventDetails: z.object({
+    eventType: text(80),
+    budget: text(20),
+    date: text(40),
+    location: text(80),
+    guestCount: text(20),
+    atmosphere: text(120),
+    specialRequests: text(500),
+  }),
+  availableArtists: z.array(z.unknown()).max(40),
+})
 
 const recommendationSchema = z.object({
   recommendations: z.array(
@@ -19,10 +34,11 @@ const recommendationSchema = z.object({
 })
 
 export async function POST(req: Request) {
+  if (aiRateLimited(req)) return Response.json({ error: "Too many requests" }, { status: 429 })
+  const parsed = inputSchema.safeParse(await readLimitedJson(req))
+  if (!parsed.success) return Response.json({ error: "Invalid input" }, { status: 400 })
+  const { eventDetails, availableArtists } = parsed.data
   try {
-    const { eventDetails, availableArtists } = await req.json()
-
-    console.log("[v0] AI Recommendations API called with:", { eventDetails, availableArtists })
 
     const { object } = await generateObject({
       model: "groq/llama-3.3-70b-versatile",
@@ -53,10 +69,9 @@ export async function POST(req: Request) {
       maxOutputTokens: 2000,
     })
 
-    console.log("[v0] AI Recommendations generated successfully")
     return Response.json(object)
   } catch (error) {
-    console.error("[v0] AI Recommendations error:", error)
+    console.error("AI recommendations failed:", error instanceof Error ? error.message : "unknown error")
     return Response.json({ error: "Failed to generate recommendations" }, { status: 500 })
   }
 }

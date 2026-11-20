@@ -1,6 +1,6 @@
 import { get, put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
-import { getProfessionalId } from "@/lib/bookings/professional"
+import { professionalIdOrNull } from "@/lib/bookings/professional"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MEDIA_PREFIX } from "@/lib/artist-page-types"
 import { isSafeBlobPath } from "@/lib/blob-paths"
 
@@ -14,8 +14,9 @@ const EXTENSIONS: Record<string, string> = {
 const KINDS = ["banner", "avatar", "gallery", "equipment"] as const
 
 export async function POST(request: NextRequest) {
+  const professionalId = await professionalIdOrNull()
+  if (!professionalId) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   try {
-    const professionalId = await getProfessionalId()
     const formData = await request.formData()
     const file = formData.get("file")
     const kind = String(formData.get("kind") ?? "")

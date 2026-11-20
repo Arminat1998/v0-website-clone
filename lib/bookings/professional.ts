@@ -9,3 +9,12 @@ export async function getProfessionalId() {
   if (!isProfessional(session.user)) throw new Error("Forbidden")
   return session.user.id
 }
+
+/** For API routes: the professional id, or null when the caller is not a signed-in professional. */
+export async function professionalIdOrNull() {
+  try {
+    return await getProfessionalId()
+  } catch {
+    return null
+  }
+}

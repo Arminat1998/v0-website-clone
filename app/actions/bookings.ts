@@ -9,7 +9,7 @@ import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
 import { resolveCustomerProfessional } from "@/lib/customer-catalog"
-import { createReviewInvite } from "@/app/actions/reviews"
+import { createReviewInvite } from "@/lib/reviews"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 
 export type CustomerBooking = Pick<
