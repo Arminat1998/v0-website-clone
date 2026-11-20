@@ -1,32 +1,11 @@
 "use server"
 
-import { randomBytes } from "node:crypto"
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { bookings, reviews } from "@/lib/db/schema"
 import { getSession } from "@/lib/session"
-
-/** Called once a booking is completed; the token is the customer's personal review link. */
-export async function createReviewInvite(booking: {
-  id: number
-  customerId: string | null
-  professionalId: string
-  professionalType: string
-}) {
-  if (!booking.customerId) return
-  await db
-    .insert(reviews)
-    .values({
-      bookingId: booking.id,
-      customerId: booking.customerId,
-      professionalId: booking.professionalId,
-      professionalType: booking.professionalType,
-      token: randomBytes(24).toString("base64url"),
-    })
-    .onConflictDoNothing()
-}
 
 const inviteFields = {
   token: reviews.token,

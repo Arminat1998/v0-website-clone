@@ -1,5 +1,12 @@
 import { generateObject } from "ai"
 import { z } from "zod"
+import { aiRateLimited, readLimitedJson } from "@/lib/ai-guard"
+
+const inputSchema = z.object({
+  eventType: z.string().trim().min(1).max(80),
+  season: z.string().trim().min(1).max(40),
+  budget: z.number().finite().min(0).max(1_000_000),
+})
 
 const eventSuggestionSchema = z.object({
   suggestions: z.array(
@@ -20,10 +27,11 @@ const eventSuggestionSchema = z.object({
 })
 
 export async function POST(req: Request) {
+  if (aiRateLimited(req)) return Response.json({ error: "Too many requests" }, { status: 429 })
+  const parsed = inputSchema.safeParse(await readLimitedJson(req))
+  if (!parsed.success) return Response.json({ error: "Invalid input" }, { status: 400 })
+  const { eventType, season, budget } = parsed.data
   try {
-    const { eventType, season, budget } = await req.json()
-
-    console.log("[v0] AI Event Suggestions API called with:", { eventType, season, budget })
 
     const { object } = await generateObject({
       model: "groq/llama-3.3-70b-versatile",
@@ -47,10 +55,9 @@ export async function POST(req: Request) {
       maxOutputTokens: 2000,
     })
 
-    console.log("[v0] AI Event Suggestions generated successfully")
     return Response.json(object)
   } catch (error) {
-    console.error("[v0] AI Event Suggestions error:", error)
+    console.error("AI event suggestions failed:", error instanceof Error ? error.message : "unknown error")
     return Response.json({ error: "Failed to generate event suggestions" }, { status: 500 })
   }
 }

@@ -29,9 +29,11 @@ export const auth = betterAuth({
     autoSignIn: true,
     minPasswordLength: 8,
     resetPasswordTokenExpiresIn: 60 * 60,
-    // No email provider is connected yet: the reset link is written to the server log.
-    sendResetPassword: async ({ user, url }) => {
-      console.log(`[auth] Wachtwoord-resetlink voor ${user.email}: ${url}`)
+    // No email provider is connected yet. The reset link holds a login token, so it is only written to the
+    // log during local development; in production it must go out by email once a provider is connected.
+    sendResetPassword: async ({ url }) => {
+      if (process.env.NODE_ENV === "development") console.log(`[auth] Wachtwoord-resetlink: ${url}`)
+      else console.warn("[auth] Wachtwoord-reset aangevraagd, maar er is nog geen e-mailprovider gekoppeld.")
     },
   },
   user: {

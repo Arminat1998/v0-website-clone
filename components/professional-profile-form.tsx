@@ -179,7 +179,6 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     if (signupData) {
       try {
         const data = JSON.parse(signupData)
-        console.log("[v0] Loading signup data:", data)
 
         // Pre-fill form fields
         if (data.fullName) setFullName(data.fullName)

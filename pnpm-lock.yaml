@@ -197,9 +197,6 @@ importers:
       vaul:
         specifier: ^0.9.9
         version: 0.9.9(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      your-button-library:
-        specifier: 1.0.1
-        version: 1.0.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       zod:
         specifier: 3.25.67
         version: 3.25.67
@@ -1867,9 +1864,6 @@ packages:
   class-variance-authority@0.7.1:
     resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
 
-  classnames@2.5.1:
-    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
-
   client-only@0.0.1:
     resolution: {integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==}
 
@@ -2746,12 +2740,6 @@ packages:
   xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
     engines: {node: '>=0.4'}
-
-  your-button-library@1.0.1:
-    resolution: {integrity: sha512-0bC3zpIDSEzXWbIIaq7IelkYFuGq0N0YBUqgxO4eN6n/aCyMoy96YTNlpt2L/S2x6g3NgakipfBnt8Xtf6ibcg==}
-    peerDependencies:
-      react: ^18.3.1
-      react-dom: ^18.3.1
 
   zod@3.25.67:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
@@ -4434,8 +4422,6 @@ snapshots:
     dependencies:
       clsx: 2.1.1
 
-  classnames@2.5.1: {}
-
   client-only@0.0.1: {}
 
   clsx@2.1.1: {}
@@ -5128,12 +5114,6 @@ snapshots:
       os-paths: 4.4.0
 
   xtend@4.0.2: {}
-
-  your-button-library@1.0.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
-    dependencies:
-      classnames: 2.5.1
-      react: 19.2.6
-      react-dom: 19.2.6(react@19.2.6)
 
   zod@3.25.67: {}
 
