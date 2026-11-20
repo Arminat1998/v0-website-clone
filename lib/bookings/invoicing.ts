@@ -1,5 +1,6 @@
 import type { BillingProfile, Booking, Invoice, InvoiceLine } from "@/lib/db/schema"
 import { EQUIPMENT_OPTIONS, TRAVEL_RATE_CENTS_PER_KM, platformFeeCents, travelCents } from "@/lib/bookings/pricing"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 
 /** Dutch VAT rates in percent. Equipment rental is always standard-rated; a live performance by a
  *  performing artist is reduced-rated; passed-on costs (travel) follow the rate of the main service. */
@@ -73,7 +74,7 @@ function cleanReceipt(receipt: unknown): ReceiptFile {
 /** Every parking and extra cost needs a receipt stored under this booking's own blob prefix. */
 export function assertReceiptsOwned(adjustments: InvoiceAdjustments, prefix: string) {
   const receipts = [adjustments.parkingCents > 0 ? adjustments.parkingReceipt : undefined, ...adjustments.extras.map((e) => e.receipt)].filter((r) => r !== undefined)
-  if (receipts.some((r) => !r || !r.pathname.startsWith(prefix))) throw new Error("RECEIPT_REQUIRED")
+  if (receipts.some((r) => !r || !isSafeBlobPath(r.pathname, prefix))) throw new Error("RECEIPT_REQUIRED")
 }
 
 export const MAX_DISTANCE_KM = 1500

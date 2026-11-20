@@ -10,17 +10,38 @@ import { Button } from "@/components/ui/button"
 type Mode = "idle" | "accept" | "reject"
 
 export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
-  const { t } = useBookingT()
+  const { t, language } = useBookingT()
+  const nl = language !== "en"
   const router = useRouter()
   const [mode, setMode] = useState<Mode>("idle")
   const [message, setMessage] = useState("")
   const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState("")
+
+  const errorText = (code: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN") =>
+    code === "DATE_TAKEN"
+      ? nl
+        ? "Je hebt op deze datum al een geaccepteerde boeking. Wijs deze aanvraag af of neem contact op met de klant."
+        : "You already have an accepted booking on this date. Decline this request or contact the customer."
+      : code === "DATE_PASSED"
+        ? nl
+          ? "Deze datum is al voorbij. Je kunt deze aanvraag niet meer accepteren."
+          : "This date has already passed. You can no longer accept this request."
+        : nl
+          ? "Deze aanvraag is niet meer open. Ververs de pagina."
+          : "This request is no longer open. Refresh the page."
 
   const submit = () => {
     if (mode === "idle") return
     startTransition(async () => {
-      if (mode === "accept") await acceptBooking(bookingId, message)
-      else await rejectBooking(bookingId, message)
+      setError("")
+      if (mode === "accept") {
+        const result = await acceptBooking(bookingId, message)
+        if (!result.ok) {
+          setError(errorText(result.error))
+          return
+        }
+      } else await rejectBooking(bookingId, message)
       router.refresh()
     })
   }
@@ -62,6 +83,11 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
               className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </label>
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               type="submit"

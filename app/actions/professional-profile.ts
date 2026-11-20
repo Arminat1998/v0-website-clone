@@ -6,7 +6,8 @@ import { db } from "@/lib/db"
 import { artistPages, billingProfiles, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { isPhotoVideo } from "@/lib/profile-options"
-import { SOCIAL_KEYS, mediaUrl, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
+import { MEDIA_PREFIX, SOCIAL_KEYS, mediaUrl, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 import type {
   ProfessionalProfileData,
   ProfileEquipmentItem,
@@ -28,13 +29,13 @@ const int = (value: unknown, min: number, max: number, fallback: number) => {
 const list = (values: unknown, max = 30) =>
   Array.isArray(values) ? [...new Set(values.map((value) => text(value, 60)).filter(Boolean))].slice(0, max) : []
 
-function cleanImage(value: unknown) {
+/** Only blob pathnames under this professional's own media prefix are accepted; the browser uploads data URLs first. */
+function cleanImage(value: unknown, ownPrefix: string) {
   const image = text(value, 500)
-  // Only stored blob pathnames are accepted; raw data URLs are uploaded by the browser first.
-  return image && !image.startsWith("data:") && !image.startsWith("blob:") ? image : undefined
+  return isSafeBlobPath(image, ownPrefix) ? image : undefined
 }
 
-function cleanEquipment(item: Partial<ProfileEquipmentItem> | undefined): ProfileEquipmentItem | null {
+function cleanEquipment(item: Partial<ProfileEquipmentItem> | undefined, ownPrefix: string): ProfileEquipmentItem | null {
   if (!item) return null
   const name = text(item.name, 120)
   if (!name) return null
@@ -43,7 +44,7 @@ function cleanEquipment(item: Partial<ProfileEquipmentItem> | undefined): Profil
     name,
     price: text(item.price, 40),
     description: text(item.description, 400),
-    image: cleanImage(item.image),
+    image: cleanImage(item.image, ownPrefix),
     category: item.category === "lighting" || item.category === "sound" ? item.category : undefined,
   }
 }
@@ -56,6 +57,7 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
     return { ok: false, error: "invalid" }
   }
 
+  const ownPrefix = `${MEDIA_PREFIX}${professionalId}/`
   const stageName = text(input.stageName, 80)
   const fullName = text(input.fullName, 120)
   if (!stageName || !fullName || !text(input.companyName, 120)) return { ok: false, error: "invalid" }
@@ -73,12 +75,12 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
 
   const minimumEquipment: Record<string, ProfileEquipmentItem> = {}
   for (const [key, item] of Object.entries(input.minimumEquipment ?? {}).slice(0, 12)) {
-    const cleaned = cleanEquipment(item)
+    const cleaned = cleanEquipment(item, ownPrefix)
     if (cleaned) minimumEquipment[text(key, 60)] = { ...cleaned, id: text(key, 60) }
   }
   const extraEquipment = (Array.isArray(input.extraEquipment) ? input.extraEquipment : [])
     .slice(0, 60)
-    .map(cleanEquipment)
+    .map((item) => cleanEquipment(item, ownPrefix))
     .filter((item): item is ProfileEquipmentItem => item !== null)
 
   const genres = list(input.genres)
@@ -95,8 +97,8 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
     return { ok: false, error: "failed" }
   }
   if (genres.length === 0 || eventTypes.length === 0 || (!photo && completeEquipment.length === 0)) return { ok: false, error: "invalid" }
-  const avatarPath = cleanImage(input.avatarPath) ?? null
-  const bannerPath = cleanImage(input.bannerPath) ?? null
+  const avatarPath = cleanImage(input.avatarPath, ownPrefix) ?? null
+  const bannerPath = cleanImage(input.bannerPath, ownPrefix) ?? null
   const phone = text(input.phone, 40)
 
   const values = {

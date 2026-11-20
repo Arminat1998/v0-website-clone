@@ -2,6 +2,7 @@ import { get, put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MEDIA_PREFIX } from "@/lib/artist-page-types"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
 // Only files under the artist-pages/ prefix are ever served.
 export async function GET(request: NextRequest) {
   const pathname = request.nextUrl.searchParams.get("pathname")
-  if (!pathname || !pathname.startsWith(MEDIA_PREFIX) || pathname.includes("..")) {
+  if (!isSafeBlobPath(pathname, MEDIA_PREFIX)) {
     return new NextResponse("Not found", { status: 404 })
   }
 

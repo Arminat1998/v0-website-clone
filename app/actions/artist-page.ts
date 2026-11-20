@@ -17,6 +17,7 @@ import {
   type ArtistPageContent,
   type ArtistPageSocials,
 } from "@/lib/artist-page-types"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 
 export type SaveArtistPageResult = { ok: true; content: ArtistPageContent } | { ok: false; error: "invalid" }
 
@@ -56,8 +57,7 @@ function cleanSocials(input: unknown): ArtistPageSocials {
 export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArtistPageResult> {
   const professionalId = await getProfessionalId()
   const ownPrefix = `${MEDIA_PREFIX}${professionalId}/`
-  const ownPath = (value: unknown): value is string =>
-    typeof value === "string" && value.startsWith(ownPrefix) && !value.includes("..")
+  const ownPath = (value: unknown): value is string => isSafeBlobPath(value, ownPrefix)
 
   if (!input || typeof input !== "object") return { ok: false, error: "invalid" }
 
@@ -110,7 +110,9 @@ export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArti
     const orphaned = [previous.bannerPath, previous.avatarPath, ...previous.gallery].filter(
       (path): path is string => Boolean(path) && !kept.has(path),
     )
-    await Promise.allSettled(orphaned.map((path) => del(path)))
+    // Only ever delete files under this professional's own prefix.
+    const ownOrphaned = orphaned.filter(ownPath)
+    await Promise.allSettled(ownOrphaned.map((path) => del(path)))
   }
 
   const artist = enhancedArtists.find((candidate) => String(candidate.id) === professionalId)
