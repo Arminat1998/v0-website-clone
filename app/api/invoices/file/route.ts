@@ -1,13 +1,14 @@
 import { get } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { getProfessionalId } from "@/lib/bookings/professional"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 
 export async function GET(request: NextRequest) {
   const professionalId = await getProfessionalId()
   const pathname = request.nextUrl.searchParams.get("pathname")
   if (!pathname) return NextResponse.json({ error: "missing_pathname" }, { status: 400 })
   // Files live under invoices/<professionalId>/..., so the prefix check is the ownership check.
-  if (!pathname.startsWith(`invoices/${professionalId}/`)) return NextResponse.json({ error: "forbidden" }, { status: 403 })
+  if (!isSafeBlobPath(pathname, `invoices/${professionalId}/`)) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   try {
     const result = await get(pathname, {

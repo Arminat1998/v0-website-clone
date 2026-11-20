@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { getSession } from "@/lib/session"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/artist-page-types"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 
 const PREFIX = "customer-avatars/"
 const ROUTE = "/api/customer-avatar"
@@ -24,7 +25,7 @@ function avatarUrl(pathname: string) {
 function ownPathname(image: string | null | undefined, userId: string) {
   if (!image?.startsWith(`${ROUTE}?`)) return null
   const pathname = new URL(image, "http://localhost").searchParams.get("pathname")
-  return pathname?.startsWith(`${PREFIX}${userId}/`) ? pathname : null
+  return isSafeBlobPath(pathname, `${PREFIX}${userId}/`) ? pathname : null
 }
 
 async function customer() {
@@ -84,7 +85,7 @@ export async function DELETE() {
 // The store is private: avatars are read through this route. Only files under customer-avatars/ are served.
 export async function GET(request: NextRequest) {
   const pathname = request.nextUrl.searchParams.get("pathname")
-  if (!pathname || !pathname.startsWith(PREFIX) || pathname.includes("..")) {
+  if (!isSafeBlobPath(pathname, PREFIX)) {
     return new NextResponse("Not found", { status: 404 })
   }
 

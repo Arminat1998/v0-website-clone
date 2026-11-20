@@ -31,6 +31,7 @@ import {
   sumInvoiceLines,
   type InvoiceTotals,
 } from "@/lib/bookings/invoicing"
+import { isSafeBlobPath } from "@/lib/blob-paths"
 
 function revalidateInvoicePaths(bookingId: number) {
   revalidatePath("/dashboard")
@@ -252,7 +253,7 @@ export async function submitUploadedInvoice(input: {
   if (!booking) throw new Error("Booking not found or not completed")
   const profile = await getBillingProfile()
   assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
-  if (!input.file.pathname.startsWith(invoiceBlobPrefix(professionalId, booking.id))) throw new Error("Invalid file")
+  if (!isSafeBlobPath(input.file.pathname, invoiceBlobPrefix(professionalId, booking.id))) throw new Error("Invalid file")
 
   if (booking.payoutStatus === "paid") throw new Error("Payout already completed")
   const adjustments = sanitizeAdjustments(input.adjustments, booking)
