@@ -74,8 +74,6 @@ export function generateFilterSuggestions(query: string, searchResults: Artist[]
     suggestions.city = mentionedCity.charAt(0).toUpperCase() + mentionedCity.slice(1)
   }
 
-  console.log("[v0] Filter extraction from query:", query)
-  console.log("[v0] Extracted filters:", suggestions)
 
   return suggestions
 }

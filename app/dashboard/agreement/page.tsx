@@ -10,7 +10,6 @@ export default function AgreementPage() {
   const [agreed, setAgreed] = useState(false)
 
   const handleAccept = () => {
-    console.log("[v0] Agreement accepted")
     // Here you would typically save the acceptance to a database
     alert("Agreement accepted successfully!")
   }
