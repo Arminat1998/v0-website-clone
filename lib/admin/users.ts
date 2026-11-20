@@ -11,6 +11,7 @@ import {
   userWarnings,
 } from "@/lib/db/schema"
 import { getRestriction } from "@/lib/moderation"
+import { requireAdmin } from "@/lib/session"
 
 export type EffectiveStatus = "active" | "suspended" | "banned"
 
@@ -79,6 +80,7 @@ function effectiveStatus(row: { status: string; statusReason: string | null; sus
 }
 
 export async function listAdminUsers(): Promise<AdminUserRow[]> {
+  await requireAdmin()
   const rows = await db
     .select({
       id: userTable.id,
@@ -115,6 +117,7 @@ export async function listAdminUsers(): Promise<AdminUserRow[]> {
 }
 
 export async function getAdminUserDetail(id: string) {
+  await requireAdmin()
   const users = (await listAdminUsers()).filter((row) => row.id === id)
   const account = users[0]
   if (!account) return null
@@ -163,6 +166,7 @@ function toAuditEntry(row: typeof adminAuditLog.$inferSelect): AuditEntry {
 }
 
 export async function listBlacklist(): Promise<BlacklistEntry[]> {
+  await requireAdmin()
   const rows = await db.select().from(blacklist).orderBy(desc(blacklist.createdAt))
   return rows.map((row) => ({
     id: row.id,
@@ -175,11 +179,13 @@ export async function listBlacklist(): Promise<BlacklistEntry[]> {
 }
 
 export async function listAuditLog(limit = 200): Promise<AuditEntry[]> {
+  await requireAdmin()
   const rows = await db.select().from(adminAuditLog).orderBy(desc(adminAuditLog.createdAt)).limit(limit)
   return rows.map(toAuditEntry)
 }
 
 export async function getModerationStats(): Promise<ModerationStats> {
+  await requireAdmin()
   const users = await listAdminUsers()
   const [{ count: warnings }] = await db
     .select({ count: sql<number>`count(*)::int` })
