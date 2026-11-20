@@ -32,6 +32,8 @@ import {
 import { EquipmentSection } from "@/components/artist-website/equipment-section"
 import { AvailabilitySection } from "@/components/artist-website/availability-section"
 import { EditDialogs } from "@/components/artist-website/edit-dialogs"
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import { DemoBookButton } from "@/components/demo-book-button"
 
 const TABS: TabKey[] = ["overview", "info", "photos", "videos", "equipment", "availability"]
 
@@ -201,9 +203,13 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                   <MessageCircle className="size-4" aria-hidden="true" />
                   {t.chat}
                 </Button>
-                <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-                  <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
-                </Button>
+                {isDemoProfessional(artist.id) ? (
+                  <DemoBookButton />
+                ) : (
+                  <Button asChild className="bg-red-700 text-white hover:bg-red-600">
+                    <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
+                  </Button>
+                )}
               </>
             )}
           </div>

@@ -23,6 +23,8 @@ import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
 import { useLanguage } from "@/contexts/language-context";
 import { digitsOnlyPrice, formatRentalPrice, imageSrc } from "@/lib/professional-profile-types";
 import { bookingHref } from "@/components/artist-website/website-context";
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import { DemoBookButton } from "@/components/demo-book-button"
 
 interface ArtistProfileViewProps {
   artist: Artist;
@@ -254,17 +256,21 @@ export function ArtistProfileView({
               <MessageCircle className="w-4 h-4 mr-2" />
               Chat
             </Button>
-            <Button
-              className="bg-red-700 hover:bg-red-600 text-white flex-1 text-sm sm:text-base py-2 sm:py-auto"
-              onClick={() => {
-                const href = bookingHref(artist);
-                if (!bookGuard(href)) return;
-                onNavigate?.();
-                router.push(href);
-              }}
-            >
-              Book Now
-            </Button>
+            {isDemoProfessional(artist.id) ? (
+              <DemoBookButton className="flex-1 text-sm sm:text-base py-2 sm:py-auto" />
+            ) : (
+              <Button
+                className="bg-red-700 hover:bg-red-600 text-white flex-1 text-sm sm:text-base py-2 sm:py-auto"
+                onClick={() => {
+                  const href = bookingHref(artist);
+                  if (!bookGuard(href)) return;
+                  onNavigate?.();
+                  router.push(href);
+                }}
+              >
+                Book Now
+              </Button>
+            )}
           </div>
         </div>
 
@@ -823,6 +829,9 @@ export function ArtistProfileView({
                     {renderCalendar()}
                   </div>
 
+                  {isDemoProfessional(artist.id) ? (
+                    <DemoBookButton className="mt-3 sm:mt-4 w-full" />
+                  ) : (
                   <Link
                     href={
                       selectedDate
@@ -849,6 +858,7 @@ export function ArtistProfileView({
                   >
                     {selectedDate ? "Book Now" : "Select a Date"}
                   </Link>
+                  )}
                 </div>
 
                 {/* Left Column - Upcoming Bookings */}

@@ -9,6 +9,8 @@ import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
 import { useRouter } from "next/navigation"
 import { useBookGuard } from "@/hooks/use-book-guard"
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import { DemoBookButton } from "@/components/demo-book-button"
 
 interface PhotoVideoCardProps {
   professional: Photographer
@@ -149,16 +151,20 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
           >
             {t.viewProfile}
           </Button>
-          <Button
-            className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
-            onClick={(e) => {
-              e.stopPropagation()
-              const href = `/booking?professionalId=${encodeURIComponent(String(professional.id))}&type=photographer`
-              if (bookGuard(href)) router.push(href)
-            }}
-          >
-            {t.bookNow}
-          </Button>
+          {isDemoProfessional(professional.id) ? (
+            <DemoBookButton className="flex-1 h-10 whitespace-normal text-xs leading-tight" />
+          ) : (
+            <Button
+              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
+              onClick={(e) => {
+                e.stopPropagation()
+                const href = `/booking?professionalId=${encodeURIComponent(String(professional.id))}&type=photographer`
+                if (bookGuard(href)) router.push(href)
+              }}
+            >
+              {t.bookNow}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
