@@ -61,6 +61,13 @@ export interface Translations {
   searchDescription: string
   noResults: string
   noResultsSubtext: string
+  aiMatchingActive: string
+  noPerfectMatch: string
+  tryOtherSearchTermsAI: string
+  invalidFile: string
+  uploadAudioFile: string
+  locationNotFound: string
+  distanceCalculationError: string
   artistsFound: string
   artistTypeLabel: string
   photographerTypeLabel: string
@@ -378,6 +385,13 @@ export const translations: Record<Language, Translations> = {
     searchDescription: "Beschrijf je evenement of gewenste sfeer...",
     noResults: "Geen professionals gevonden",
     noResultsSubtext: "Probeer je zoekopdracht aan te passen of filters te wijzigen.",
+    aiMatchingActive: "AI-matching actief",
+    noPerfectMatch: "Geen perfecte match gevonden",
+    tryOtherSearchTermsAI: "Probeer andere woorden of beschrijf je evenement anders.",
+    invalidFile: "Ongeldig bestand",
+    uploadAudioFile: "Upload een audiobestand (MP3, WAV, M4A, enz.).",
+    locationNotFound: "Een of beide locaties zijn niet gevonden. Controleer de spelling.",
+    distanceCalculationError: "De afstand kon niet worden berekend. Probeer het opnieuw.",
     artistsFound: "professionals gevonden voor",
     artistTypeLabel: "Artiest Type",
     photographerTypeLabel: "Service Type",
@@ -696,6 +710,13 @@ export const translations: Record<Language, Translations> = {
     searchDescription: "Describe your event or desired atmosphere...",
     noResults: "No professionals found",
     noResultsSubtext: "Try adjusting your search query or modify filters.",
+    aiMatchingActive: "AI matching active",
+    noPerfectMatch: "No perfect match found",
+    tryOtherSearchTermsAI: "Try other words or describe your event differently.",
+    invalidFile: "Invalid file",
+    uploadAudioFile: "Upload an audio file (MP3, WAV, M4A, etc.).",
+    locationNotFound: "One or both locations could not be found. Check the spelling.",
+    distanceCalculationError: "The distance could not be calculated. Please try again.",
     artistsFound: "professionals found for",
     artistTypeLabel: "Artist Type",
     photographerTypeLabel: "Service Type",

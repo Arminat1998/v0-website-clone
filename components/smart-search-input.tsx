@@ -86,7 +86,6 @@ export function SmartSearchInput({
     const initialFilters = generateFilterSuggestions(query, enhancedArtists)
     setCurrentFilters(initialFilters)
 
-    console.log("[v0] Applying filter suggestions:", initialFilters)
 
     if (onFilterUpdate) {
       const convertedFilters = { ...initialFilters }
@@ -203,7 +202,6 @@ export function SmartSearchInput({
     setCurrentFilters(updatedFilters)
 
     if (onFilterUpdate) {
-      console.log("[v0] Conversational AI filter update:", updatedFilters)
       onFilterUpdate(updatedFilters)
     }
 

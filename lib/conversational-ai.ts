@@ -101,7 +101,6 @@ export function extractAnswerToFilter(
       }
     }
 
-    console.log("[v0] Category extraction - Question:", question, "Answer:", answer, "Extracted:", categories)
 
     if (categories.length === 0) {
       // Use the raw answer if no match
@@ -118,7 +117,6 @@ export function extractAnswerToFilter(
     questionLower.includes("when")
 
   if (isDateQuestion) {
-    console.log("[v0] Date extraction - Question:", question, "Answer:", answer)
     // Return the date as-is, it will be parsed later
     return { selectedDate: answer.trim() }
   }
@@ -155,7 +153,6 @@ export function extractAnswerToFilter(
       }
     }
 
-    console.log("[v0] Genre extraction - Question:", question, "Answer:", answer, "Extracted:", genres)
 
     if (genres.length === 0) {
       const parts = answer.split(/,|en|and|\s/).filter((p) => p.trim().length > 0)
@@ -192,7 +189,6 @@ export function extractAnswerToFilter(
       }
     }
 
-    console.log("[v0] Event type extraction - Question:", question, "Answer:", answer, "Extracted:", eventTypes)
 
     if (eventTypes.length === 0) {
       return { eventTypes: [answer.trim()] }
@@ -208,10 +204,8 @@ export function extractAnswerToFilter(
   if (isCityQuestion) {
     const cityMatch = answerLower.match(/(?:in |uit |)([a-z]+(?:\s+[a-z]+)?)/)
     if (cityMatch) {
-      console.log("[v0] City extraction - Question:", question, "Answer:", answer, "Extracted:", cityMatch[1].trim())
       return { city: cityMatch[1].trim() }
     }
-    console.log("[v0] City extraction - Question:", question, "Answer:", answer, "Extracted:", answer.trim())
     return { city: answer.trim() }
   }
 
@@ -243,7 +237,6 @@ export function extractAnswerToFilter(
 
       duration = Math.max(1, Math.min(8, duration))
 
-      console.log("[v0] Duration extraction - Question:", question, "Answer:", answer, "Extracted:", duration)
       return { duration: duration.toString() }
     }
 
@@ -251,7 +244,6 @@ export function extractAnswerToFilter(
     if (hourMatch) {
       let duration = Number.parseInt(hourMatch[1])
       duration = Math.max(1, Math.min(8, duration))
-      console.log("[v0] Duration extraction - Question:", question, "Answer:", answer, "Extracted:", duration)
       return { duration: duration.toString() }
     }
 
@@ -261,7 +253,6 @@ export function extractAnswerToFilter(
       const end = Number.parseInt(numberRangeMatch[2])
       let duration = end - start
       duration = Math.max(1, Math.min(8, duration))
-      console.log("[v0] Duration extraction - Question:", question, "Answer:", answer, "Extracted:", duration)
       return { duration: duration.toString() }
     }
 
@@ -280,7 +271,6 @@ export function extractAnswerToFilter(
     if (rangeMatch) {
       const min = Number.parseInt(rangeMatch[1])
       const max = Number.parseInt(rangeMatch[2])
-      console.log("[v0] Budget extraction - Question:", question, "Answer:", answer, "Extracted range:", [min, max])
       return { priceRange: [min, max] }
     }
 
@@ -288,7 +278,6 @@ export function extractAnswerToFilter(
 
     if (maxMatch) {
       const max = Number.parseInt(maxMatch[1])
-      console.log("[v0] Budget extraction - Question:", question, "Answer:", answer, "Extracted max:", max)
       return { priceRange: [0, max] }
     }
 
@@ -296,12 +285,10 @@ export function extractAnswerToFilter(
 
     if (exactMatch) {
       const amount = Number.parseInt(exactMatch[1])
-      console.log("[v0] Budget extraction - Question:", question, "Answer:", answer, "Extracted amount:", amount)
       return { priceRange: [0, amount] }
     }
   }
 
-  console.log("[v0] No filter extracted from - Question:", question, "Answer:", answer)
   return {}
 }
 

@@ -88,7 +88,6 @@ export default function ArtiestenPage() {
   const filterSuggestions = useMemo(() => {
     const aiSuggestions = generateFilterSuggestions(searchQuery, enhancedArtists)
 
-    console.log("[v0] Generated AI suggestions:", aiSuggestions)
 
     const priceRange =
       aiSuggestions.priceRange ||
@@ -111,7 +110,6 @@ export default function ArtiestenPage() {
   }, [searchQuery, filterSuggestions])
 
   const handleConversationalFilterUpdate = (newFilters: Partial<FilterState>) => {
-    console.log("[v0] Conversational AI filter update:", newFilters)
     setConversationalFilters((prev) => ({ ...prev, ...newFilters }))
   }
 

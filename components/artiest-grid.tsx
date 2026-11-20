@@ -94,7 +94,6 @@ export function ArtiestGrid({
   }
 
   const handleConversationFilterUpdate = (filters: Partial<FilterState>) => {
-    console.log("[v0] Conversational filter update:", filters)
     onFilterUpdate?.(filters)
   }
 
@@ -207,7 +206,6 @@ export function ArtiestGrid({
       (allFilters.musicGenres && allFilters.musicGenres.length > 0)
     ) {
       const genresToFilter = allFilters.genres || allFilters.musicGenres
-      console.log("[v0] Filtering by genres:", genresToFilter)
 
       artists = artists.filter((artist) => {
         const artistStyles = (artist.musicStyles || []).map((s) => tagKey(s)).filter(Boolean)
@@ -223,19 +221,11 @@ export function ArtiestGrid({
           // Check if specialty contains the genre
           const specialtyMatch = artistSpecialty.includes(genreLower)
 
-          console.log("[v0] Genre match check:", {
-            artist: artist.name,
-            genre: genre,
-            artistStyles,
-            styleMatch,
-            specialtyMatch,
-          })
 
           return styleMatch || specialtyMatch
         })
       })
 
-      console.log("[v0] Artists after genre filter:", artists.length)
     }
 
     if (allFilters.eventTypes && allFilters.eventTypes.length > 0) {

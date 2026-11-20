@@ -30,7 +30,7 @@ export function Footer() {
               </li>
               <li>
                 <a href="/design-system" className="hover:text-red-600">
-                  {t.language === "nl" ? "Design System" : "Design System"}
+                  Design System
                 </a>
               </li>
             </ul>
