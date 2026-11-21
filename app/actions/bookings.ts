@@ -170,6 +170,14 @@ export async function createBooking(input: CreateBookingInput) {
   if (!input.firstName.trim() || !input.lastName.trim() || !input.email.includes("@")) {
     throw new Error("Missing customer details")
   }
+  // Free text is stored as-is, so every field has a ceiling: long texts 5000 characters, the rest 300.
+  const LONG_FIELDS = new Set(["description", "specialRequests"])
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === "string" && value.length > (LONG_FIELDS.has(key) ? 5000 : 300)) throw new Error("Invalid booking details")
+    if (Array.isArray(value) && (value.length > 30 || value.some((item) => typeof item !== "string" || item.length > 120))) {
+      throw new Error("Invalid booking details")
+    }
+  }
 
   if (!["artist", "photographer"].includes(input.professionalType) ||
       !/^\d{4}-\d{2}-\d{2}$/.test(input.eventDate) || input.eventDate < todayIso() ||

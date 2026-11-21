@@ -260,6 +260,35 @@ export default function BookingPage() {
       })
     : null
 
+  // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
+  const missingStep1 = [
+    !selectedDate && tr("een datum in de kalender", "a date in the calendar"),
+    !eventLocation.trim() && tr("de plaats van je evenement", "the place of your event"),
+    eventLocation.trim() && distance === null && tr("de afstand (klik op de knop naast de plaats)", "the distance (click the button next to the place)"),
+  ].filter(Boolean) as string[]
+  const missingStep2 = [
+    (!eventName || eventName.length < 3) && tr("een naam voor je evenement (minimaal 3 tekens)", "a name for your event (at least 3 characters)"),
+    (!startTime || !endTime) && tr("een start- en eindtijd", "a start and end time"),
+  ].filter(Boolean) as string[]
+  const missingStep3 = [
+    !firstName.trim() && tr("voornaam", "first name"),
+    !lastName.trim() && tr("achternaam", "last name"),
+    !email.includes("@") && tr("geldig e-mailadres", "valid email address"),
+    !phone.trim() && tr("telefoonnummer", "phone number"),
+    !billingStreet.trim() && tr("straat", "street"),
+    !billingHouseNumber.trim() && tr("huisnummer", "house number"),
+    !billingPostalCode.trim() && tr("postcode", "postal code"),
+    !billingCity.trim() && tr("plaats", "city"),
+    customerType === "business" && !companyName.trim() && tr("bedrijfsnaam", "company name"),
+    customerType === "business" && !vatNumber.trim() && tr("btw-nummer", "VAT number"),
+  ].filter(Boolean) as string[]
+  const missingHint = (items: string[]) =>
+    items.length > 0 ? (
+      <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
+        {tr("Nog nodig", "Still needed")}: {items.join(", ")}
+      </p>
+    ) : null
+
   const handleSubmitBooking = async () => {
     if (!sessionData?.user) {
       setSubmitError("Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.")
@@ -656,7 +685,14 @@ export default function BookingPage() {
                     </div>
 
                     <div className="grid grid-cols-7 gap-0.5 sm:gap-1">{renderCalendar()}</div>
-                    
+
+                    <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={tr("Legenda", "Legend")}>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-200 dark:bg-zinc-700" aria-hidden />{tr("Beschikbaar", "Available")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" aria-hidden />{tr("Gekozen", "Selected")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Al geboekt", "Already booked")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-500 dark:bg-zinc-800" aria-hidden />{tr("Voorbij", "Past")}</li>
+                    </ul>
+
                     <div className="mt-4 p-3 bg-muted rounded-lg">
                       <p className="text-sm font-medium text-muted-foreground">{t.selectedDateLabel}</p>
                       <p className="text-sm text-foreground font-semibold">{formatSelectedDate()}</p>
@@ -745,6 +781,7 @@ export default function BookingPage() {
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
                 </Button>
+                {missingHint(missingStep1)}
               </div>
             </div>
           )}
@@ -816,8 +853,8 @@ export default function BookingPage() {
                 {hoursIssue && bookingOptions && (
                   <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
                     {hoursIssue === "min"
-                      ? tr(`${professional.name} speelt minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} plays at least ${bookingOptions.minHours} hours. Choose a later end time.`)
-                      : tr(`${professional.name} speelt maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} plays at most ${bookingOptions.maxHours} hours. Choose an earlier end time.`)}
+                      ? tr(`${professional.name} speelt minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} plays at least ${bookingOptions.minHours} ${bookingOptions.minHours === 1 ? "hour" : "hours"}. Choose a later end time.`)
+                      : tr(`${professional.name} speelt maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} plays at most ${bookingOptions.maxHours} ${bookingOptions.maxHours === 1 ? "hour" : "hours"}. Choose an earlier end time.`)}
                   </p>
                 )}
 
@@ -1215,6 +1252,7 @@ export default function BookingPage() {
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
                 </Button>
               </div>
+              {missingHint(missingStep2)}
             </div>
           )}
 
@@ -1222,33 +1260,34 @@ export default function BookingPage() {
           {currentStep === 3 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">Persoonlijke gegevens</h2>
-                <p className="text-sm text-muted-foreground mb-6">Vul je gegevens in zodat de professional contact met je kan opnemen.</p>
+                <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">{tr("Persoonlijke gegevens", "Personal details")}</h2>
+                <p className="text-sm text-muted-foreground mb-6">{tr("Vul je gegevens in zodat de professional contact met je kan opnemen.", "Fill in your details so the professional can contact you.")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-2 text-sm font-medium text-foreground">Voornaam<input required value={firstName} onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Voornaam" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">Achternaam<input required value={lastName} onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Achternaam" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">E-mailadres<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="jij@voorbeeld.nl" /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">Telefoonnummer<input required type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}<input required value={firstName} onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}<input required value={lastName} onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}<input required type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
                 </div>
                 <div className="mt-6 border-t border-border pt-5">
-                  <h3 className="font-semibold text-foreground">Factuurgegevens</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Deze gegevens gebruiken we om de factuur op te stellen.</p>
-                  <div className="mt-4 flex gap-2" role="radiogroup" aria-label="Type klant">
-                    <button type="button" onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>Particulier</button>
-                    <button type="button" onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>Zakelijk</button>
+                  <h3 className="font-semibold text-foreground">{tr("Factuurgegevens", "Billing details")}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{tr("Deze gegevens gebruiken we om de factuur op te stellen.", "We use these details to prepare the invoice.")}</p>
+                  <div className="mt-4 flex gap-2" role="radiogroup" aria-label={tr("Type klant", "Customer type")}>
+                    <button type="button" onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Particulier", "Private")}</button>
+                    <button type="button" onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
                   </div>
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">Bedrijfsnaam<input required value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Bedrijfsnaam" /></label>}
-                    <label className="space-y-2 text-sm font-medium text-foreground">Straat<input required value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Straatnaam" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">Huisnummer<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">Postcode<input required value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">Plaats<input required value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">Land<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option>Nederland</option><option>België</option><option>Duitsland</option><option>Anders</option></select></label>
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">BTW-nummer<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}<input required value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}<input required value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}<input required value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}<input required value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Land", "Country")}<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option value="Nederland">{tr("Nederland", "Netherlands")}</option><option value="België">{tr("België", "Belgium")}</option><option value="Duitsland">{tr("Duitsland", "Germany")}</option><option value="Anders">{tr("Anders", "Other")}</option></select></label>
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">{tr("Btw-nummer", "VAT number")}<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">Naar overzicht</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              {missingHint(missingStep3)}
             </div>
           )}
 
@@ -1256,30 +1295,30 @@ export default function BookingPage() {
           {currentStep === 4 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-5 text-foreground">Overzicht</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-5 text-foreground">{tr("Overzicht", "Overview")}</h2>
                 <div className="space-y-3 text-sm border-b border-border pb-4">
                   <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Datum</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Locatie</span><span className="font-medium text-foreground">{eventLocation}</span></div>
-                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">Factuuradres</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
-                  {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">BTW-nummer</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Datum", "Date")}</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Locatie", "Location")}</span><span className="font-medium text-foreground">{eventLocation}</span></div>
+                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Factuuradres", "Billing address")}</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
+                  {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw-nummer", "VAT number")}</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   {pricing && <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Optreden ({pricing.hours} uur x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
-                  {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? "Apparatuur en extra's" : "Extra's"} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
-                  <div className="flex justify-between"><span className="text-muted-foreground">Reiskosten ({(distance ?? 0) * 2} km retour)</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
-                  <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">Subtotaal excl. btw</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Btw</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
-                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Totaal incl. btw</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Optreden", "Performance")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
+                  {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Apparatuur en extra's", "Equipment and extras") : tr("Extra's", "Extras")} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
+                  <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw", "VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
                   </>}
-                  <p className="text-xs text-muted-foreground">Dit is een indicatie. De professional bevestigt het definitieve bedrag zodra je aanvraag is geaccepteerd. Je betaalt pas na acceptatie.</p>
+                  <p className="text-xs text-muted-foreground">{tr("De professional bevestigt dit bedrag als je aanvraag wordt geaccepteerd. Je betaalt pas daarna.", "The professional confirms this amount when your request is accepted. You only pay after that.")}</p>
                 </div>
                 <div className="mt-5">
-                  <h3 className="font-semibold text-foreground mb-3">Zo betaal je</h3>
+                  <h3 className="font-semibold text-foreground mb-3">{tr("Zo betaal je", "How you pay")}</h3>
                   <ol className="space-y-3 text-sm">
                     {[
-                      ["Nu", "Je verstuurt je aanvraag en betaalt nog niets."],
-                      [`Na goedkeuring: ${formatEuro(depositCents(pricing?.totalCents ?? 0))}`, `Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`],
-                      [`Na het evenement: ${formatEuro((pricing?.totalCents ?? 0) - depositCents(pricing?.totalCents ?? 0))}`, "Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op."],
+                      [tr("Nu", "Now"), tr("Je verstuurt je aanvraag en betaalt nog niets.", "You send your request and pay nothing yet.")],
+                      [`${tr("Na goedkeuring", "After approval")}: ${formatEuro(depositCents(pricing?.totalCents ?? 0))}`, tr(`Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`, `You receive a quote and pay a ${DEPOSIT_PERCENT}% deposit. That makes your booking final.`)],
+                      [`${tr("Na het evenement", "After the event")}: ${formatEuro((pricing?.totalCents ?? 0) - depositCents(pricing?.totalCents ?? 0))}`, tr("Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op.", "You pay the rest with the final invoice. Extra costs, such as an extra hour or parking, are listed there separately.")],
                     ].map(([title, text], index) => (
                       <li key={title} className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground" aria-hidden="true">{index + 1}</span>
@@ -1287,9 +1326,9 @@ export default function BookingPage() {
                       </li>
                     ))}
                   </ol>
-                  <p className="mt-3 text-xs text-muted-foreground">Je betaalt per bankoverschrijving. De bedragen volgen uit de prijsindicatie hierboven.</p>
+                  <p className="mt-3 text-xs text-muted-foreground">{tr("Je betaalt per bankoverschrijving. De bedragen volgen uit het overzicht hierboven.", "You pay by bank transfer. The amounts follow from the overview above.")}</p>
                 </div>
-                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />Je gegevens worden veilig verwerkt.</div>
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />{tr("Je gegevens worden veilig verwerkt.", "Your details are processed securely.")}</div>
               </div>
               {submitError && (
                 <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
@@ -1297,13 +1336,13 @@ export default function BookingPage() {
                   <span>{submitError}</span>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Versturen...</> : "Verstuur aanvraag"}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">Boekingsaanvraag verzonden</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">Bedankt {firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar {professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">Aanvraagnummer <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">Bekijk mijn boeking</Button></div>
+            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
           )}
         </div>
       </div>

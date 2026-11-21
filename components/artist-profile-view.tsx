@@ -67,20 +67,6 @@ export function ArtistProfileView({
     artist.image ||
     `/placeholder.svg?height=144&width=144&query=${encodeURIComponent(artist.name)} profile portrait`;
 
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
 
   const years = [2024, 2025, 2026, 2027];
 
@@ -162,9 +148,9 @@ export function ArtistProfileView({
   };
 
   const formatSelectedDate = () => {
-    if (!selectedDate) return "Select a Date";
+    if (!selectedDate) return nl ? "Kies een datum" : "Select a Date";
     const date = new Date(currentYear, currentMonth, selectedDate);
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(nl ? "nl-NL" : "en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -254,7 +240,7 @@ export function ArtistProfileView({
               className="flex-1 bg-transparent border-border text-foreground hover:bg-accent text-sm sm:text-base py-2 sm:py-auto"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
-              Chat
+              {nl ? "Chat" : "Chat"}
             </Button>
             {isDemoProfessional(artist.id) ? (
               <DemoBookButton className="flex-1 text-sm sm:text-base py-2 sm:py-auto" />
@@ -268,7 +254,7 @@ export function ArtistProfileView({
                   router.push(href);
                 }}
               >
-                Book Now
+                {nl ? "Boek nu" : "Book Now"}
               </Button>
             )}
           </div>
@@ -279,7 +265,7 @@ export function ArtistProfileView({
           {/* Per Hour Card */}
           <div className="border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 bg-card">
             <div className="text-xs sm:text-sm text-muted-foreground mb-2">
-              Per Hour
+              {nl ? "Per uur" : "Per Hour"}
             </div>
             <div className="flex items-baseline gap-0.5 mb-1">
               <span className="text-2xl sm:text-4xl font-bold text-red-600">
@@ -297,7 +283,7 @@ export function ArtistProfileView({
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               <span className="text-xs sm:text-sm text-muted-foreground">
-                Duration
+                {nl ? "Duur" : "Duration"}
               </span>
             </div>
             <div className="text-lg sm:text-2xl font-bold text-foreground">
@@ -310,7 +296,7 @@ export function ArtistProfileView({
             <div className="flex items-center gap-2 mb-2">
               <Target className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               <span className="text-xs sm:text-sm text-muted-foreground">
-                Exp
+                {nl ? "Ervaring" : "Exp"}
               </span>
             </div>
             <div className="text-lg sm:text-2xl font-bold text-foreground">
@@ -323,7 +309,7 @@ export function ArtistProfileView({
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               <span className="text-xs sm:text-sm text-muted-foreground">
-                Travel
+                {nl ? "Reisafstand" : "Travel"}
               </span>
             </div>
             <div className="text-lg sm:text-2xl font-bold text-foreground">
@@ -340,31 +326,31 @@ export function ArtistProfileView({
               value="about"
               className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
             >
-              About
+              {nl ? "Over" : "About"}
             </TabsTrigger>
             <TabsTrigger
               value="portfolio"
               className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
             >
-              Portfolio
+              {nl ? "Portfolio" : "Portfolio"}
             </TabsTrigger>
             <TabsTrigger
               value="equipment"
               className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
             >
-              {photo ? "Extras" : "Equipment"}
+              {photo ? (nl ? "Extra's" : "Extras") : nl ? "Apparatuur" : "Equipment"}
             </TabsTrigger>
             <TabsTrigger
               value="availability"
               className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
             >
-              Availability
+              {nl ? "Beschikbaarheid" : "Availability"}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="about" className="mt-0">
             <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-              About
+              {nl ? "Over" : "About"}
             </h3>
             <p className="text-xs sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
               {artist.description ||
@@ -375,7 +361,7 @@ export function ArtistProfileView({
 
             <div className="mb-6 sm:mb-8">
               <h4 className="text-base sm:text-xl font-bold mb-3 sm:mb-4 text-foreground">
-                Event Types
+                {nl ? "Soorten evenementen" : "Event Types"}
               </h4>
               <div className="flex flex-wrap gap-1 sm:gap-2">
                 {isReal && !artist.eventTypes?.length && (
@@ -402,7 +388,7 @@ export function ArtistProfileView({
 
             <div>
               <h4 className="text-base sm:text-xl font-bold mb-3 sm:mb-4 text-foreground">
-                {photo ? "Specialties" : "Music Genres"}
+                {photo ? (nl ? "Specialisaties" : "Specialties") : nl ? "Muziekgenres" : "Music Genres"}
               </h4>
               <div className="flex flex-wrap gap-1 sm:gap-2">
                 {isReal && !artist.musicStyles?.length && (
@@ -435,26 +421,26 @@ export function ArtistProfileView({
             <div className="space-y-6 sm:space-y-8">
               <div>
                 <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-                  Event Photos
+                  {nl ? "Eventfoto's" : "Event Photos"}
                 </h3>
                 <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">
-                  No albums available.
+                  {nl ? "Nog geen albums." : "No albums available."}
                 </p>
               </div>
 
               <div>
                 <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-                  Videos
+                  {nl ? "Video's" : "Videos"}
                 </h3>
                 <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">
-                  No videos available.
+                  {nl ? "Nog geen video's." : "No videos available."}
                 </p>
               </div>
 
               {!photo && (
               <div>
                 <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-                  Connect
+                  {nl ? "Volg" : "Connect"}
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
                   <div className="border-2 border-border rounded-lg p-3 sm:p-6 flex items-center gap-2 sm:gap-3 hover:border-muted-foreground transition-colors cursor-pointer bg-card">
@@ -583,7 +569,7 @@ export function ArtistProfileView({
             ) : (
               <>
             <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
-              Equipment Options
+              {nl ? "Apparatuuropties" : "Equipment Options"}
             </h3>
 
             <div className="bg-card border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 mb-6 sm:mb-8">
@@ -721,7 +707,7 @@ export function ArtistProfileView({
             </div>
 
             <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-6 text-foreground">
-              Extra Options
+              {nl ? "Extra opties" : "Extra Options"}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
               {/* Extra Option 1 */}
@@ -758,26 +744,26 @@ export function ArtistProfileView({
 
           <TabsContent value="availability" className="mt-0">
             <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
-              Availability Calendar
+              {nl ? "Beschikbaarheidskalender" : "Availability Calendar"}
             </h3>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6 p-2 sm:p-3 bg-card border border-border rounded-lg w-fit">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-green-600 bg-green-600"></div>
                 <span className="text-xs sm:text-sm text-foreground">
-                  Selected
+                  {nl ? "Gekozen" : "Selected"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-red-600 bg-red-600"></div>
                 <span className="text-xs sm:text-sm text-foreground">
-                  Unavailable
+                  {nl ? "Niet beschikbaar" : "Unavailable"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-zinc-200 dark:bg-zinc-700"></div>
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                  Available
+                  {nl ? "Beschikbaar" : "Available"}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -787,7 +773,7 @@ export function ArtistProfileView({
                   </span>
                 </div>
                 <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  Past
+                  {nl ? "Voorbij" : "Past"}
                 </span>
               </div>
             </div>
@@ -804,7 +790,7 @@ export function ArtistProfileView({
                       <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <span className="text-sm sm:text-lg font-semibold text-foreground">
-                      {months[currentMonth]} {currentYear}
+                      {new Date(currentYear, currentMonth, 1).toLocaleDateString(nl ? "nl-NL" : "en-US", { month: "long" })} {currentYear}
                     </span>
                     <button
                       onClick={goToNextMonth}
@@ -815,7 +801,7 @@ export function ArtistProfileView({
                   </div>
 
                   <div className="grid grid-cols-7 gap-1 mb-2">
-                    {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
+                    {(nl ? ["M", "D", "W", "D", "V", "Z", "Z"] : ["M", "T", "W", "T", "F", "S", "S"]).map((day, index) => (
                       <div
                         key={index}
                         className="text-center text-xs font-semibold text-muted-foreground h-8 flex items-center justify-center"
@@ -856,7 +842,7 @@ export function ArtistProfileView({
                       }
                     }}
                   >
-                    {selectedDate ? "Book Now" : "Select a Date"}
+                    {selectedDate ? (nl ? "Boek nu" : "Book Now") : nl ? "Kies een datum" : "Select a Date"}
                   </Link>
                   )}
                 </div>
@@ -864,7 +850,7 @@ export function ArtistProfileView({
                 {/* Left Column - Upcoming Bookings */}
                 <div>
                   <h3 className="text-base sm:text-xl font-semibold text-red-600 mb-3 sm:mb-4">
-                    Upcoming Bookings
+                    {nl ? "Aankomende boekingen" : "Upcoming Bookings"}
                   </h3>
                   <div className="space-y-2 sm:space-y-3 max-h-[300px] overflow-y-auto pr-2">
                     <div className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3 sm:p-4">

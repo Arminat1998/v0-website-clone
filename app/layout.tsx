@@ -2,7 +2,6 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { Suspense } from "react"
 import { LanguageProvider } from "@/contexts/language-context"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { UserTest } from "@/components/user-test"
@@ -31,7 +30,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
           <LanguageProvider>
-            <Suspense fallback={null}>{children}</Suspense>
+            {children}
             <Toaster />
             <UserTest />
             <Analytics />

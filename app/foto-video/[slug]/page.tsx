@@ -28,7 +28,7 @@ function withPageContent(professional: Artist, content: ArtistPageContent | null
 export async function generateMetadata({ params }: PhotoVideoPageProps): Promise<Metadata> {
   const { slug } = await params
   const base = await getProfessionalArtistBySlug(slug, "photo-video")
-  if (!base) return { title: "Fotograaf niet gevonden | ARSI Events" }
+  if (!base) notFound()
 
   const content = await getArtistPageContent(String(base.id))
   const professional = withPageContent(base, content)

@@ -28,7 +28,7 @@ function withPageContent(artist: Artist, content: ArtistPageContent | null): Art
 export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
   const { slug } = await params
   const baseArtist = getArtistBySlug(slug) ?? (await getProfessionalArtistBySlug(slug))
-  if (!baseArtist) return { title: "Artiest niet gevonden | ARSI Events" }
+  if (!baseArtist) notFound()
 
   const content = await getArtistPageContent(String(baseArtist.id))
   const artist = withPageContent(baseArtist, content)
