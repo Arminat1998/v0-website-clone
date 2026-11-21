@@ -2,10 +2,9 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { ArtistWebsite } from "@/components/artist-website/artist-website"
-import type { Artist } from "@/lib/smart-search"
 import { getArtistPageContent } from "@/lib/artist-page"
 import { getProfessionalArtistBySlug } from "@/lib/professional-artist"
-import { emptyPageContent, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
+import { emptyPageContent, mediaUrl, withPageContent } from "@/lib/artist-page-types"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
@@ -15,15 +14,6 @@ interface PhotoVideoPageProps {
   params: Promise<{ slug: string }>
 }
 
-function withPageContent(professional: Artist, content: ArtistPageContent | null): Artist {
-  if (!content) return professional
-  return {
-    ...professional,
-    description: content.about || professional.description,
-    eventTypes: content.eventTypes.length > 0 ? content.eventTypes : professional.eventTypes,
-    musicStyles: content.musicGenres.length > 0 ? content.musicGenres : professional.musicStyles,
-  }
-}
 
 export async function generateMetadata({ params }: PhotoVideoPageProps): Promise<Metadata> {
   const { slug } = await params

@@ -3,11 +3,10 @@ import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { ArtistBackLink } from "@/components/artist-back-link"
 import { ArtistWebsite } from "@/components/artist-website/artist-website"
-import type { Artist } from "@/lib/smart-search"
 import { getArtistBySlug } from "@/lib/artist-slug"
 import { getArtistPageContent } from "@/lib/artist-page"
 import { getProfessionalArtistBySlug } from "@/lib/professional-artist"
-import { emptyPageContent, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
+import { emptyPageContent, mediaUrl, withPageContent } from "@/lib/artist-page-types"
 
 export const dynamic = "force-dynamic"
 
@@ -15,15 +14,6 @@ interface ArtistPageProps {
   params: Promise<{ slug: string }>
 }
 
-function withPageContent(artist: Artist, content: ArtistPageContent | null): Artist {
-  if (!content) return artist
-  return {
-    ...artist,
-    description: content.about || artist.description,
-    eventTypes: content.eventTypes.length > 0 ? content.eventTypes : artist.eventTypes,
-    musicStyles: content.musicGenres.length > 0 ? content.musicGenres : artist.musicStyles,
-  }
-}
 
 export async function generateMetadata({ params }: ArtistPageProps): Promise<Metadata> {
   const { slug } = await params
