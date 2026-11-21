@@ -1,5 +1,5 @@
 import type { BillingProfile, Booking, Invoice, InvoiceLine } from "@/lib/db/schema"
-import { EQUIPMENT_OPTIONS, TRAVEL_RATE_CENTS_PER_KM, platformFeeCents, travelCents } from "@/lib/bookings/pricing"
+import { EQUIPMENT_OPTIONS, TRAVEL_RATE_CENTS_PER_KM, bookingVatCents, platformFeeCents, travelCents, vatOn } from "@/lib/bookings/pricing"
 import { isSafeBlobPath } from "@/lib/blob-paths"
 
 /** Dutch VAT rates in percent. Equipment rental is always standard-rated; a live performance by a
@@ -111,10 +111,18 @@ export function sanitizeAdjustments(input: Partial<InvoiceAdjustments> | undefin
   }
 }
 
-/** The platform fee is a percentage of the invoiced total, so added costs raise the fee too. */
-export function payoutFor(totalCents: number) {
-  const feeCents = platformFeeCents(totalCents)
-  return { feeCents, payoutCents: totalCents - feeCents }
+/**
+ * The platform fee is a percentage of the invoiced amount, so added costs raise the fee too. For bookings
+ * priced excl. VAT the fee is taken from the amount excl. VAT; older bookings take it from the total.
+ */
+export function payoutFor(totals: Pick<InvoiceTotals, "totalCents" | "netCents">, vatExclusive: boolean) {
+  const feeCents = platformFeeCents(vatExclusive ? totals.netCents : totals.totalCents)
+  return { feeCents, payoutCents: totals.totalCents - feeCents }
+}
+
+/** True for bookings priced excl. VAT: their stored total is higher than the sum of its parts. */
+export function isVatExclusive(booking: Pick<Booking, "hours" | "hourlyRateCents" | "equipmentCents" | "travelCents" | "totalCents">) {
+  return bookingVatCents(booking) > 0
 }
 
 function line(
@@ -130,11 +138,27 @@ function line(
   return { key, description, quantity, unitLabel, unitCents, vatRate, grossCents, vatCents, netCents }
 }
 
+/** A line for an amount excl. VAT: the VAT is added on top. */
+function netLine(
+  key: InvoiceLine["key"],
+  description: string,
+  quantity: number,
+  unitLabel: string,
+  unitCents: number,
+  netCents: number,
+  vatRate: number,
+): InvoiceLine {
+  const vatCents = vatOn(netCents, vatRate)
+  return { key, description, quantity, unitLabel, unitCents, vatRate, grossCents: netCents + vatCents, vatCents, netCents }
+}
+
 /**
- * Builds the invoice lines for a booking. Booking amounts are what the client pays (VAT inclusive),
- * so the invoice total always equals the booking total; VAT is extracted per line.
+ * Builds the invoice lines for a booking. Bookings priced excl. VAT get the VAT added per line, so the
+ * invoice total equals the quoted total incl. VAT. Older bookings stored amounts incl. VAT; for those the
+ * VAT is extracted per line. Costs the professional adds follow the same convention as the booking.
  */
 export function buildInvoiceLines(booking: PricedBooking, profile: VatProfile, adjustments: InvoiceAdjustments = defaultAdjustments(booking)): InvoiceLine[] {
+  if (isVatExclusive(booking)) return buildNetInvoiceLines(booking, profile, adjustments)
   const kor = profile.vatScheme === "kor"
   const performanceRate = kor ? 0 : profile.performanceVatRate
   const equipmentRate = kor ? 0 : STANDARD_VAT_RATE
@@ -218,4 +242,41 @@ export function invoiceFileUrl(invoice: Pick<Invoice, "filePathname">) {
 
 export function invoiceBlobPrefix(professionalId: string, bookingId: number) {
   return `invoices/${professionalId}/${bookingId}/`
+}
+
+function buildNetInvoiceLines(booking: PricedBooking, profile: VatProfile, adjustments: InvoiceAdjustments): InvoiceLine[] {
+  const kor = profile.vatScheme === "kor"
+  const performanceRate = kor ? 0 : profile.performanceVatRate
+  const equipmentRate = kor ? 0 : STANDARD_VAT_RATE
+  const hours = Number(booking.hours)
+  const performanceNet = Math.round(hours * booking.hourlyRateCents)
+
+  const lines: InvoiceLine[] = [
+    netLine(
+      "performance",
+      booking.professionalType === "photographer" ? `Fotografie ${booking.eventName}` : `DJ-optreden ${booking.eventName}`,
+      hours,
+      "uur",
+      booking.hourlyRateCents,
+      performanceNet,
+      performanceRate,
+    ),
+  ]
+  if (booking.equipmentCents > 0) {
+    const what = booking.equipment.length ? `: ${booking.equipment.join(", ")}` : ""
+    lines.push(netLine("equipment", `Huur apparatuur${what}`, 1, "stuk", booking.equipmentCents, booking.equipmentCents, equipmentRate))
+  }
+  if (adjustments.distanceKm > 0) {
+    const km = adjustments.distanceKm * 2
+    lines.push(netLine("travel", `Reiskosten ${km} km retour`, km, "km", TRAVEL_RATE_CENTS_PER_KM, travelCents(adjustments.distanceKm), performanceRate))
+  }
+  if (adjustments.parkingCents > 0) {
+    const parking = netLine("parking", "Parkeerkosten", 1, "stuk", adjustments.parkingCents, adjustments.parkingCents, performanceRate)
+    lines.push(adjustments.parkingReceipt ? { ...parking, receipt: adjustments.parkingReceipt } : parking)
+  }
+  for (const extra of adjustments.extras) {
+    const extraLine = netLine("extra", extra.description, 1, "stuk", extra.amountCents, extra.amountCents, performanceRate)
+    lines.push(extra.receipt ? { ...extraLine, receipt: extra.receipt } : extraLine)
+  }
+  return lines
 }

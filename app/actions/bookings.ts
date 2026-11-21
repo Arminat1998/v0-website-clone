@@ -4,7 +4,10 @@ import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { bookings, customerNotifications, invoices, notifications, type Booking, type Invoice, type Notification } from "@/lib/db/schema"
-import { calculatePricing, parseHourlyRateCents } from "@/lib/bookings/pricing"
+import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
+import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
+import { distanceBetween } from "@/lib/bookings/distance"
+import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
@@ -96,6 +99,8 @@ export interface CreateBookingInput {
   city: string
   country: string
   distanceKm: number
+  /** The place the distance was calculated to in step 1; the server calculates the distance again. */
+  eventLocation: string
   equipment: string[]
   firstName: string
   lastName: string
@@ -113,6 +118,46 @@ export interface CreateBookingInput {
 }
 
 const orNull = (value: string) => (value.trim() ? value.trim() : null)
+
+/**
+ * The distance the server charges for: calculated again from the professional's city to the event location.
+ * When the geocoder is unavailable, the distance from the browser is used. Beyond the professional's travel
+ * range the booking is refused.
+ */
+async function resolveDistance(professionalId: string, eventLocation: string, clientKm: number, options: BookingOptions) {
+  const from = await loadProfessionalCity(professionalId)
+  const place = String(eventLocation ?? "").trim().slice(0, 120)
+  const serverKm = from && place ? await distanceBetween(from, place) : null
+  const km = serverKm ?? Math.round(clientKm)
+  if (!Number.isFinite(km) || km < 0) throw new Error("Invalid booking details")
+  if (km > options.rangeKm) throw new Error("Outside travel range")
+  return km
+}
+
+/** The bookable options of a professional for the booking page: rates, hours, range, package, extras and VAT. */
+export async function getBookingOptions(professionalId: string): Promise<BookingOptions | null> {
+  if (isDemoProfessional(professionalId) || typeof professionalId !== "string" || professionalId.length > 100) return null
+  return loadBookingOptions(professionalId)
+}
+
+export type BookingDistanceResult =
+  | { ok: true; distanceKm: number; rangeKm: number }
+  | { ok: false; error: "UNAUTHORIZED" | "NOT_FOUND" | "OUT_OF_RANGE" | "TOO_MANY"; rangeKm?: number }
+
+/** Distance from the professional's city to the event location, calculated on the server like at booking time. */
+export async function calculateBookingDistance(professionalId: string, eventLocation: string): Promise<BookingDistanceResult> {
+  const session = await getSession()
+  if (!session?.user) return { ok: false, error: "UNAUTHORIZED" }
+  if (!takeToken(`distance:${session.user.id}`, 20, 10 * 60 * 1000)) return { ok: false, error: "TOO_MANY" }
+  const options = await getBookingOptions(professionalId)
+  const from = options ? await loadProfessionalCity(professionalId) : null
+  const place = String(eventLocation ?? "").trim().slice(0, 120)
+  if (!options || !from || !place) return { ok: false, error: "NOT_FOUND" }
+  const distanceKm = await distanceBetween(from, place)
+  if (distanceKm === null) return { ok: false, error: "NOT_FOUND" }
+  if (distanceKm > options.rangeKm) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
+  return { ok: true, distanceKm, rangeKm: options.rangeKm }
+}
 
 export async function createBooking(input: CreateBookingInput) {
   const session = await getSession()
@@ -140,12 +185,19 @@ export async function createBooking(input: CreateBookingInput) {
   if (!professional) throw new Error("Professional unavailable")
   if ((await getBlockedDates(input.professionalId)).includes(input.eventDate)) throw new Error("Date unavailable")
 
-  const pricing = calculatePricing({
-    hourlyRateCents: parseHourlyRateCents(professional.price),
+  // The price comes from the professional's own profile, never from the browser.
+  const options = await loadBookingOptions(input.professionalId)
+  if (!options) throw new Error("Professional unavailable")
+  if (input.startTime === input.endTime || hoursProblem(options, hoursBetween(input.startTime, input.endTime))) {
+    throw new Error("Invalid booking hours")
+  }
+  if (input.professionalType === "photographer" && input.equipment.includes("package")) throw new Error("Invalid booking details")
+  const distanceKm = await resolveDistance(input.professionalId, input.eventLocation, input.distanceKm, options)
+  const pricing = priceBooking(options, {
     startTime: input.startTime,
     endTime: input.endTime,
     equipment: input.equipment,
-    distanceKm: input.distanceKm,
+    distanceKm,
   })
 
   const capacity = Number.parseInt(input.capacity, 10)
@@ -201,8 +253,8 @@ export async function createBooking(input: CreateBookingInput) {
         postalCode: orNull(input.postalCode),
         city: input.city.trim() || "Onbekend",
         country: orNull(input.country),
-        distanceKm: Math.max(0, Math.round(input.distanceKm)),
-        equipment: input.equipment,
+        distanceKm,
+        equipment: pricing.equipmentLabels,
         firstName: input.firstName.trim(),
         lastName: input.lastName.trim(),
         email: input.email.trim(),

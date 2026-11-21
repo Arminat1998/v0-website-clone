@@ -73,9 +73,10 @@ function ReceiptPicker({ bookingId, receipt, onChange, nl }: { bookingId: number
   )
 }
 
-export function InvoiceCosts({ bookingId, value, onChange }: { bookingId: number; value: InvoiceAdjustments; onChange: (value: InvoiceAdjustments) => void }) {
+export function InvoiceCosts({ bookingId, value, onChange, vatExclusive = false }: { bookingId: number; value: InvoiceAdjustments; onChange: (value: InvoiceAdjustments) => void; vatExclusive?: boolean }) {
   const { locale } = useBookingT()
   const nl = locale.startsWith("nl")
+  const vatLabel = vatExclusive ? (nl ? "excl. btw" : "excl. VAT") : (nl ? "incl. btw" : "incl. VAT")
   const inputClass = "h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-ring"
   const bounded = (raw: string, max: number, scale = 1) => Math.min(max, Math.max(0, Math.round((Number(raw) || 0) * scale)))
   const updateExtra = (index: number, patch: Partial<InvoiceAdjustments["extras"][number]>) =>
@@ -85,7 +86,7 @@ export function InvoiceCosts({ bookingId, value, onChange }: { bookingId: number
   return (
     <section className="rounded-lg border border-border bg-card p-5 text-card-foreground md:p-6" aria-labelledby="costs-title">
       <h2 id="costs-title" className="font-semibold">{nl ? "Reisafstand en extra kosten" : "Travel distance and additional costs"}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">{nl ? "Pas je kilometers aan en voeg eventuele kosten toe. Voor parkeer- en extra kosten is een bon of factuur verplicht. Bedragen zijn inclusief btw." : "Adjust your mileage and add costs. Parking and additional costs require a receipt or invoice. Amounts include VAT."}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{nl ? `Pas je kilometers aan en voeg eventuele kosten toe. Voor parkeer- en extra kosten is een bon of factuur verplicht. Bedragen zijn ${vatExclusive ? "exclusief" : "inclusief"} btw.` : `Adjust your mileage and add costs. Parking and additional costs require a receipt or invoice. Amounts ${vatExclusive ? "exclude" : "include"} VAT.`}</p>
       <div className="mt-5 flex flex-col gap-4">
         <div className="flex flex-col gap-4 sm:flex-row">
           <label className="flex flex-1 flex-col gap-2 text-sm">{nl ? "Reisafstand enkele reis (km)" : "One-way distance (km)"}
@@ -93,7 +94,7 @@ export function InvoiceCosts({ bookingId, value, onChange }: { bookingId: number
             <span className="text-muted-foreground">{nl ? `${value.distanceKm * 2} km retour · € 0,25 per km` : `${value.distanceKm * 2} km return · €0.25 per km`}</span>
           </label>
           <div className="flex flex-1 flex-col gap-2">
-            <label className="flex flex-col gap-2 text-sm">{nl ? "Parkeerkosten (€ incl. btw)" : "Parking (€ incl. VAT)"}
+            <label className="flex flex-col gap-2 text-sm">{nl ? `Parkeerkosten (€ ${vatLabel})` : `Parking (€ ${vatLabel})`}
               <input className={inputClass} type="number" min="0" max={MAX_PARKING_CENTS / 100} step="0.01" value={value.parkingCents / 100} onChange={(e) => onChange({ ...value, parkingCents: bounded(e.target.value, MAX_PARKING_CENTS, 100) })} />
             </label>
             {value.parkingCents > 0 && <ReceiptPicker bookingId={bookingId} nl={nl} receipt={value.parkingReceipt} onChange={(parkingReceipt) => onChange({ ...value, parkingReceipt })} />}
@@ -106,7 +107,7 @@ export function InvoiceCosts({ bookingId, value, onChange }: { bookingId: number
               <label className="flex flex-1 flex-col gap-2 text-sm">{nl ? "Omschrijving" : "Description"}
                 <input className={inputClass} maxLength={120} required value={extra.description} onChange={(e) => updateExtra(index, { description: e.target.value })} />
               </label>
-              <label className="flex flex-col gap-2 text-sm sm:w-40">{nl ? "Bedrag (€ incl. btw)" : "Amount (€ incl. VAT)"}
+              <label className="flex flex-col gap-2 text-sm sm:w-40">{nl ? `Bedrag (€ ${vatLabel})` : `Amount (€ ${vatLabel})`}
                 <input className={inputClass} type="number" min="0.01" max={MAX_EXTRA_CENTS / 100} step="0.01" required value={extra.amountCents / 100} onChange={(e) => updateExtra(index, { amountCents: bounded(e.target.value, MAX_EXTRA_CENTS, 100) })} />
               </label>
               <button type="button" className="h-10 rounded-md border border-border px-3 text-sm hover:bg-accent" onClick={() => onChange({ ...value, extras: value.extras.filter((_, i) => i !== index) })}>{nl ? "Verwijderen" : "Remove"}</button>

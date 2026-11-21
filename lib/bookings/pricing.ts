@@ -86,6 +86,88 @@ export function calculatePricing(input: PricingInput): Pricing {
   }
 }
 
+/** One bookable item from the professional's own profile: their equipment package or one of their extras. */
+export interface BookingOption {
+  id: string
+  label: string
+  priceCents: number
+}
+
+/** Everything the price of a booking depends on, taken from the professional's profile and billing settings. */
+export interface BookingOptions {
+  hourlyRateCents: number
+  minHours: number
+  maxHours: number
+  rangeKm: number
+  /** The equipment package (artists); null when the professional has none, e.g. photographers. */
+  package: BookingOption | null
+  extras: BookingOption[]
+  /** VAT in percent on top of the prices; both 0 for professionals under the KOR scheme. */
+  vat: { performanceRate: number; equipmentRate: number }
+}
+
+export const PACKAGE_OPTION_ID = "package"
+
+export interface Quote extends Pricing {
+  netCents: number
+  vatCents: number
+  /** Labels of the chosen equipment, as stored on the booking. */
+  equipmentLabels: string[]
+}
+
+export function vatOn(netCents: number, rate: number) {
+  return Math.round((netCents * rate) / 100)
+}
+
+/** "min" or "max" when the booked hours fall outside the professional's limits. */
+export function hoursProblem(options: Pick<BookingOptions, "minHours" | "maxHours">, hours: number): "min" | "max" | null {
+  if (hours < options.minHours) return "min"
+  if (hours > options.maxHours) return "max"
+  return null
+}
+
+/**
+ * Prices are excl. VAT. VAT follows the invoice rules: the performance rate on the performance and travel,
+ * the standard rate on equipment rental. The platform fee is a share of the amount excl. VAT.
+ */
+export function priceBooking(options: BookingOptions, input: Omit<PricingInput, "hourlyRateCents">): Quote {
+  const hours = hoursBetween(input.startTime, input.endTime)
+  const performance = Math.round(hours * options.hourlyRateCents)
+  const chosen = [options.package, ...options.extras].filter(
+    (option): option is BookingOption => option !== null && input.equipment.includes(option.id),
+  )
+  const equipment = chosen.reduce((sum, option) => sum + option.priceCents, 0)
+  const travel = travelCents(input.distanceKm)
+  const net = performance + equipment + travel
+  const vat =
+    vatOn(performance, options.vat.performanceRate) +
+    vatOn(travel, options.vat.performanceRate) +
+    vatOn(equipment, options.vat.equipmentRate)
+  const fee = platformFeeCents(net)
+  return {
+    hours,
+    hourlyRateCents: options.hourlyRateCents,
+    performanceCents: performance,
+    equipmentCents: equipment,
+    travelCents: travel,
+    netCents: net,
+    vatCents: vat,
+    totalCents: net + vat,
+    platformFeeCents: fee,
+    payoutCents: net + vat - fee,
+    equipmentLabels: chosen.map((option) => option.label),
+  }
+}
+
+/**
+ * VAT included in a stored booking. Bookings made since prices are excl. VAT store the parts excl. VAT and
+ * the total incl. VAT; older bookings stored a total that already contained VAT, so the difference is 0.
+ */
+export function bookingVatCents(booking: { hours: string | number; hourlyRateCents: number; equipmentCents: number; travelCents: number; totalCents: number }) {
+  const parts = Math.round(Number(booking.hours) * booking.hourlyRateCents) + booking.equipmentCents + booking.travelCents
+  return Math.max(0, booking.totalCents - parts)
+}
+
 export function formatEuro(cents: number, locale = "nl-NL") {
   return new Intl.NumberFormat(locale, {
     style: "currency",

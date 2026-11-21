@@ -11,11 +11,11 @@ import { isDemoProfessional } from "@/lib/demo-professionals"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
-import { createBooking, getBlockedDates } from "@/app/actions/bookings"
+import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions } from "@/app/actions/bookings"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { getCustomerProfile } from "@/app/actions/customer"
-import { calculatePricing, formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
+import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking } from "@/lib/bookings/pricing"
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
@@ -70,7 +70,8 @@ export default function BookingPage() {
   const [postalCode, setPostalCode] = useState("")
   const [city, setCity] = useState("")
   const [country, setCountry] = useState("")
-  const [selectedEquipment, setSelectedEquipment] = useState<string[]>(["basic"])
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
+  const [distanceError, setDistanceError] = useState<string | null>(null)
 
   // Step 3 - Personal details and payment
   const [firstName, setFirstName] = useState("")
@@ -163,6 +164,14 @@ export default function BookingPage() {
   const photographer = staticPhotographer || livePhotographer || null
   const professional = artist || photographer
 
+  // Rates, hours, travel range, the professional's own equipment and the VAT come from the server.
+  const optionsKey = professional && !isDemoProfessional(professional.id) ? ["booking-options", String(professional.id)] : null
+  const { data: bookingOptions, isLoading: optionsLoading } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
+  useEffect(() => {
+    // Artists start with their own equipment package selected; photographers have none.
+    if (bookingOptions?.package && artist) setSelectedEquipment((prev) => (prev.length ? prev : [PACKAGE_OPTION_ID]))
+  }, [bookingOptions, artist])
+
   useEffect(() => {
     if (initialDate) {
       const [day, month, year] = initialDate.split("-").map(Number)
@@ -240,13 +249,16 @@ export default function BookingPage() {
   const selectedIsoDate = selectedDate ? toIsoDate(currentYear, currentMonth, selectedDate) : ""
   const effectiveEventDate = eventDate || selectedIsoDate
 
-  const pricing = calculatePricing({
-    hourlyRateCents: parseHourlyRateCents(professional.price),
-    startTime: startTime || "20:00",
-    endTime: endTime || "00:00",
-    equipment: selectedEquipment,
-    distanceKm: distance ?? 0,
-  })
+  const bookedHours = startTime && endTime ? hoursBetween(startTime, endTime) : 0
+  const hoursIssue = bookingOptions && startTime && endTime ? hoursProblem(bookingOptions, bookedHours) : null
+  const pricing = bookingOptions
+    ? priceBooking(bookingOptions, {
+        startTime: startTime || "20:00",
+        endTime: endTime || "00:00",
+        equipment: selectedEquipment,
+        distanceKm: distance ?? 0,
+      })
+    : null
 
   const handleSubmitBooking = async () => {
     if (!sessionData?.user) {
@@ -284,6 +296,7 @@ export default function BookingPage() {
         city: city || eventLocation,
         country,
         distanceKm: distance ?? 0,
+        eventLocation,
         equipment: selectedEquipment,
         firstName,
         lastName,
@@ -303,8 +316,15 @@ export default function BookingPage() {
       setSubmitted(true)
       setCurrentStep(5)
     } catch (error) {
-      console.error("[v0] Booking submit failed:", error)
-      setSubmitError("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.")
+      console.error("Booking submit failed:", error)
+      const message = error instanceof Error ? error.message : ""
+      setSubmitError(
+        message.includes("travel range")
+          ? "Deze locatie ligt buiten het werkgebied van deze professional."
+          : message.includes("hours")
+            ? "De gekozen tijden passen niet bij de minimale of maximale speelduur van deze professional."
+            : "Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.",
+      )
     } finally {
       setSubmitting(false)
     }
@@ -377,64 +397,28 @@ export default function BookingPage() {
     }
   }
 
-  // Real distance calculation using OpenStreetMap Nominatim
+  // The server calculates the distance, the same way it does when the booking is sent.
   const calculateDistance = async () => {
     if (!eventLocation.trim()) return
-    
     setCalculating(true)
     setDistance(null)
-    
+    setDistanceError(null)
     try {
-      // Geocode the professional's location
-      const professionalLocationQuery = encodeURIComponent(professional.location)
-      const profResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${professionalLocationQuery}&limit=1`,
-        {
-          headers: {
-            'User-Agent': 'ARSIEvents-Booking-App'
-          }
-        }
-      )
-      const profData = await profResponse.json()
-      
-      // Geocode the event location
-      const eventLocationQuery = encodeURIComponent(eventLocation.trim())
-      const eventResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${eventLocationQuery},Netherlands&limit=1`,
-        {
-          headers: {
-            'User-Agent': 'ARSIEvents-Booking-App'
-          }
-        }
-      )
-      const eventData = await eventResponse.json()
-      
-      if (profData.length === 0 || eventData.length === 0) {
-        alert(t.locationNotFound || "Could not find one or both locations. Please check the spelling.")
-        setCalculating(false)
-        return
-      }
-      
-      // Calculate distance using Haversine formula
-      const lat1 = parseFloat(profData[0].lat)
-      const lon1 = parseFloat(profData[0].lon)
-      const lat2 = parseFloat(eventData[0].lat)
-      const lon2 = parseFloat(eventData[0].lon)
-      
-      const R = 6371 // Earth's radius in km
-      const dLat = (lat2 - lat1) * Math.PI / 180
-      const dLon = (lon2 - lon1) * Math.PI / 180
-      const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2)
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-      const distanceKm = Math.round(R * c)
-      
-      setDistance(distanceKm)
+      const result = await calculateBookingDistance(String(professional.id), eventLocation.trim())
+      if (result.ok) setDistance(result.distanceKm)
+      else
+        setDistanceError(
+          result.error === "OUT_OF_RANGE"
+            ? tr(`Deze locatie ligt buiten het werkgebied van ${professional.name} (maximaal ${result.rangeKm} km).`, `This location is outside ${professional.name}'s travel range (up to ${result.rangeKm} km).`)
+            : result.error === "TOO_MANY"
+              ? tr("Je hebt de afstand vaak berekend. Probeer het over een paar minuten opnieuw.", "You calculated the distance many times. Try again in a few minutes.")
+              : result.error === "UNAUTHORIZED"
+                ? tr("Log in om de afstand te berekenen.", "Log in to calculate the distance.")
+                : t.locationNotFound,
+        )
     } catch (error) {
-      console.error('[v0] Distance calculation error:', error)
-      alert(t.distanceCalculationError || "Error calculating distance. Please try again.")
+      console.error("Distance calculation failed:", error)
+      setDistanceError(t.distanceCalculationError)
     } finally {
       setCalculating(false)
     }
@@ -559,7 +543,7 @@ export default function BookingPage() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{tr("1 - 8 uur", "1 - 8 hrs")}</span>
+                    <span>{bookingOptions ? `${bookingOptions.minHours} - ${bookingOptions.maxHours} ${tr("uur", "hrs")}` : tr("1 - 8 uur", "1 - 8 hrs")}</span>
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-foreground">
@@ -569,7 +553,7 @@ export default function BookingPage() {
                   </div>
                 </div>
                 
-                {professional.equipmentPrice && (
+                {(bookingOptions?.package || (!bookingOptions && professional.equipmentPrice)) && (
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Speaker className="w-3.5 h-3.5" />
@@ -577,7 +561,7 @@ export default function BookingPage() {
                     </div>
                     <div className="text-right">
                       <span className="font-semibold text-foreground">
-                        {professional.equipmentPrice} {t.perDay}
+                        {bookingOptions?.package ? formatEuro(bookingOptions.package.priceCents) : professional.equipmentPrice} {t.perDay}
                       </span>
                       <span className="text-xs text-muted-foreground ml-1">({t.exVat})</span>
                     </div>
@@ -733,6 +717,9 @@ export default function BookingPage() {
                   </Button>
                 </div>
 
+                {distanceError && (
+                  <p role="alert" className="mt-3 text-sm text-red-500">{distanceError}</p>
+                )}
                 {distance !== null && (
                   <div className="mt-4 p-4 bg-muted border border-border rounded-lg">
                     <p className="text-sm font-medium text-foreground">
@@ -740,7 +727,7 @@ export default function BookingPage() {
                     </p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
-                      {t.estimatedTravelCost} €{(distance * 2 * 0.25).toFixed(2)} (round trip: {distance * 2} km)
+                      {t.estimatedTravelCost} {formatEuro(distance * 2 * 25)} {tr("excl. btw", "excl. VAT")} ({tr("retour", "round trip")}: {distance * 2} km)
                     </p>
                   </div>
                 )}
@@ -826,6 +813,14 @@ export default function BookingPage() {
                   </div>
                 </div>
                 
+                {hoursIssue && bookingOptions && (
+                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
+                    {hoursIssue === "min"
+                      ? tr(`${professional.name} speelt minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} plays at least ${bookingOptions.minHours} hours. Choose a later end time.`)
+                      : tr(`${professional.name} speelt maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} plays at most ${bookingOptions.maxHours} hours. Choose an earlier end time.`)}
+                  </p>
+                )}
+
                 {/* Event Types and Music Genres */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div>
@@ -1138,219 +1133,37 @@ export default function BookingPage() {
                 </div>
               </div>
               
-              {/* Equipment Selection */}
-              <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">{tr("Apparatuur kiezen", "Equipment Selection")}</h3>
-                
-                {/* Basic DJ Package */}
-                <div className={`border-2 rounded-lg p-4 mb-4 cursor-pointer transition-colors ${
-                  selectedEquipment.includes("basic") 
-                    ? 'border-red-500 bg-red-500/5' 
-                    : 'border-border hover:border-muted-foreground'
-                }`}
-                onClick={() => {
-                  setSelectedEquipment(prev => 
-                    prev.includes("basic") ? prev.filter(e => e !== "basic") : [...prev, "basic"]
-                  )
-                }}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Speaker className="w-5 h-5 text-red-500" />
-                      <h4 className="font-semibold text-foreground">{tr("Basis DJ-pakket", "Basic DJ Package")}</h4>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-accent text-foreground rounded-full text-sm font-medium">€450/{tr("dag", "day")}</span>
-                      {selectedEquipment.includes("basic") && (
-                        <div className="w-5 h-5 bg-red-500 rounded flex items-center justify-center">
-                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-muted-foreground mb-3">{tr("Complete set voor kleine tot middelgrote evenementen", "Complete Setup for Small to Medium Events")}</p>
-                  
-                  <p className="text-xs text-foreground mb-3">
-                    {tr("Alles wat je nodig hebt voor een professionele DJ-set in één pakket. Geschikt voor feesten, kleine bruiloften en zakelijke evenementen tot 150 personen.", "Everything you need for a professional DJ setup in one package. Perfect for parties, small weddings, and corporate events up to 150 people.")}
-                  </p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex gap-2">
-                      <img src="/placeholder.svg?height=40&width=40" alt="Pioneer" className="w-10 h-10 object-contain" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">2x Pioneer CDJ-2000 Players</p>
-                        <p className="text-xs text-muted-foreground">{tr("Professionele mediaspelers", "Professional-grade media players")}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <img src="/placeholder.svg?height=40&width=40" alt="Mixer" className="w-10 h-10 object-contain" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">DJM-900NXS2 Mixer</p>
-                        <p className="text-xs text-muted-foreground">{tr("4-kanaals mixer, de standaard in clubs", "Industry standard 4-channel mixer")}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <img src="/placeholder.svg?height=40&width=40" alt="Table" className="w-10 h-10 object-contain" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">{tr("DJ-tafel met hoes", "DJ Table with Cover")}</p>
-                        <p className="text-xs text-muted-foreground">{tr("Professionele opstelling met weggewerkte kabels", "Professional setup with cable management")}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <img src="/placeholder.svg?height=40&width=40" alt="Microphone" className="w-10 h-10 object-contain" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">Shure SM58 Microphone</p>
-                        <p className="text-xs text-muted-foreground">{tr("Professionele zangmicrofoon met standaard", "Professional vocal microphone with stand")}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <img src="/placeholder.svg?height=40&width=40" alt="Speakers" className="w-10 h-10 object-contain" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">2x QSC K12.2 Speakers</p>
-                        <p className="text-xs text-muted-foreground">{tr("Krachtige speakers van 2000 W met standaards", "Powerful 2000W speakers with stands")}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <img src="/placeholder.svg?height=40&width=40" alt="Lighting" className="w-10 h-10 object-contain" />
-                      <div>
-                        <p className="text-xs font-medium text-foreground">{tr("Basis lichtpakket", "Basic Lighting Package")}</p>
-                        <p className="text-xs text-muted-foreground">{tr("2 moving heads, 2 parlampen en controller", "2 moving heads, 2 par cans, and controller")}</p>
-                      </div>
-                    </div>
+              {/* Equipment Selection: the professional's own package and extras */}
+              {bookingOptions && (bookingOptions.package || bookingOptions.extras.length > 0) && (
+                <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">{artist ? tr("Apparatuur en extra's", "Equipment and extras") : tr("Extra's", "Extras")}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{tr(`Zoals ${professional.name} ze in het profiel aanbiedt. Prijzen excl. btw.`, `As ${professional.name} offers them on their profile. Prices excl. VAT.`)}</p>
+                  <div className="flex flex-col gap-3">
+                    {[bookingOptions.package, ...bookingOptions.extras].filter((option) => option !== null).map((option) => {
+                      const checked = selectedEquipment.includes(option.id)
+                      return (
+                        <label
+                          key={option.id}
+                          className={`flex cursor-pointer items-center justify-between gap-4 rounded-lg border-2 p-4 transition-colors ${checked ? "border-red-500 bg-red-500/5" : "border-border hover:border-muted-foreground"}`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => setSelectedEquipment((prev) => (checked ? prev.filter((id) => id !== option.id) : [...prev, option.id]))}
+                              className="h-4 w-4 accent-red-600"
+                            />
+                            <span className="font-medium text-foreground">{option.id === PACKAGE_OPTION_ID ? tr("Apparatuurpakket", "Equipment package") : option.label}</span>
+                          </span>
+                          <span className="text-sm font-semibold text-foreground whitespace-nowrap">{formatEuro(option.priceCents)}</span>
+                        </label>
+                      )
+                    })}
                   </div>
                 </div>
-                
-                {/* Additional Equipment Options */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {/* Pioneer CDJ-3000 */}
-                  <div className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                    selectedEquipment.includes("cdj3000") 
-                      ? 'border-red-500 bg-red-500/5' 
-                      : 'border-border hover:border-muted-foreground'
-                  }`}
-                  onClick={() => {
-                    setSelectedEquipment(prev => 
-                      prev.includes("cdj3000") ? prev.filter(e => e !== "cdj3000") : [...prev, "cdj3000"]
-                    )
-                  }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">{tr("Pioneer CDJ-3000 (set van 2)", "Pioneer CDJ-3000 (Pair)")}</h4>
-                      </div>
-                      {selectedEquipment.includes("cdj3000") && (
-                        <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{tr("Nieuwste CDJ-model in uitstekende staat. Geschikt voor professionele evenementen. Inclusief alle kabels.", "Latest CDJ model in excellent condition. Perfect for professional events. Includes all necessary cables.")}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€150/{tr("dag", "day")}</span>
-                    </div>
-                  </div>
-                  
-                  {/* DJM-900NXS2 Mixer */}
-                  <div className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                    selectedEquipment.includes("mixer") 
-                      ? 'border-red-500 bg-red-500/5' 
-                      : 'border-border hover:border-muted-foreground'
-                  }`}
-                  onClick={() => {
-                    setSelectedEquipment(prev => 
-                      prev.includes("mixer") ? prev.filter(e => e !== "mixer") : [...prev, "mixer"]
-                    )
-                  }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">DJM-900NXS2 Mixer</h4>
-                      </div>
-                      {selectedEquipment.includes("mixer") && (
-                        <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{tr("4-kanaals mixer, de standaard in clubs. In uitstekende staat en volledig werkend.", "Industry standard 4-channel mixer. Excellent condition with all features working perfectly.")}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€80/{tr("dag", "day")}</span>
-                    </div>
-                  </div>
-                  
-                  {/* QSC Speakers */}
-                  <div className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                    selectedEquipment.includes("speakers") 
-                      ? 'border-red-500 bg-red-500/5' 
-                      : 'border-border hover:border-muted-foreground'
-                  }`}
-                  onClick={() => {
-                    setSelectedEquipment(prev => 
-                      prev.includes("speakers") ? prev.filter(e => e !== "speakers") : [...prev, "speakers"]
-                    )
-                  }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">{tr("QSC K12.2 Speakers (set van 2)", "QSC K12.2 Speakers (Pair)")}</h4>
-                      </div>
-                      {selectedEquipment.includes("speakers") && (
-                        <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{tr("Krachtige speakers van 2000 W met standaards. Geschikt voor middelgrote tot grote locaties tot 200 personen.", "Powerful 2000W speakers with stands. Great for medium to large venues up to 200 people.")}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€120/{tr("dag", "day")}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Complete Lighting Package */}
-                  <div className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                    selectedEquipment.includes("lighting") 
-                      ? 'border-red-500 bg-red-500/5' 
-                      : 'border-border hover:border-muted-foreground'
-                  }`}
-                  onClick={() => {
-                    setSelectedEquipment(prev => 
-                      prev.includes("lighting") ? prev.filter(e => e !== "lighting") : [...prev, "lighting"]
-                    )
-                  }}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Speaker className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-semibold text-foreground">{tr("Compleet lichtpakket", "Complete Lighting Package")}</h4>
-                      </div>
-                      {selectedEquipment.includes("lighting") && (
-                        <div className="w-4 h-4 bg-red-500 rounded flex items-center justify-center flex-shrink-0">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-2">{tr("Met 4 moving heads, 2 parlampen, rookmachine en DMX-controller. Zorgt voor sfeer.", "Includes 4 moving heads, 2 par cans, fog machine, and DMX controller. Perfect for creating atmosphere.")}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-foreground">€180/{tr("dag", "day")}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
+              )}
+              {optionsLoading && <p className="text-sm text-muted-foreground">{tr("Prijzen laden...", "Loading prices...")}</p>}
+
               {/* Navigation Buttons */}
               <div className="flex gap-3">
                 <Button
@@ -1361,7 +1174,7 @@ export default function BookingPage() {
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!eventName || eventName.length < 3}
+                  disabled={!eventName || eventName.length < 3 || !startTime || !endTime || Boolean(hoursIssue) || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
@@ -1415,10 +1228,14 @@ export default function BookingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Locatie</span><span className="font-medium text-foreground">{eventLocation}</span></div>
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">Factuuradres</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">BTW-nummer</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
+                  {pricing && <>
                   <div className="flex justify-between"><span className="text-muted-foreground">Optreden ({pricing.hours} uur x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Apparatuur</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>
+                  {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? "Apparatuur en extra's" : "Extra's"} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">Reiskosten ({(distance ?? 0) * 2} km retour)</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
-                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Prijsindicatie</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
+                  <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">Subtotaal excl. btw</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Btw</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">Totaal incl. btw</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
+                  </>}
                   <p className="text-xs text-muted-foreground">Dit is een indicatie. De professional bevestigt het definitieve bedrag zodra je aanvraag is geaccepteerd. Je betaalt pas na acceptatie.</p>
                 </div>
                 <div className="mt-5">
@@ -1426,8 +1243,8 @@ export default function BookingPage() {
                   <ol className="space-y-3 text-sm">
                     {[
                       ["Nu", "Je verstuurt je aanvraag en betaalt nog niets."],
-                      [`Na goedkeuring: ${formatEuro(depositCents(pricing.totalCents))}`, `Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`],
-                      [`Na het evenement: ${formatEuro(pricing.totalCents - depositCents(pricing.totalCents))}`, "Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op."],
+                      [`Na goedkeuring: ${formatEuro(depositCents(pricing?.totalCents ?? 0))}`, `Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`],
+                      [`Na het evenement: ${formatEuro((pricing?.totalCents ?? 0) - depositCents(pricing?.totalCents ?? 0))}`, "Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op."],
                     ].map(([title, text], index) => (
                       <li key={title} className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground" aria-hidden="true">{index + 1}</span>
@@ -1445,7 +1262,7 @@ export default function BookingPage() {
                   <span>{submitError}</span>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Versturen...</> : "Verstuur aanvraag"}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">Terug</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Versturen...</> : "Verstuur aanvraag"}</Button></div>
             </div>
           )}
 

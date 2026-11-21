@@ -22,6 +22,7 @@ import {
   buildInvoiceLines,
   sanitizeAdjustments,
   payoutFor,
+  isVatExclusive,
   type InvoiceAdjustments,
   assertReceiptsOwned,
   invoiceBlobPrefix,
@@ -225,7 +226,7 @@ export async function submitSelfBillingInvoice(input: { bookingId: number; invoi
     })
     .where(eq(billingProfiles.professionalId, professionalId))
 
-  const payout = payoutFor(totals.totalCents)
+  const payout = payoutFor(totals, isVatExclusive(booking))
   await db.update(bookings).set({ platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents, updatedAt: new Date() })
     .where(and(eq(bookings.id, booking.id), eq(bookings.professionalId, professionalId)))
   await notifyInvoiceReceived(professionalId, { ...booking, payoutCents: payout.payoutCents }, invoiceNumber)
@@ -304,7 +305,7 @@ export async function submitUploadedInvoice(input: {
     })
     .returning()
 
-  const payout = payoutFor(totals.totalCents)
+  const payout = payoutFor(totals, isVatExclusive(booking))
   await db.update(bookings).set({ platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents, updatedAt: new Date() })
     .where(and(eq(bookings.id, booking.id), eq(bookings.professionalId, professionalId)))
   await notifyInvoiceReceived(professionalId, { ...booking, payoutCents: payout.payoutCents }, invoiceNumber)

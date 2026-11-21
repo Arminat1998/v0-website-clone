@@ -23,6 +23,7 @@ import {
   type PaymentStep,
 } from "@/lib/bookings/payments";
 import { euro } from "./account-common";
+import { bookingVatCents } from "@/lib/bookings/pricing";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 
 function date(value: Date | string, nl: boolean) {
@@ -124,6 +125,9 @@ export function BookingPayment({
     { label: nl ? "Apparatuur" : "Equipment", cents: b.equipmentCents },
     { label: nl ? "Reiskosten" : "Travel", cents: b.travelCents },
   ];
+  // Bookings priced excl. VAT show the VAT as its own line, so the lines add up to the total.
+  const vatCents = bookingVatCents(b);
+  if (vatCents > 0) quoteLines.push({ label: nl ? "Btw" : "VAT", cents: vatCents });
 
   const steps: Record<PaymentStep, { title: string; text: string }> = {
     request: {
@@ -335,7 +339,7 @@ export function BookingPayment({
             ))}
             <Separator />
             <Row
-              label={nl ? "Totaal" : "Total"}
+              label={vatCents > 0 ? (nl ? "Totaal incl. btw" : "Total incl. VAT") : nl ? "Totaal" : "Total"}
               value={euro(s.quoteCents, nl)}
               strong
             />
