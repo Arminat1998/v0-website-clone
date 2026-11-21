@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sparkles, Zap } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SmartSearchInput } from "@/components/smart-search-input"
@@ -11,8 +11,6 @@ import { PhotoVideoCard } from "@/components/photo-video-card"
 import { ArtiestProfileModal } from "@/components/artiest-profile-modal"
 import { smartSearch, enhancedPhotographers } from "@/lib/smart-search"
 import type { Artist, Photographer } from "@/lib/smart-search"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
 import { useToast } from "@/hooks/use-toast"
@@ -62,13 +60,13 @@ export function PhotoVideoGrid({
 }: PhotoVideoGridProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [sortBy, setSortBy] = useState("") // Changed default sortBy from "relevance" to "" to match Artiesten page behavior
-  const [useAISearch, setUseAISearch] = useState(true)
   const [selectedProfessional, setSelectedProfessional] = useState<Photographer | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [urlFilters] = useState(initialFilters || {})
   const [shouldAutoStart, setShouldAutoStart] = useState(false)
   const [visitedIds, setVisitedIds] = useState<Set<number>>(new Set())
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const nl = language === "nl"
   const { toast } = useToast()
 
   // Approved photographers and videographers who registered themselves, shown before the example profiles.
@@ -104,19 +102,7 @@ export function PhotoVideoGrid({
     let professionals = allPhotographers
 
     if (searchTerm.trim()) {
-      if (useAISearch) {
-        professionals = smartSearch(searchTerm, professionals)
-      } else {
-        professionals = professionals.filter((prof) => {
-          const searchLower = searchTerm.toLowerCase()
-          return (
-            prof.name.toLowerCase().includes(searchLower) ||
-            prof.specialty.toLowerCase().includes(searchLower) ||
-            prof.location.toLowerCase().includes(searchLower) ||
-            prof.description?.toLowerCase().includes(searchLower)
-          )
-        })
-      }
+      professionals = smartSearch(searchTerm, professionals)
     }
 
     const allFilters = { ...urlFilters, ...appliedFilters }
@@ -162,7 +148,7 @@ export function PhotoVideoGrid({
     }
 
     return professionals
-  }, [allPhotographers, searchTerm, appliedFilters, urlFilters, useAISearch])
+  }, [allPhotographers, searchTerm, appliedFilters, urlFilters])
 
   const sortedProfessionals = useMemo(() => {
     const professionals = [...filteredPhotographers]
@@ -206,34 +192,24 @@ export function PhotoVideoGrid({
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t.bookYourPhotographer}</h1>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-4 p-3 bg-card rounded-lg border border-border">
+        <div className="mb-4 flex flex-col items-stretch justify-between gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-start">
           <div className="flex-1">
             <SmartSearchInput
               value={searchTerm}
               onChange={handleSearchChange}
               onFilterUpdate={handleFilterUpdate}
               placeholder={
-                useAISearch
-                  ? "Search for photographers, videographers, or services..."
-                  : "Search by name, location, or specialty..."
+                nl
+                  ? "Beschrijf je evenement of wat je zoekt in een fotograaf of videograaf..."
+                  : "Describe your event or what you need from a photographer or videographer..."
               }
               autoStart={shouldAutoStart}
               onAutoStartComplete={() => setShouldAutoStart(false)}
+              resultsId="photo-video-results"
             />
           </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 mb-4 p-3 bg-card rounded-lg border border-border">
-          <div className="flex items-center gap-2">
-            <Zap className={`w-4 h-4 ${useAISearch ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
-            <Label htmlFor="ai-search" className="cursor-pointer font-medium text-foreground">
-              {t.aiSearch}
-            </Label>
-            <Switch id="ai-search" checked={useAISearch} onCheckedChange={setUseAISearch} />
-          </div>
-
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="h-12 w-full sm:w-44" aria-label={t.sortBy}>
               <SelectValue placeholder={t.sortBy} />
             </SelectTrigger>
             <SelectContent>
@@ -249,16 +225,16 @@ export function PhotoVideoGrid({
 
         {searchTerm && (
           <div
-            className={`mb-4 p-3 rounded-lg border ${useAISearch ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800" : "bg-card border-border"}`}
+            className="mb-4 rounded-lg border border-border bg-card p-3"
           >
             <div className="flex items-center gap-2 text-sm">
-              {useAISearch && <Sparkles className="w-4 h-4 text-blue-500 dark:text-blue-400" />}
-              <span className={`font-medium ${useAISearch ? "text-blue-700 dark:text-blue-300" : "text-foreground"}`}>
-                {sortedProfessionals.length} professionals found for "{searchTerm}"
+              <Sparkles className="h-4 w-4 text-red-500" aria-hidden />
+              <span className="font-medium text-foreground">
+                {sortedProfessionals.length} {t.artistsFound} "{searchTerm}"
               </span>
-              {useAISearch && sortedProfessionals.length > 0 && (
+              {sortedProfessionals.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  AI Matching Active
+                  {t.aiMatchingActive}
                 </Badge>
               )}
             </div>
@@ -266,7 +242,7 @@ export function PhotoVideoGrid({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+      <div id="photo-video-results" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
         {sortedProfessionals.map((professional) => (
           <PhotoVideoCard
             key={professional.id}
@@ -281,30 +257,26 @@ export function PhotoVideoGrid({
         <div className="text-center text-muted-foreground py-12">
           <Sparkles className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
           <p className="text-lg font-medium mb-2 text-foreground">
-            {useAISearch ? "No perfect match found" : "No results found"}
+            {t.noPerfectMatch}
           </p>
           <p className="text-sm mb-4">
-            {useAISearch
-              ? "Try other search terms or enable AI Smart Search for better results"
-              : "Try other search terms or enable AI Smart Search for better results"}
+            {t.tryOtherSearchTermsAI}
           </p>
-          {useAISearch && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {["wedding photographer", "event videographer", "corporate events", "drone photography"].map(
-                (suggestion) => (
-                  <Button
-                    key={suggestion}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSearchChange(suggestion)}
-                    className="text-xs"
-                  >
-                    {suggestion}
-                  </Button>
-                ),
-              )}
-            </div>
-          )}
+<div className="flex flex-wrap justify-center gap-2">
+            {(nl ? ["bruiloft fotograaf", "event videograaf", "zakelijk evenement", "drone opnames"] : ["wedding photographer", "event videographer", "corporate events", "drone photography"]).map(
+              (suggestion) => (
+                <Button
+                  key={suggestion}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleSearchChange(suggestion)}
+                  className="text-xs"
+                >
+                  {suggestion}
+                </Button>
+              ),
+            )}
+          </div>
         </div>
       )}
 

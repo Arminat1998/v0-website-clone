@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { tagKey } from "@/lib/profile-options"
 import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sparkles, Zap, Music, Loader2, X } from "lucide-react"
+import { Sparkles, Music, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SmartSearchInput } from "@/components/smart-search-input"
@@ -12,8 +12,6 @@ import { ArtiestCard } from "@/components/artiest-card"
 import { ArtiestProfileModal } from "@/components/artiest-profile-modal"
 import { smartSearch, enhancedArtists } from "@/lib/smart-search"
 import type { Artist } from "@/lib/smart-search"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
 import { useToast } from "@/hooks/use-toast"
@@ -43,7 +41,6 @@ export function ArtiestGrid({
 }: ArtiestGridProps) {
   const [searchTerm, setSearchTerm] = useState(restoredState?.searchQuery ?? initialSearch ?? "")
   const [sortBy, setSortBy] = useState(restoredState?.sortBy ?? "")
-  const [useAISearch, setUseAISearch] = useState(restoredState?.useAISearch ?? true)
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [urlFilters] = useState(initialFilters || {})
@@ -56,8 +53,8 @@ export function ArtiestGrid({
   const { toast } = useToast()
 
   useEffect(() => {
-    updateListState({ sortBy, useAISearch })
-  }, [sortBy, useAISearch])
+    updateListState({ sortBy })
+  }, [sortBy])
 
   useEffect(() => {
     setVisitedArtistIds((prev) => new Set([...prev, ...getViewedArtistIds()]))
@@ -162,19 +159,7 @@ export function ArtiestGrid({
     let artists = allArtists
 
     if (searchTerm.trim()) {
-      if (useAISearch) {
-        artists = smartSearch(searchTerm, artists)
-      } else {
-        artists = artists.filter((artist) => {
-          const searchLower = searchTerm.toLowerCase()
-          return (
-            artist.name.toLowerCase().includes(searchLower) ||
-            artist.specialty.toLowerCase().includes(searchLower) ||
-            artist.location.toLowerCase().includes(searchLower) ||
-            artist.description?.toLowerCase().includes(searchLower)
-          )
-        })
-      }
+      artists = smartSearch(searchTerm, artists)
     }
 
     const allFilters = { ...urlFilters, ...appliedFilters }
@@ -253,7 +238,7 @@ export function ArtiestGrid({
     }
 
     return artists
-  }, [searchTerm, appliedFilters, urlFilters, useAISearch, musicAnalysis, allArtists])
+  }, [searchTerm, appliedFilters, urlFilters, musicAnalysis, allArtists])
 
   const sortedArtists = useMemo(() => {
     const artists = [...filteredArtists]
@@ -298,18 +283,32 @@ export function ArtiestGrid({
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t.bookYourArtist}</h1>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-4 p-3 bg-card rounded-lg border border-border">
+        <div className="mb-4 flex flex-col items-stretch justify-between gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-start">
           <div className="flex-1">
             <SmartSearchInput
               value={searchTerm}
               onChange={handleSearchChange}
               onFilterUpdate={handleConversationFilterUpdate}
-              placeholder={useAISearch ? t.searchDescription : "Zoek op naam, locatie, of specialiteit..."}
+              placeholder={t.searchDescription}
               autoStart={shouldAutoStart}
               onAutoStartComplete={() => setShouldAutoStart(false)}
+              resultsId="artist-results"
               onMusicUpload={handleMp3Upload}
             />
           </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-12 w-full sm:w-44" aria-label={t.sortBy}>
+              <SelectValue placeholder={t.sortBy} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="relevance">{t.relevance}</SelectItem>
+              <SelectItem value="price-low">{t.priceLow}</SelectItem>
+              <SelectItem value="price-high">{t.priceHigh}</SelectItem>
+              <SelectItem value="rating">{t.rating}</SelectItem>
+              <SelectItem value="popularity">{t.popularity}</SelectItem>
+              <SelectItem value="availability">{t.availability}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {isAnalyzing && (
@@ -348,40 +347,16 @@ export function ArtiestGrid({
           </div>
         )}
 
-        <div className="flex items-center justify-between gap-3 mb-4 p-3 bg-card rounded-lg border border-border">
-          <div className="flex items-center gap-2">
-            <Zap className={`w-4 h-4 ${useAISearch ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
-            <Label htmlFor="ai-search" className="cursor-pointer font-medium text-foreground">
-              {t.aiSearch}
-            </Label>
-            <Switch id="ai-search" checked={useAISearch} onCheckedChange={setUseAISearch} />
-          </div>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder={t.sortBy} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="relevance">{t.relevance}</SelectItem>
-              <SelectItem value="price-low">{t.priceLow}</SelectItem>
-              <SelectItem value="price-high">{t.priceHigh}</SelectItem>
-              <SelectItem value="rating">{t.rating}</SelectItem>
-              <SelectItem value="popularity">{t.popularity}</SelectItem>
-              <SelectItem value="availability">{t.availability}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         {searchTerm && (
           <div
-            className={`mb-4 p-3 rounded-lg border ${useAISearch ? "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800" : "bg-card border-border"}`}
+            className="mb-4 rounded-lg border border-border bg-card p-3"
           >
             <div className="flex items-center gap-2 text-sm">
-              {useAISearch && <Sparkles className="w-4 h-4 text-blue-500 dark:text-blue-400" />}
-              <span className={`font-medium ${useAISearch ? "text-blue-700 dark:text-blue-300" : "text-foreground"}`}>
+              <Sparkles className="h-4 w-4 text-red-500" aria-hidden />
+              <span className="font-medium text-foreground">
                 {sortedArtists.length} {t.artistsFound} "{searchTerm}"
               </span>
-              {useAISearch && sortedArtists.length > 0 && (
+              {sortedArtists.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {t.aiMatchingActive}
                 </Badge>
@@ -391,7 +366,7 @@ export function ArtiestGrid({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+      <div id="artist-results" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
         {sortedArtists.map((artist) => (
           <ArtiestCard
             key={artist.id}
@@ -406,28 +381,24 @@ export function ArtiestGrid({
         <div className="text-center text-muted-foreground py-12">
           <Sparkles className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
           <p className="text-lg font-medium mb-2 text-foreground">
-            {useAISearch ? t.noPerfectMatch : "Geen resultaten gevonden"}
+            {t.noPerfectMatch}
           </p>
           <p className="text-sm mb-4">
-            {useAISearch
-              ? t.tryOtherSearchTermsAI
-              : "Probeer andere zoektermen of schakel AI Slimme Zoeken in voor betere resultaten"}
+            {t.tryOtherSearchTermsAI}
           </p>
-          {useAISearch && (
-            <div className="flex flex-wrap justify-center gap-2">
-              {["bruiloft DJ", "house party", "corporate evenement", "verjaardag feest"].map((suggestion) => (
-                <Button
-                  key={suggestion}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSearchChange(suggestion)}
-                  className="text-xs"
-                >
-                  {suggestion}
-                </Button>
-              ))}
-            </div>
-          )}
+<div className="flex flex-wrap justify-center gap-2">
+            {(language === "nl" ? ["bruiloft DJ", "house party", "zakelijk evenement", "verjaardagsfeest"] : ["wedding DJ", "house party", "corporate event", "birthday party"]).map((suggestion) => (
+              <Button
+                key={suggestion}
+                variant="outline"
+                size="sm"
+                onClick={() => handleSearchChange(suggestion)}
+                className="text-xs"
+              >
+                {suggestion}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
 
