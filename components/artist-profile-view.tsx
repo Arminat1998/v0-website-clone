@@ -31,6 +31,8 @@ interface ArtistProfileViewProps {
   onNavigate?: () => void;
   heroAction?: ReactNode;
   content?: ArtistPageContent | null;
+  /** In the modal: a bar that stays at the bottom with the price and the book button. */
+  stickyBookBar?: boolean;
 }
 
 export function ArtistProfileView({
@@ -38,6 +40,7 @@ export function ArtistProfileView({
   onNavigate,
   heroAction,
   content,
+  stickyBookBar = false,
 }: ArtistProfileViewProps) {
   const router = useRouter();
   const bookGuard = useBookGuard();
@@ -911,6 +914,32 @@ export function ArtistProfileView({
           </TabsContent>
         </Tabs>
       </div>
+      {stickyBookBar && (
+        <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{artist.name}</p>
+            <p className="whitespace-nowrap text-sm text-foreground">
+              <span className="font-semibold">{artist.price}</span>/{nl ? "uur" : "hr"}
+              <span className="ml-1 text-xs text-muted-foreground">{nl ? "excl. btw" : "excl. VAT"}</span>
+            </p>
+          </div>
+          {isDemoProfessional(artist.id) ? (
+            <DemoBookButton className="h-11 max-w-[55%] shrink whitespace-normal text-xs leading-tight sm:max-w-none sm:text-sm" />
+          ) : (
+            <Button
+              className="h-11 shrink-0 bg-red-700 px-6 text-white hover:bg-red-600"
+              onClick={() => {
+                const href = bookingHref(artist);
+                if (!bookGuard(href)) return;
+                onNavigate?.();
+                router.push(href);
+              }}
+            >
+              {nl ? "Boek nu" : "Book now"}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

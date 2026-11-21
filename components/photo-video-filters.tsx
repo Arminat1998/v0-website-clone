@@ -12,6 +12,7 @@ import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import { useLanguage } from "@/contexts/language-context"
 import { lettersOnly, rangeChars } from "@/lib/input-filters"
 import { calendarStart, calendarYears, isPastDate, mondayOffset } from "@/lib/filter-calendar"
+import { FilterPanel } from "@/components/filter-panel"
 
 interface PhotoVideoFiltersProps {
   searchQuery?: string
@@ -178,26 +179,31 @@ export function PhotoVideoFilters({
     )
   }
 
+  const resetFilters = () => {
+    const start = calendarStart()
+    setCurrentMonth(start.month)
+    setCurrentYear(start.year)
+    setPriceRange([0, 5000])
+    setSelectedCity("")
+    setSelectedDuration("")
+    setSelectedEventTypes([])
+    setSelectedCategories([])
+    setSelectedDate("")
+  }
+
   return (
-    <div
-      className={`${
-        isMobileOpen ? "fixed inset-y-0 left-0 z-50" : "hidden md:block"
-      } w-80 bg-card p-6 border-r border-border overflow-y-auto transition-transform`}
-    >
-      {isMobileOpen && (
-        <button onClick={onMobileClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
-          <X className="w-6 h-6" />
-        </button>
-      )}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-foreground">{t.filters}</h2>
-        {filterSuggestions && Object.keys(filterSuggestions).length > 0 && (
+    <FilterPanel
+      title={t.filters}
+      isMobileOpen={isMobileOpen}
+      onMobileClose={onMobileClose}
+      onReset={resetFilters}
+      badge={filterSuggestions && Object.keys(filterSuggestions).length > 0 ? (
           <Badge variant="secondary" className="text-xs">
             <Sparkles className="w-3 h-3 mr-1" />
             {t.smartSuggestion}
           </Badge>
-        )}
-      </div>
+        ) : null}
+    >
 
       <div className="mb-6">
         <h3 className="font-semibold mb-3 text-foreground">{t.photographerTypeLabel}</h3>
@@ -367,6 +373,6 @@ export function PhotoVideoFilters({
           </div>
         )}
       </div>
-    </div>
+    </FilterPanel>
   )
 }
