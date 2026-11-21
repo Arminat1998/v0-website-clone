@@ -91,6 +91,11 @@ export interface BookingOption {
   id: string
   label: string
   priceCents: number
+  description?: string
+  /** URL of the photo from the profile. */
+  imageUrl?: string
+  /** The parts of the equipment package, as listed on the profile. */
+  items?: { label: string; description?: string; imageUrl?: string; priceCents: number }[]
 }
 
 /** Everything the price of a booking depends on, taken from the professional's profile and billing settings. */

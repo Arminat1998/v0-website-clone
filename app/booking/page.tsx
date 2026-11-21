@@ -1141,21 +1141,56 @@ export default function BookingPage() {
                   <div className="flex flex-col gap-3">
                     {[bookingOptions.package, ...bookingOptions.extras].filter((option) => option !== null).map((option) => {
                       const checked = selectedEquipment.includes(option.id)
+                      const isPackage = option.id === PACKAGE_OPTION_ID
                       return (
                         <label
                           key={option.id}
-                          className={`flex cursor-pointer items-center justify-between gap-4 rounded-lg border-2 p-4 transition-colors ${checked ? "border-red-500 bg-red-500/5" : "border-border hover:border-muted-foreground"}`}
+                          className={`block cursor-pointer rounded-lg border-2 p-4 transition-colors ${checked ? "border-red-500 bg-red-500/5" : "border-border hover:border-muted-foreground"}`}
                         >
-                          <span className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => setSelectedEquipment((prev) => (checked ? prev.filter((id) => id !== option.id) : [...prev, option.id]))}
-                              className="h-4 w-4 accent-red-600"
-                            />
-                            <span className="font-medium text-foreground">{option.id === PACKAGE_OPTION_ID ? tr("Apparatuurpakket", "Equipment package") : option.label}</span>
+                          <span className="flex items-start justify-between gap-4">
+                            <span className="flex min-w-0 items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => setSelectedEquipment((prev) => (checked ? prev.filter((id) => id !== option.id) : [...prev, option.id]))}
+                                className="mt-1 h-4 w-4 flex-shrink-0 accent-red-600"
+                              />
+                              {!isPackage && option.imageUrl && (
+                                <img src={option.imageUrl} alt="" className="h-16 w-16 flex-shrink-0 rounded object-cover" />
+                              )}
+                              <span className="min-w-0">
+                                <span className="flex items-center gap-2 font-semibold text-foreground">
+                                  {isPackage && <Speaker className="h-4 w-4 text-red-500" aria-hidden />}
+                                  {isPackage ? tr("Apparatuurpakket", "Equipment package") : option.label}
+                                </span>
+                                {option.description && <span className="mt-1 block text-sm text-muted-foreground">{option.description}</span>}
+                                {isPackage && <span className="mt-1 block text-sm text-muted-foreground">{tr("Alles wat hieronder staat, voor één prijs per dag.", "Everything listed below, for one price per day.")}</span>}
+                              </span>
+                            </span>
+                            <span className="whitespace-nowrap text-sm font-semibold text-foreground">
+                              {formatEuro(option.priceCents)}
+                              <span className="font-normal text-muted-foreground">/{tr("dag", "day")}</span>
+                            </span>
                           </span>
-                          <span className="text-sm font-semibold text-foreground whitespace-nowrap">{formatEuro(option.priceCents)}</span>
+                          {isPackage && option.items && option.items.length > 0 && (
+                            <span className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-2">
+                              {option.items.map((item) => (
+                                <span key={item.label} className="flex gap-3">
+                                  {item.imageUrl ? (
+                                    <img src={item.imageUrl} alt="" className="h-14 w-14 flex-shrink-0 rounded object-cover" />
+                                  ) : (
+                                    <span className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded bg-muted" aria-hidden>
+                                      <Speaker className="h-5 w-5 text-muted-foreground" />
+                                    </span>
+                                  )}
+                                  <span className="min-w-0">
+                                    <span className="block text-sm font-medium text-foreground">{item.label}</span>
+                                    {item.description && <span className="block text-xs text-muted-foreground">{item.description}</span>}
+                                  </span>
+                                </span>
+                              ))}
+                            </span>
+                          )}
                         </label>
                       )
                     })}
