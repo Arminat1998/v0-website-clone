@@ -13,6 +13,7 @@ import {
   buildInvoiceLines,
   defaultAdjustments,
   payoutFor,
+  isVatExclusive,
   type InvoiceAdjustments,
   formatIban,
   invoiceFileUrl,
@@ -54,15 +55,17 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const [isPending, startTransition] = useTransition()
 
   // VAT settings live on the profile, so the lines follow any edits made during the flow.
+  // Added costs follow the booking: excl. VAT for bookings priced excl. VAT, incl. VAT for older ones.
+  const vatExclusive = isVatExclusive(booking)
   const [adjustments, setAdjustments] = useState<InvoiceAdjustments>(() => context.invoice ? {
     distanceKm: (context.invoice.lines.find((line) => line.key === "travel")?.quantity ?? 0) / 2,
-    parkingCents: context.invoice.lines.find((line) => line.key === "parking")?.grossCents ?? 0,
+    parkingCents: (() => { const l = context.invoice.lines.find((line) => line.key === "parking"); return l ? (vatExclusive ? l.netCents : l.grossCents) : 0 })(),
     parkingReceipt: context.invoice.lines.find((line) => line.key === "parking")?.receipt ?? null,
-    extras: context.invoice.lines.filter((line) => line.key === "extra").map((line) => ({ description: line.description, amountCents: line.grossCents, receipt: line.receipt ?? null })),
+    extras: context.invoice.lines.filter((line) => line.key === "extra").map((line) => ({ description: line.description, amountCents: vatExclusive ? line.netCents : line.grossCents, receipt: line.receipt ?? null })),
   } : defaultAdjustments(booking))
   const lines = useMemo(() => invoice && step === 2 ? invoice.lines : buildInvoiceLines(booking, profile, adjustments), [booking, profile, adjustments, invoice, step])
   const totals = useMemo(() => sumInvoiceLines(lines), [lines])
-  const payout = payoutFor(totals.totalCents)
+  const payout = payoutFor(totals, vatExclusive)
   const pricedBooking = { ...booking, platformFeeCents: payout.feeCents, payoutCents: payout.payoutCents }
   const costsValid =
     (adjustments.parkingCents === 0 || Boolean(adjustments.parkingReceipt)) &&
@@ -171,7 +174,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
 
         {step === 0 && (
           <div className="flex flex-col gap-6">
-            <InvoiceCosts bookingId={booking.id} value={adjustments} onChange={(value) => { setAdjustments(value); setChecked(false) }} />
+            <InvoiceCosts bookingId={booking.id} vatExclusive={vatExclusive} value={adjustments} onChange={(value) => { setAdjustments(value); setChecked(false) }} />
             <InvoiceSpecification lines={lines} totals={totals} booking={pricedBooking} profile={profile} />
             <div className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
               <label className="flex cursor-pointer items-start gap-3 text-sm text-foreground">

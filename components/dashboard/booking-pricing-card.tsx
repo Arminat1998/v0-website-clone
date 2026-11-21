@@ -2,11 +2,13 @@
 
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking } from "@/lib/db/schema"
-import { formatEuro } from "@/lib/bookings/pricing"
+import { bookingVatCents, formatEuro } from "@/lib/bookings/pricing"
 
 export function BookingPricingCard({ booking }: { booking: Booking }) {
   const { t, locale } = useBookingT()
-  const performanceCents = booking.totalCents - booking.equipmentCents - booking.travelCents
+  const performanceCents = Math.round(Number(booking.hours) * booking.hourlyRateCents)
+  const vatCents = bookingVatCents(booking)
+  const nl = locale.startsWith("nl")
   const isEstimate = booking.status === "pending"
 
   return (
@@ -31,8 +33,14 @@ export function BookingPricingCard({ booking }: { booking: Booking }) {
           </dt>
           <dd className="font-medium text-foreground">{formatEuro(booking.travelCents, locale)}</dd>
         </div>
+        {vatCents > 0 && (
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">{nl ? "Btw" : "VAT"}</dt>
+            <dd className="font-medium text-foreground">{formatEuro(vatCents, locale)}</dd>
+          </div>
+        )}
         <div className="mt-2 flex justify-between gap-4 border-t border-border pt-3">
-          <dt className="font-medium text-foreground">{t.detail.total}</dt>
+          <dt className="font-medium text-foreground">{vatCents > 0 ? (nl ? "Totaal incl. btw" : "Total incl. VAT") : t.detail.total}</dt>
           <dd className="font-semibold text-foreground">{formatEuro(booking.totalCents, locale)}</dd>
         </div>
         <div className="flex justify-between gap-4">
