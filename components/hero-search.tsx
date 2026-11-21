@@ -98,6 +98,7 @@ export function HeroSearch() {
                   }
                 }}
                 placeholder={t.searchYourArtist}
+                aria-label={t.searchYourArtist}
                 className="flex-1 text-base sm:text-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 bg-transparent border-none outline-none"
               />
             </div>

@@ -59,9 +59,10 @@ export function Footer() {
                 href="https://www.instagram.com/arsievents/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-red-600"
+                aria-label="Instagram"
+                className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-red-600"
               >
-                <Instagram className="w-5 h-5" />
+                <Instagram className="w-5 h-5" aria-hidden />
               </a>
             </div>
           </div>

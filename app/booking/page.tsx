@@ -397,6 +397,8 @@ export default function BookingPage() {
           key={day}
           type="button"
           onClick={() => !unavailable && !isPast && setSelectedDate(isSelected ? null : day)}
+          aria-pressed={isSelected}
+          aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("al geboekt", "already booked")})` : ""}`}
           disabled={unavailable || isPast}
           className={dayClasses}
         >
@@ -657,6 +659,7 @@ export default function BookingPage() {
                       <button
                         type="button"
                         onClick={goToPreviousMonth}
+                        aria-label={tr("Vorige maand", "Previous month")}
                         className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors touch-manipulation"
                       >
                         <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
@@ -667,6 +670,7 @@ export default function BookingPage() {
                       <button
                         type="button"
                         onClick={goToNextMonth}
+                        aria-label={tr("Volgende maand", "Next month")}
                         className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors touch-manipulation"
                       >
                         <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-foreground" />
@@ -741,6 +745,8 @@ export default function BookingPage() {
                       if (eventLocation.trim() && !calculating) calculateDistance()
                     }}
                     enterKeyHint="search"
+                    aria-label={t.eventLocationLabel}
+                    autoComplete="address-level2"
                     placeholder={t.enterCityName}
                     className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
@@ -1263,10 +1269,10 @@ export default function BookingPage() {
                 <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">{tr("Persoonlijke gegevens", "Personal details")}</h2>
                 <p className="text-sm text-muted-foreground mb-6">{tr("Vul je gegevens in zodat de professional contact met je kan opnemen.", "Fill in your details so the professional can contact you.")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}<input required value={firstName} onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}<input required value={lastName} onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}<input required type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}<input required value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}<input required value={lastName} autoComplete="family-name" onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}<input required autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}<input required autoComplete="tel" type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
                 </div>
                 <div className="mt-6 border-t border-border pt-5">
                   <h3 className="font-semibold text-foreground">{tr("Factuurgegevens", "Billing details")}</h3>
@@ -1276,11 +1282,11 @@ export default function BookingPage() {
                     <button type="button" onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
                   </div>
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}<input required value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}<input required value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}<input required autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}<input required autoComplete="address-line1" value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
                     <label className="space-y-2 text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}<input required value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}<input required value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}<input required autoComplete="postal-code" value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}<input required autoComplete="address-level2" value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
                     <label className="space-y-2 text-sm font-medium text-foreground">{tr("Land", "Country")}<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option value="Nederland">{tr("Nederland", "Netherlands")}</option><option value="België">{tr("België", "Belgium")}</option><option value="Duitsland">{tr("Duitsland", "Germany")}</option><option value="Anders">{tr("Anders", "Other")}</option></select></label>
                     {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">{tr("Btw-nummer", "VAT number")}<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
                   </div>
