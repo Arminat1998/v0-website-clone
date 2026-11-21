@@ -75,3 +75,17 @@ export function getVideoEmbed(url: string): { provider: "youtube" | "vimeo"; emb
   }
   return null
 }
+
+/** The artist with the texts and tags from their own page, as the page itself shows them. */
+export function withPageContent<T extends { description?: string; eventTypes?: string[]; musicStyles?: string[] }>(
+  artist: T,
+  content: ArtistPageContent | null | undefined,
+): T {
+  if (!content) return artist
+  return {
+    ...artist,
+    description: content.about || artist.description,
+    eventTypes: content.eventTypes.length > 0 ? content.eventTypes : artist.eventTypes,
+    musicStyles: content.musicGenres.length > 0 ? content.musicGenres : artist.musicStyles,
+  }
+}

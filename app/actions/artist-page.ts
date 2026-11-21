@@ -18,6 +18,8 @@ import {
   type ArtistPageSocials,
 } from "@/lib/artist-page-types"
 import { isSafeBlobPath } from "@/lib/blob-paths"
+import { getArtistPageContent } from "@/lib/artist-page"
+import { isLiveProfessional } from "@/lib/professional-artist"
 
 export type SaveArtistPageResult = { ok: true; content: ArtistPageContent } | { ok: false; error: "invalid" }
 
@@ -121,4 +123,10 @@ export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArti
   revalidatePath("/dashboard/my-page")
 
   return { ok: true, content }
+}
+
+/** The public page content of a live professional, so the profile modal shows the same cover photo as their page. */
+export async function getPublicArtistPageContent(professionalId: string): Promise<ArtistPageContent | null> {
+  if (typeof professionalId !== "string" || !(await isLiveProfessional(professionalId))) return null
+  return getArtistPageContent(professionalId)
 }

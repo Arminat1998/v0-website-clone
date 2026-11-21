@@ -1,12 +1,16 @@
 "use client"
 
 import Link from "next/link"
+import useSWR from "swr"
 import { X, ExternalLink } from "lucide-react"
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { useLanguage } from "@/contexts/language-context"
 import { ArtistProfileView } from "@/components/artist-profile-view"
 import { getArtistPath } from "@/lib/artist-slug"
 import type { Artist } from "@/lib/smart-search"
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import { withPageContent } from "@/lib/artist-page-types"
+import { getPublicArtistPageContent } from "@/app/actions/artist-page"
 
 interface ArtiestProfileModalProps {
   artist: Artist | null
@@ -18,6 +22,11 @@ interface ArtiestProfileModalProps {
 
 export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }: ArtiestProfileModalProps) {
   const nl = useLanguage().language !== "en"
+  // The page content (cover photo, avatar, texts) of a real professional, so the modal matches their page.
+  const pageId = artist && open && !isDemoProfessional(artist.id) ? String(artist.id) : null
+  const { data: content } = useSWR(pageId ? ["artist-page", pageId] : null, ([, id]) => getPublicArtistPageContent(id), {
+    revalidateOnFocus: false,
+  })
   if (!artist) return null
   const pageHref = fullPageHref === undefined ? getArtistPath(artist) : fullPageHref
 
@@ -26,7 +35,8 @@ export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }
       <DialogContent showCloseButton={false} className="w-[98vw] max-w-[98vw] sm:max-w-[600px] md:max-w-[900px] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-0 bg-background">
         <DialogTitle className="sr-only">{artist.name}</DialogTitle>
         <ArtistProfileView
-          artist={artist}
+          artist={withPageContent(artist, content)}
+          content={content}
           onNavigate={() => onOpenChange(false)}
           stickyBookBar
           heroAction={

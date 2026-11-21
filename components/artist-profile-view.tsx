@@ -185,7 +185,7 @@ export function ArtistProfileView({
     <div className="bg-background">
       <div className="relative">
         {/* Hero Image */}
-        <div className="relative h-40 sm:h-56 md:h-64">
+        <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
           <img
             src={artistImage || "/placeholder.svg"}
             alt={artist.name}
@@ -195,7 +195,7 @@ export function ArtistProfileView({
         </div>
 
         {/* Profile Image */}
-        <div className="absolute left-3 sm:left-6 top-[100px] sm:top-[152px] md:top-[176px] w-20 h-20 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full border-4 sm:border-[6px] border-background bg-background z-30 overflow-hidden shadow-lg">
+        <div className="absolute left-3 sm:left-6 -bottom-14 sm:-bottom-20 size-28 sm:size-44 rounded-full border-4 border-background bg-muted z-30 overflow-hidden shadow-lg">
           <img
             src={profileImage || "/placeholder.svg"}
             alt={artist.name}
@@ -205,7 +205,7 @@ export function ArtistProfileView({
       </div>
 
       {/* Profile Header */}
-      <div className="px-3 sm:px-6 pb-4 sm:pb-6 pt-12 sm:pt-16 md:pt-20">
+      <div className="px-3 sm:px-6 pb-4 sm:pb-6 pt-16 sm:pt-24">
         <div className="mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-3xl font-bold mb-1 text-foreground">
             {artist.name}

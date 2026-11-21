@@ -198,6 +198,28 @@ export async function listLivePhotographers(): Promise<Photographer[]> {
   }
 }
 
+/** True when the professional is approved and not restricted, so their page is public. */
+export async function isLiveProfessional(id: string): Promise<boolean> {
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) return false
+  try {
+    const [account] = await db
+      .select({
+        status: userTable.status,
+        statusReason: userTable.statusReason,
+        suspendedUntil: userTable.suspendedUntil,
+        review: professionalProfiles.reviewStatus,
+      })
+      .from(userTable)
+      .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
+      .where(and(eq(userTable.id, id), eq(userTable.role, "professional")))
+      .limit(1)
+    return !!account && account.review === "goedgekeurd" && !getRestriction(account)
+  } catch (error) {
+    console.error("Failed to check professional status:", error)
+    return false
+  }
+}
+
 /** A live professional by the slug of their page; `kind` keeps artists and photographers on their own pages. */
 export async function getProfessionalArtistBySlug(
   slug: string,
