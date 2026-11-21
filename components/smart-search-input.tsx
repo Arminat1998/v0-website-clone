@@ -90,7 +90,7 @@ export function SmartSearchInput({
     if (onFilterUpdate) {
       const convertedFilters = { ...initialFilters }
       if ((initialFilters as any).musicGenres) {
-        convertedFilters.genres = (initialFilters as any).musicGenres
+        ;(convertedFilters as Record<string, unknown>).genres = (initialFilters as any).musicGenres
         delete (convertedFilters as any).musicGenres
       }
       onFilterUpdate(convertedFilters)

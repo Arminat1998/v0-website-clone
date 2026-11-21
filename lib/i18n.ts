@@ -976,5 +976,5 @@ export const translations: Record<Language, Translations> = {
 }
 
 export function getTranslation(lang: Language, key: keyof Translations): string {
-  return translations[lang][key]
+  return translations[lang][key] as string
 }
