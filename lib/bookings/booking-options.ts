@@ -5,6 +5,12 @@ import { db } from "@/lib/db"
 import { billingProfiles, professionalProfiles } from "@/lib/db/schema"
 import { STANDARD_VAT_RATE } from "@/lib/bookings/invoicing"
 import { PACKAGE_OPTION_ID, parseHourlyRateCents, type BookingOption, type BookingOptions } from "@/lib/bookings/pricing"
+import { imageSrc } from "@/lib/professional-profile-types"
+
+const details = (item: { description?: string; image?: string }) => ({
+  description: item.description?.trim() || undefined,
+  imageUrl: imageSrc(item.image) || undefined,
+})
 
 /**
  * The booking options of a professional: hourly rate, hours, travel range and the equipment and extras from
@@ -29,7 +35,7 @@ export async function loadBookingOptions(professionalId: string): Promise<Bookin
   const packageCents = packageItems.reduce((sum, item) => sum + parseHourlyRateCents(item.price), 0)
   const extras: BookingOption[] = (profile.extraEquipment ?? [])
     .filter((item) => !item.category && item.name && item.id)
-    .map((item) => ({ id: `extra:${item.id}`, label: item.name, priceCents: parseHourlyRateCents(item.price) }))
+    .map((item) => ({ id: `extra:${item.id}`, label: item.name, priceCents: parseHourlyRateCents(item.price), ...details(item) }))
 
   const kor = billing?.vatScheme === "kor"
   return {
@@ -37,7 +43,15 @@ export async function loadBookingOptions(professionalId: string): Promise<Bookin
     minHours: profile.minHours,
     maxHours: Math.max(profile.minHours, profile.maxHours),
     rangeKm: profile.rangeKm,
-    package: packageCents > 0 ? { id: PACKAGE_OPTION_ID, label: "Apparatuurpakket", priceCents: packageCents } : null,
+    package:
+      packageCents > 0
+        ? {
+            id: PACKAGE_OPTION_ID,
+            label: "Apparatuurpakket",
+            priceCents: packageCents,
+            items: packageItems.map((item) => ({ label: item.name, priceCents: parseHourlyRateCents(item.price), ...details(item) })),
+          }
+        : null,
     extras,
     vat: {
       performanceRate: kor ? 0 : (billing?.performanceVatRate ?? 9),
