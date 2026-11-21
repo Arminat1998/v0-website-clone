@@ -395,35 +395,37 @@ export function ArtiestFilters({
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.city}</h3>
-        <Input placeholder={t.searchCity} value={selectedCity} onChange={(e) => setSelectedCity(lettersOnly(e.target.value))} />
+        <Input aria-label={t.city} autoComplete="address-level2" placeholder={t.searchCity} value={selectedCity} onChange={(e) => setSelectedCity(lettersOnly(e.target.value))} />
       </div>
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.durationInHours}</h3>
-        <Input placeholder="1 - 8" value={selectedDuration} onChange={(e) => setSelectedDuration(rangeChars(e.target.value))} />
+        <Input aria-label={t.durationInHours} inputMode="numeric" placeholder="1 - 8" value={selectedDuration} onChange={(e) => setSelectedDuration(rangeChars(e.target.value))} />
       </div>
 
       <div className="mb-6">
         <h3 className="font-medium mb-3 text-foreground">{t.priceRange}</h3>
         <div className="flex gap-2 mb-3">
           <div>
-            <label className="text-sm text-muted-foreground">{t.minPrice}</label>
+            <label htmlFor="filter-min-price" className="text-sm text-muted-foreground">{t.minPrice}</label>
             <Input
+              id="filter-min-price"
               type="number"
               value={priceRange[0]}
               onChange={(e) => setPriceRange([Number.parseInt(e.target.value) || 0, priceRange[1]])}
             />
           </div>
           <div>
-            <label className="text-sm text-muted-foreground">{t.maxPrice}</label>
+            <label htmlFor="filter-max-price" className="text-sm text-muted-foreground">{t.maxPrice}</label>
             <Input
+              id="filter-max-price"
               type="number"
               value={priceRange[1]}
               onChange={(e) => setPriceRange([priceRange[0], Number.parseInt(e.target.value) || 5000])}
             />
           </div>
         </div>
-        <Slider value={priceRange} onValueChange={setPriceRange} max={5000} min={0} step={50} className="w-full" />
+        <Slider aria-label={t.priceRange} value={priceRange} onValueChange={setPriceRange} max={5000} min={0} step={50} className="w-full" />
       </div>
 
       <div className="mb-6">
