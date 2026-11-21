@@ -547,7 +547,7 @@ export default function BookingPage() {
           <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
             <div className="relative h-32 sm:h-48 bg-gradient-to-br from-red-600 to-red-800">
               <img 
-                src={professional.headerImage || professionalImage || "/placeholder.svg"} 
+                src={professionalImage || "/placeholder.svg"} 
                 alt={`${professional.name} header`} 
                 className="w-full h-full object-cover" 
               />
@@ -582,7 +582,7 @@ export default function BookingPage() {
                   </div>
                 </div>
                 
-                {(bookingOptions?.package || (!bookingOptions && professional.equipmentPrice)) && (
+                {(bookingOptions?.package || (!bookingOptions && artist?.equipmentPrice)) && (
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Speaker className="w-3.5 h-3.5" />
@@ -590,7 +590,7 @@ export default function BookingPage() {
                     </div>
                     <div className="text-right">
                       <span className="font-semibold text-foreground">
-                        {bookingOptions?.package ? formatEuro(bookingOptions.package.priceCents) : professional.equipmentPrice} {t.perDay}
+                        {bookingOptions?.package ? formatEuro(bookingOptions.package.priceCents) : artist?.equipmentPrice} {t.perDay}
                       </span>
                       <span className="text-xs text-muted-foreground ml-1">({t.exVat})</span>
                     </div>
@@ -599,11 +599,11 @@ export default function BookingPage() {
               </div>
 
               {/* Music Genres */}
-              {professional.musicStyles && professional.musicStyles.length > 0 && (
+              {artist?.musicStyles && artist?.musicStyles.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-medium text-muted-foreground mb-2">{t.musicGenresLabel}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {professional.musicStyles.slice(0, 2).map((genre: string) => (
+                    {artist?.musicStyles.slice(0, 2).map((genre: string) => (
                       <span
                         key={genre}
                         className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md capitalize"
@@ -611,9 +611,9 @@ export default function BookingPage() {
                         {genre}
                       </span>
                     ))}
-                    {professional.musicStyles.length > 2 && (
+                    {artist?.musicStyles.length > 2 && (
                       <span className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md">
-                        +{professional.musicStyles.length - 2}
+                        +{artist?.musicStyles.length - 2}
                       </span>
                     )}
                   </div>

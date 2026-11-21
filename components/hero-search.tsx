@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Sparkles } from "lucide-react"
 import { SmartSearchInput } from "@/components/smart-search-input"
@@ -55,7 +55,7 @@ export function HeroSearch() {
     }
   }
 
-  useState(() => {
+  useEffect(() => {
     if (showSmartSearch && accumulatedFilters.city && accumulatedFilters.selectedDate) {
       const hasAllFilters =
         accumulatedFilters.categories &&

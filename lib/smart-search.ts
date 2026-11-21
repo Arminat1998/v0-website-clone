@@ -79,7 +79,6 @@ const synonyms: Record<string, string[]> = {
   // Music styles
   house: ["house music", "electronic", "dance", "club music"],
   techno: ["techno music", "electronic", "underground", "rave"],
-  pop: ["pop music", "mainstream", "charts", "radio hits"],
   "hip-hop": ["hiphop", "rap", "urban", "street music"],
   electronic: ["edm", "dance", "synthesizer", "digital"],
   classic: ["klassiek", "oldies", "vintage", "retro"],
@@ -87,15 +86,12 @@ const synonyms: Record<string, string[]> = {
   rock: ["rock music", "metal", "alternative", "hard rock"],
   acoustic: ["acoustic music", "folk", "guitar", "vocals"],
   classical: ["classical music", "orchestral", "concert", "opera"],
-  flamenco: ["flamenco guitar", "spanish guitar", "latin music", "cultural"],
-  indie: ["indie music", "alternative music", "underground music", "independent music"],
   ambient: ["ambient music", "chill music", "electronic music", "background music"],
   soul: ["soul music", "r&b", "motown", "soulful"],
   trance: ["trance music", "progressive music", "electronic dance music", "edm"],
   reggaeton: ["reggaeton music", "latin music", "tropical music", "dance music"],
   salsa: ["salsa music", "latin music", "cultural music", "dance music"],
   bachata: ["bachata music", "latin music", "dance music", "romantic music"],
-  tropical: ["tropical music", "latin music", "cultural music", "dance music"],
   flamenco: ["flamenco guitar", "spanish guitar", "latin music", "cultural"],
   indie: ["indie music", "alternative music", "underground music", "independent music"],
   alternative: ["alternative music", "indie music", "underground music", "independent music"],
@@ -1806,7 +1802,9 @@ export function smartSearch(query: string, artists: Artist[]): Artist[] {
   ]
 
   // Score each item based on semantic relevance and filters
-  const scoredItems = allSearchableItems.map((item) => {
+  const scoredItems = allSearchableItems.map((entry) => {
+    // Artists and photographers share most fields; the rest are optional on either side.
+    const item = entry as typeof entry & Partial<Artist> & Partial<Photographer>
     let score = 0
     const searchableText = [
       item.name,
@@ -1878,7 +1876,7 @@ export function smartSearch(query: string, artists: Artist[]): Artist[] {
       filterMatch = false
       score = 0 // Zero out score if filter doesn't match
     }
-    if (filters.genres.length > 0 && !(item.musicStyles || []).some((style) => filters.genres.includes(style))) {
+    if (filters.genres.length > 0 && !(item.musicStyles || []).some((style: string) => filters.genres.includes(style))) {
       filterMatch = false
       score = 0
     }
@@ -1886,7 +1884,8 @@ export function smartSearch(query: string, artists: Artist[]): Artist[] {
       filterMatch = false
       score = 0
     }
-    if (filters.mood && filters.mood.length > 0 && !(item.mood || []).some((mood) => filters.mood.includes(mood))) {
+    const moodFilter = filters.mood ?? []
+    if (moodFilter.length > 0 && !(item.mood || []).some((mood: string) => moodFilter.includes(mood))) {
       filterMatch = false
       score = 0
     }
@@ -2059,10 +2058,11 @@ function scoreEventTypeMatch(query: string, item: Artist | Photographer): number
 }
 
 function scoreMoodMatch(query: string, item: Artist | Photographer): number {
-  if (!item.mood) return 0
+  const moods = "mood" in item ? item.mood : undefined
+  if (!moods) return 0
 
   let score = 0
-  item.mood.forEach((mood) => {
+  moods.forEach((mood) => {
     if (query.includes(mood.toLowerCase())) {
       score += 12
     }
@@ -2073,7 +2073,7 @@ function scoreMoodMatch(query: string, item: Artist | Photographer): number {
 // Modified to handle both Artist musicStyles and Photographer serviceTypes if they align semantically
 function scoreMusicStyleMatch(query: string, item: Artist | Photographer): number {
   let score = 0
-  const musicStyles = item.musicStyles || []
+  const musicStyles = ("musicStyles" in item && item.musicStyles) || []
   const serviceTypes = "serviceTypes" in item && item.serviceTypes ? item.serviceTypes : []
   const combinedStyles = [...musicStyles, ...serviceTypes]
 

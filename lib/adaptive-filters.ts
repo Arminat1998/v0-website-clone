@@ -11,6 +11,7 @@ export interface FilterSuggestions {
   month?: string
   year?: string
   categories?: string[]
+  genres?: string[]
 }
 
 // Context-aware filter suggestions based on search query
