@@ -7,6 +7,7 @@ import { professionalProfiles } from "@/lib/db/schema"
 import { requireAdmin } from "@/lib/session"
 import { REVIEW_STATUSES } from "@/lib/admin/submissions"
 import type { ChecklistState, InternalNote, SubmissionStatus, TimelineEvent } from "@/contexts/admin-submissions-context"
+import { logError } from "@/lib/log-error"
 
 export interface SaveReviewInput {
   id: string
@@ -42,7 +43,7 @@ export async function saveReview(input: SaveReviewInput): Promise<{ ok: boolean 
       })
       .where(eq(professionalProfiles.professionalId, input.id))
   } catch (error) {
-    console.error("Failed to save review:", error)
+    logError("Failed to save review:", error)
     return { ok: false }
   }
 

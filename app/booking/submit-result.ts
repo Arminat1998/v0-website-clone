@@ -86,6 +86,14 @@ export function bookingErrorMessage(
           step: 3,
         }
       }
+      if (field === "eventLocation") {
+        return {
+          text: nl
+            ? "De plaats van je evenement is niet gevonden of klopt niet met het adres. Controleer de plaats in stap 1."
+            : "The place of your event was not found or does not match the address. Check the place in step 1.",
+          step: 1,
+        }
+      }
       if (field === "eventDate") {
         return {
           text: nl ? "Deze datum kan niet worden geboekt. Kies in stap 1 een andere datum." : "This date cannot be booked. Choose another date in step 1.",

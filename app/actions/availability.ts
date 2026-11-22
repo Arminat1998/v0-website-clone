@@ -8,6 +8,7 @@ import { ensureUnavailableDatesTable, loadBlockedByHand, lockDate } from "@/lib/
 import { isBookableDate, todayIso } from "@/lib/bookings/format"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { takeToken } from "@/lib/rate-limit"
+import { logError } from "@/lib/log-error"
 
 /** Enough for a few months at once; the calendar never sends more than one month. */
 const MAX_DATES = 100
@@ -61,7 +62,7 @@ export async function saveMyAvailability(input: { dates: string[]; available: bo
         .orderBy(asc(professionalUnavailableDates.date))
     })
   } catch (error) {
-    console.error("Failed to save availability:", error)
+    logError("Failed to save availability:", error)
     return { ok: false, error: "FAILED" }
   }
 

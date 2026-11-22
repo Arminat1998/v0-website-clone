@@ -94,8 +94,8 @@ export function ListFilters({ kind, filters, onChange, onClear, fromSearch, isMo
         />
         <p id="filter-duration-hint" className="mt-1.5 text-xs text-muted-foreground">
           {nl
-            ? "Telt niet mee in de resultaten. Hiermee schatten we wat je budget per uur is."
-            : "Does not change the results. We use it to estimate your budget per hour."}
+            ? "Toont alleen wie je voor dit aantal uren kunt boeken."
+            : "Only shows who you can book for this number of hours."}
         </p>
       </Section>
 

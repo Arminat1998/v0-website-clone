@@ -53,7 +53,7 @@ export type FilterKey = keyof ListFilters
 /** The parts of an artist or photographer the lists filter and sort on. */
 export type ListedProfessional = Pick<
   Artist,
-  "id" | "name" | "price" | "location" | "specialty" | "rating" | "reviews" | "available" | "category" | "artistTypes" | "musicStyles" | "eventTypes" | "availableDates" | "unavailableDates"
+  "id" | "name" | "price" | "location" | "specialty" | "rating" | "reviews" | "available" | "category" | "artistTypes" | "musicStyles" | "eventTypes" | "availableDates" | "unavailableDates" | "minHours" | "maxHours"
 >
 
 /** Lower case without accents or punctuation, so texts can be compared. */
@@ -115,6 +115,7 @@ function isFreeOn(professional: ListedProfessional, date: string) {
 
 export function filterProfessionals<T extends ListedProfessional>(list: T[], filters: ListFilters): T[] {
   const { categories, genres, eventTypes, selectedDate, priceRange } = filters
+  const hours = Number(filters.duration) || 0
   const city = normalizeText(canonicalCity(filters.city))
   const [min, max] = priceRange[0] <= priceRange[1] ? priceRange : [priceRange[1], priceRange[0]]
   return list.filter((professional) => {
@@ -134,6 +135,7 @@ export function filterProfessionals<T extends ListedProfessional>(list: T[], fil
     }
     if (eventTypes.length > 0 && !eventTypes.some((type) => professional.eventTypes?.some((own) => sameTag(own, type)))) return false
     if (selectedDate && !isFreeOn(professional, selectedDate)) return false
+    if (hours > 0 && (hours < (professional.minHours ?? 1) || hours > (professional.maxHours ?? 8))) return false
     return true
   })
 }
@@ -232,8 +234,8 @@ export function activeFilters(filters: ListFilters, language: Language): { key: 
   })
 }
 
-/** Filters that decide which professionals are shown; the duration and the budget do not. */
-export const RESULT_FILTERS: FilterKey[] = ["categories", "eventTypes", "selectedDate", "city", "priceRange", "genres"]
+/** Filters that decide which professionals are shown; the total budget does not. */
+export const RESULT_FILTERS: FilterKey[] = ["categories", "eventTypes", "selectedDate", "city", "duration", "priceRange", "genres"]
 
 export function withoutFilter(filters: ListFilters, key: FilterKey): ListFilters {
   return { ...filters, [key]: NO_FILTERS[key] }

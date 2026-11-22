@@ -20,6 +20,7 @@ import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 import { createReviewInvite } from "@/lib/reviews"
 import { emailAccepted, emailNewRequest, emailRejected } from "@/lib/email"
 import { isDemoProfessional } from "@/lib/demo-professionals"
+import { logError } from "@/lib/log-error"
 
 export type CustomerBooking = Pick<
   Booking,
@@ -172,7 +173,7 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
     return await placeBooking(input)
   } catch (error) {
     if (error instanceof BookingError) return { ok: false, error: error.code, field: error.field }
-    console.error("Failed to create booking:", error)
+    logError("Failed to create booking:", error)
     return { ok: false, error: "RETRY" }
   }
 }
@@ -199,6 +200,10 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
     throw new BookingError("INVALID_HOURS")
   }
   if (input.professionalType === "photographer" && input.equipment.includes("package")) throw new BookingError("INVALID_DETAILS", "equipment")
+  // The distance is calculated to the place of step 1, so the address has to be that same place (as in the form).
+  const statedPlace = /\d/.test(input.eventLocation) ? input.postalCode : input.city
+  const plainPlace = (value: string) => value.replace(/\s+/g, "").toLowerCase()
+  if (plainPlace(statedPlace) !== plainPlace(input.eventLocation)) throw new BookingError("INVALID_DETAILS", "eventLocation")
   const distanceKm = await resolveDistance(input.professionalId, input.eventLocation, input.distanceKm, options)
   const pricing = priceBooking(options, {
     startTime: input.startTime,

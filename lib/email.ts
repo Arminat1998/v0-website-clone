@@ -41,8 +41,8 @@ export function safeUserText(value: string, max = 300) {
   return value
     .replace(/\s+/g, " ")
     .replace(/[^\s@<>]+@[^\s@<>]+/g, "[e-mailadres]")
-    .replace(/(?:https?:\/\/|www\.)\S+/gi, "[link]")
-    .replace(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|nl|be|de|eu|info|io|me|app|co|link|xyz)\b\S*/gi, "[link]")
+    .replace(/(?:\b[a-z][a-z0-9+.-]*:\/\/|www\.)\S+/gi, "[link]")
+    .replace(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,24}\b(?:\/\S*)?/gi, "[link]")
     .replace(/(?:\+|\b0)\d(?:[\s().-]?\d){7,}/g, "[telefoonnummer]")
     .trim()
     .slice(0, max)

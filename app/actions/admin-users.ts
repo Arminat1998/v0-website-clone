@@ -27,6 +27,7 @@ import { hasUnavailableDatesTable } from "@/lib/bookings/availability"
 import { requireAdmin, requireUser } from "@/lib/session"
 import { type AdminUserRow, listAdminUsers } from "@/lib/admin/users"
 import { BLACKLIST_TYPES, type BlacklistType, logAdminAction, normalizeValue } from "@/lib/moderation"
+import { logError } from "@/lib/log-error"
 
 type Result = { ok: true } | { ok: false; error: string }
 
@@ -337,7 +338,7 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
       await tx.delete(userTable).where(eq(userTable.id, id))
     })
   } catch (deleteError) {
-    console.error("Failed to delete account:", deleteError)
+    logError("Failed to delete account:", deleteError)
     return { ok: false, error: "Verwijderen is mislukt. Er is niets verwijderd." }
   }
 

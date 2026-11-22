@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { artistPages } from "@/lib/db/schema"
 import type { ArtistPageContent } from "@/lib/artist-page-types"
+import { logError } from "@/lib/log-error"
 
 export async function getArtistPageContent(professionalId: string): Promise<ArtistPageContent | null> {
   try {
@@ -22,7 +23,7 @@ export async function getArtistPageContent(professionalId: string): Promise<Arti
       socials: row.socials,
     }
   } catch (error) {
-    console.error("Failed to load artist page content:", error)
+    logError("Failed to load artist page content:", error)
     return null
   }
 }

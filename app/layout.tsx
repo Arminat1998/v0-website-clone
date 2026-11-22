@@ -1,7 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
+import { SiteAnalytics } from "@/components/site-analytics"
 import { LanguageProvider } from "@/contexts/language-context"
 import { ThemeProvider } from "@/contexts/theme-context"
 import { SkipLink } from "@/components/skip-link"
@@ -42,7 +42,7 @@ export default function RootLayout({
             {children}
             <Toaster />
             <UserTest />
-            <Analytics />
+            <SiteAnalytics />
           </LanguageProvider>
         </ThemeProvider>
       </body>

@@ -8,6 +8,7 @@ import { getSession, isAdmin } from "@/lib/session"
 import { takeToken } from "@/lib/rate-limit"
 import { tidyLooseAudio } from "@/lib/bookings/audio-storage"
 import { AUDIO_KINDS, MAX_AUDIO_BYTES, audioContentType, audioDisplayName, isOwnAudioPath, type AudioKind } from "@/lib/bookings/audio"
+import { logError } from "@/lib/log-error"
 
 const UPLOAD_WINDOW_MS = 10 * 60 * 1000
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json(result)
   } catch (error) {
-    console.error("Booking audio upload failed:", error)
+    logError("Booking audio upload failed:", error)
     return NextResponse.json({ error: "upload_failed" }, { status: 500 })
   }
 }
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
     if (contentLength) headers.set("Content-Length", contentLength)
     return new NextResponse(result.stream, { status: contentRange ? 206 : 200, headers })
   } catch (error) {
-    console.error("Booking audio read failed:", error)
+    logError("Booking audio read failed:", error)
     return NextResponse.json({ error: "fetch_failed" }, { status: 500 })
   }
 }
