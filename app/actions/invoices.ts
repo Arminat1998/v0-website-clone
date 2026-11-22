@@ -262,7 +262,7 @@ async function storeInvoice({ professionalId, bookingId, invoiceDate, upload, ..
 
 /** What makes the lines of two invoices the same. */
 function lineFingerprint(lines: InvoiceLine[]) {
-  return lines.map((line) => [line.key, line.description, line.grossCents, line.receipt?.pathname ?? ""].join("|")).join("\n")
+  return lines.map((line) => [line.key, line.description, line.quantity, line.vatRate, line.netCents, line.grossCents, line.receipt?.pathname ?? ""].join("|")).join("\n")
 }
 
 export async function submitSelfBillingInvoice(input: { bookingId: number; invoiceNumber: string; invoiceDate: string; adjustments?: InvoiceAdjustments }) {
