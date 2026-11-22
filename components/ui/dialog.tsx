@@ -56,6 +56,8 @@ function DialogContent({
   showCloseButton?: boolean
 }) {
   const { language } = useLanguage()
+  // Most dialogs open without a Radix trigger, so remember what had focus and give it back on close.
+  const openedFrom = React.useRef<HTMLElement | null>(null)
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -66,6 +68,16 @@ function DialogContent({
           className,
         )}
         {...props}
+        onOpenAutoFocus={(event) => {
+          openedFrom.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          props.onOpenAutoFocus?.(event)
+        }}
+        onCloseAutoFocus={(event) => {
+          props.onCloseAutoFocus?.(event)
+          if (event.defaultPrevented || !openedFrom.current?.isConnected || openedFrom.current === document.body) return
+          event.preventDefault()
+          openedFrom.current.focus()
+        }}
         onInteractOutside={(event) => {
           // The user-test bar lives outside the dialog; using it must not close the dialog.
           if ((event.target as HTMLElement | null)?.closest?.('[data-usertest]')) event.preventDefault()

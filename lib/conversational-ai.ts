@@ -23,7 +23,7 @@ export interface ConversationMessage {
 
 export type QuestionKey = Exclude<FilterKey, "budget">
 
-/** The questions for a list. The duration does not filter, so it is only asked to make sense of a total budget. */
+/** The questions for a list. The duration is only asked together with a total budget, to keep the chat short. */
 export function questionsFor(kind: ProfessionalKind, filters: ListFilters): QuestionKey[] {
   const keys: QuestionKey[] = ["categories", "eventTypes", "selectedDate", "city", "priceRange"]
   if (filters.budget > 0) keys.push("duration")
