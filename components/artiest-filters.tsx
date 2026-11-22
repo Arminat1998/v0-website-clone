@@ -12,7 +12,7 @@ import type { FilterSuggestions } from "@/lib/adaptive-filters"
 import { calendarStart, calendarYears, isPastDate, mondayOffset, upcomingDate } from "@/lib/filter-calendar"
 import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown"
 import { ComboSelect } from "@/components/combo-select"
-import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, canonicalEventType, canonicalGenre, genreLabel } from "@/lib/profile-options"
 import { useLanguage } from "@/contexts/language-context"
 import { lettersOnly, rangeChars } from "@/lib/input-filters"
 import { FilterPanel } from "@/components/filter-panel"
@@ -67,12 +67,12 @@ export function ArtiestFilters({
         setSelectedDuration(filterSuggestions.duration)
       }
       if (filterSuggestions.musicGenres && filterSuggestions.musicGenres.length > 0) {
-        setSelectedGenres(filterSuggestions.musicGenres)
+        setSelectedGenres([...new Set(filterSuggestions.musicGenres.map(canonicalGenre))])
       } else if (filterSuggestions.genres && filterSuggestions.genres.length > 0) {
-        setSelectedGenres(filterSuggestions.genres)
+        setSelectedGenres([...new Set(filterSuggestions.genres.map(canonicalGenre))])
       }
       if (filterSuggestions.eventTypes && filterSuggestions.eventTypes.length > 0) {
-        setSelectedEventTypes(filterSuggestions.eventTypes)
+        setSelectedEventTypes([...new Set(filterSuggestions.eventTypes.map(canonicalEventType))])
       }
       if (filterSuggestions.selectedDate) {
         const dateStr = filterSuggestions.selectedDate

@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Sparkles, Send, X, ChevronUp, ChevronDown, ArrowDown, RotateCcw, Music } from "lucide-react"
+import { Search, Sparkles, Send, X, ChevronUp, ChevronDown, ArrowDown, RotateCcw } from "lucide-react"
 import { generateSearchSuggestions } from "@/lib/smart-search"
 import {
   type ConversationMessage,
@@ -27,7 +27,6 @@ interface SmartSearchInputProps {
   onFilterUpdate?: (filters: Partial<FilterState>) => void
   autoStart?: boolean
   onAutoStartComplete?: () => void
-  onMusicUpload?: (file: File) => void
   /** Id of the results list, so the chat can scroll to it. */
   resultsId?: string
 }
@@ -70,7 +69,6 @@ export function SmartSearchInput({
   onFilterUpdate,
   autoStart = false,
   onAutoStartComplete,
-  onMusicUpload,
   resultsId,
 }: SmartSearchInputProps) {
   const { t, language } = useLanguage()
@@ -93,7 +91,6 @@ export function SmartSearchInput({
   const [isTyping, setIsTyping] = useState(false)
   const [skipped, setSkipped] = useState<Set<QuestionKey>>(new Set())
   const nl = language === "nl"
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const effectivePlaceholder = placeholder || t.searchYourArtist
 
@@ -291,17 +288,6 @@ export function SmartSearchInput({
   const showResults = () => {
     setIsMinimized(true)
     document.getElementById(resultsId ?? "")?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
-
-  const handleMusicClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file && onMusicUpload) {
-      onMusicUpload(file)
-    }
   }
 
   // The question that is open now, in the same order as getNextQuestion asks them.
@@ -529,20 +515,6 @@ export function SmartSearchInput({
     <div className="relative w-full">
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        {onMusicUpload && (
-          <>
-            <button
-              type="button"
-              onClick={handleMusicClick}
-              className="absolute right-9 top-1/2 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-red-500"
-              aria-label={nl ? "Muziekbestand uploaden om op stijl te zoeken" : "Upload a music file to search by style"}
-            >
-              <Music className="w-4 h-4" />
-            </button>
-            <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileChange} className="hidden" />
-          </>
-        )}
-        <Sparkles className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-red-500" aria-hidden />
         <Input
           ref={inputRef}
           aria-label={effectivePlaceholder}
@@ -552,7 +524,7 @@ export function SmartSearchInput({
           onKeyDown={handleKeyDown}
           onFocus={() => value.length > 0 && setShowSuggestions(true)}
           onBlur={handleBlur}
-          className={`h-12 w-full bg-background pl-10 text-base transition-colors focus-visible:border-red-500 ${onMusicUpload ? "pr-16" : "pr-10"}`}
+          className="h-12 w-full bg-background pl-10 text-base transition-colors focus-visible:border-red-500"
         />
       </div>
 

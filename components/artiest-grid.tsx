@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { tagKey } from "@/lib/profile-options"
 import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sparkles, Music, Loader2, X } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SmartSearchInput } from "@/components/smart-search-input"
@@ -14,9 +14,7 @@ import { smartSearch, enhancedArtists } from "@/lib/smart-search"
 import type { Artist } from "@/lib/smart-search"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
-import { useToast } from "@/hooks/use-toast"
 import { updateListState, getViewedArtistIds, markArtistViewed, type ArtiestListState } from "@/lib/artiest-list-state"
-import { analyzeAudioFile, type AudioAnalysisResult } from "@/lib/audio-analyzer"
 
 const fetcher = (url: string) => fetch(url).then((response) => response.json())
 
@@ -46,11 +44,7 @@ export function ArtiestGrid({
   const [urlFilters] = useState(initialFilters || {})
   const [shouldAutoStart, setShouldAutoStart] = useState(false)
   const [visitedArtistIds, setVisitedArtistIds] = useState<Set<number>>(new Set())
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [musicAnalysis, setMusicAnalysis] = useState<AudioAnalysisResult | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const { t, language } = useLanguage()
-  const { toast } = useToast()
 
   useEffect(() => {
     updateListState({ sortBy })
@@ -68,23 +62,6 @@ export function ArtiestGrid({
     }
   }, [initialSearch, onSearchChange])
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search)
-      const genresParam = params.get("genres")
-      if (genresParam && !musicAnalysis) {
-        const genres = genresParam.split(",")
-        setMusicAnalysis({
-          genres,
-          tempo: "Unknown",
-          energy: "Medium",
-          mood: "Upbeat",
-          confidence: 0.7,
-        })
-      }
-    }
-  }, [])
-
   const handleSearchChange = (newSearchTerm: string) => {
     setSearchTerm(newSearchTerm)
     onSearchChange?.(newSearchTerm)
@@ -92,58 +69,6 @@ export function ArtiestGrid({
 
   const handleConversationFilterUpdate = (filters: Partial<FilterState>) => {
     onFilterUpdate?.(filters)
-  }
-
-  const handleMp3Upload = async (file: File) => {
-    if (!file.type.includes("audio") && !file.type.includes("mpeg")) {
-      toast({
-        title: t.invalidFile || "Ongeldig bestand",
-        description: t.uploadAudioFile || "Upload alsjeblieft een audio bestand (MP3, WAV, M4A, etc.)",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsAnalyzing(true)
-
-    try {
-      const analysis = await analyzeAudioFile(file)
-
-      setMusicAnalysis(analysis)
-
-      toast({
-        title: "Muziek geanalyseerd!",
-        description: `Gedetecteerde genres: ${analysis.genres.join(", ")} | ${analysis.tempo} | Energie: ${analysis.energy}`,
-      })
-
-      onFilterUpdate?.({ genres: analysis.genres })
-      setSearchTerm(`DJ voor ${analysis.mood.toLowerCase()} ${analysis.genres[0]} muziek`)
-    } catch (error) {
-      console.error("[v0] MP3 analysis error:", error)
-      toast({
-        title: "Analyse mislukt",
-        description: "Er ging iets mis bij het analyseren van de muziek. Probeer het opnieuw.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
-
-  const handleAnalyzeSong = () => {
-    fileInputRef.current?.click()
-  }
-
-  const clearMusicFilter = () => {
-    setMusicAnalysis(null)
-    onFilterUpdate?.({ genres: [] })
-    setSearchTerm("")
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href)
-      url.searchParams.delete("genres")
-      url.searchParams.delete("q")
-      window.history.replaceState({}, "", url.toString())
-    }
   }
 
   const { data: liveData, isLoading: liveLoading } = useSWR<{ artists: Artist[] }>("/api/artists/live", fetcher, {
@@ -163,10 +88,6 @@ export function ArtiestGrid({
     }
 
     const allFilters = { ...urlFilters, ...appliedFilters }
-
-    if (musicAnalysis?.genres && musicAnalysis.genres.length > 0) {
-      allFilters.genres = [...(allFilters.genres || []), ...musicAnalysis.genres]
-    }
 
     if (allFilters.categories && allFilters.categories.length > 0) {
       artists = artists.filter((artist) =>
@@ -238,7 +159,7 @@ export function ArtiestGrid({
     }
 
     return artists
-  }, [searchTerm, appliedFilters, urlFilters, musicAnalysis, allArtists])
+  }, [searchTerm, appliedFilters, urlFilters, allArtists])
 
   const sortedArtists = useMemo(() => {
     const artists = [...filteredArtists]
@@ -293,7 +214,6 @@ export function ArtiestGrid({
               autoStart={shouldAutoStart}
               onAutoStartComplete={() => setShouldAutoStart(false)}
               resultsId="artist-results"
-              onMusicUpload={handleMp3Upload}
             />
           </div>
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -310,42 +230,6 @@ export function ArtiestGrid({
             </SelectContent>
           </Select>
         </div>
-
-        {isAnalyzing && (
-          <div className="mb-4 p-3 rounded-lg border bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
-              <p className="text-sm text-blue-700 dark:text-blue-300">Muziek analyseren...</p>
-            </div>
-          </div>
-        )}
-
-        {musicAnalysis && (
-          <div className="mb-4 p-3 rounded-lg border bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/40 dark:to-pink-950/40 border-purple-200 dark:border-purple-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <Music className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <p className="font-medium text-purple-900 dark:text-purple-100">Muziek geanalyseerd</p>
-                  <p className="text-sm text-purple-700 dark:text-purple-300">
-                    Genres: {musicAnalysis.genres.join(", ")} | {musicAnalysis.tempo} | Energie: {musicAnalysis.energy}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearMusicFilter}
-                className="text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Wissen
-              </Button>
-            </div>
-          </div>
-        )}
 
         {searchTerm && (
           <div

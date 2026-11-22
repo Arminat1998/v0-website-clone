@@ -275,6 +275,16 @@ export function genreLabel(value: string, dutch: boolean) {
   return value
 }
 
+/** Maps a genre as typed or stored elsewhere ("House", "Hip-Hop") to its list value; unknown genres stay as they are. */
+export function canonicalGenre(raw: string) {
+  const key = tagKey(raw)
+  for (const group of GENRE_GROUPS) {
+    const option = group.options.find((item) => [item.value, item.nl, item.en].some((name) => tagKey(name) === key))
+    if (option) return option.value
+  }
+  return raw
+}
+
 export function eventTypeLabel(value: string, dutch: boolean) {
   for (const group of EVENT_TYPE_GROUPS) {
     const option = group.options.find((item) => item.value === value)

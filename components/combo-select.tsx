@@ -241,7 +241,7 @@ export function ComboSelect(props: ComboSelectProps) {
             />
           </div>
 
-          <div role="listbox" aria-multiselectable={multiple || undefined} aria-labelledby={labelledBy} className="max-h-72 overflow-y-auto px-1.5 pb-2">
+          <div role="listbox" aria-multiselectable={multiple || undefined} aria-labelledby={labelledBy} className="@container max-h-72 overflow-y-auto overflow-x-hidden overscroll-contain px-1.5 pb-2 [scrollbar-color:var(--rf-line)_transparent] [scrollbar-width:thin]">
             {visible.length === 0 && <p className="px-2 py-4 text-sm text-[var(--rf-muted)]">{t.empty(query.trim())}</p>}
             {visible.map((group, index) => {
               const chosen = group.options.filter((option) => selected.includes(option.value)).length
@@ -253,7 +253,7 @@ export function ComboSelect(props: ComboSelectProps) {
                       {multiple && chosen > 0 && <span className="font-medium normal-case tracking-normal">{t.selected(chosen)}</span>}
                     </div>
                   )}
-                  <div className={`grid gap-x-1.5 gap-y-0.5 ${multiple ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                  <div className={`grid gap-x-1.5 gap-y-0.5 ${multiple ? "grid-cols-1 @md:grid-cols-2" : "grid-cols-1"}`}>
                     {group.options.map((option) => {
                       const on = selected.includes(option.value)
                       return (
@@ -279,7 +279,7 @@ export function ComboSelect(props: ComboSelectProps) {
                               {option.icon}
                             </span>
                           )}
-                          <span className="min-w-0 flex-1">
+                          <span className="min-w-0 flex-1 break-words">
                             {option.label}
                             {option.description && <small className="block text-[13px] text-[var(--rf-muted)]">{option.description}</small>}
                           </span>
