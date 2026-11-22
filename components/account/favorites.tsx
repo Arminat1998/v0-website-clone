@@ -48,11 +48,11 @@ export function AccountFavorites({ favorites }: { favorites: FavoriteItem[] }) {
               )}
               <CardHeader>
                 <CardTitle>
-                  {favorite.available
+                  <h2>{favorite.available
                     ? favorite.name
                     : nl
                       ? "Niet meer beschikbaar"
-                      : "No longer available"}
+                      : "No longer available"}</h2>
                 </CardTitle>
                 <CardDescription>
                   {favorite.available

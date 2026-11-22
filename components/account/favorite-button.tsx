@@ -121,7 +121,7 @@ export function FavoriteButton({
         {errorText && (
           <p
             role="alert"
-            className="absolute right-0 top-12 w-48 rounded-md bg-destructive px-2 py-1 text-xs text-white shadow-lg"
+            className="absolute right-0 top-12 w-48 rounded-md bg-red-700 px-2 py-1 text-xs text-white shadow-lg"
           >
             {errorText}
           </p>
@@ -147,7 +147,7 @@ export function FavoriteButton({
         {saved ? (nl ? "Bewaard" : "Saved") : nl ? "Bewaren" : "Save"}
       </Button>
       {errorText && (
-        <p className="text-sm text-destructive" role="alert">
+        <p className="text-sm text-red-700 dark:text-red-400" role="alert">
           {errorText}
         </p>
       )}

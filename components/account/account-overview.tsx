@@ -131,7 +131,7 @@ export function AccountOverview({
         <Card>
           <CardHeader>
             <CardTitle>
-              {nl ? "Je volgende evenement" : "Your next event"}
+              <h2>{nl ? "Je volgende evenement" : "Your next event"}</h2>
             </CardTitle>
             <CardDescription>
               {nl
@@ -144,9 +144,9 @@ export function AccountOverview({
               <div className="flex flex-col gap-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex flex-col gap-2">
-                    <h2 className="text-2xl font-semibold text-balance">
+                    <h3 className="text-2xl font-semibold text-balance">
                       {next.eventName}
-                    </h2>
+                    </h3>
                     <p className="text-muted-foreground">
                       {next.professionalName}
                     </p>
@@ -194,7 +194,7 @@ export function AccountOverview({
         <Card>
           <CardHeader>
             <CardTitle>
-              {nl ? "Klaar voor je evenement?" : "Ready for your event?"}
+              <h2>{nl ? "Klaar voor je evenement?" : "Ready for your event?"}</h2>
             </CardTitle>
             <CardDescription>
               {nl
@@ -241,7 +241,7 @@ export function AccountOverview({
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
+                className="flex min-h-11 items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
               >
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent">
                   {done ? (
@@ -267,7 +267,7 @@ export function AccountOverview({
         <Card>
           <CardHeader>
             <CardTitle>
-              {nl ? "Recente aanvragen" : "Recent requests"}
+              <h2>{nl ? "Recente aanvragen" : "Recent requests"}</h2>
             </CardTitle>
             <CardDescription>
               {nl
@@ -300,7 +300,9 @@ export function AccountOverview({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{nl ? "Laatste updates" : "Latest updates"}</CardTitle>
+            <CardTitle>
+              <h2>{nl ? "Laatste updates" : "Latest updates"}</h2>
+            </CardTitle>
             <CardDescription>
               {nl ? "Je blijft hier op de hoogte." : "Stay up to date here."}
             </CardDescription>
