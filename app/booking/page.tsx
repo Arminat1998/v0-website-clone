@@ -19,6 +19,7 @@ import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
 import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
 import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import { bookingErrorMessage, readBookingResult } from "./submit-result"
+import { useBookingDraft } from "@/hooks/use-booking-draft"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
@@ -149,6 +150,7 @@ export default function BookingPage() {
     setSubmitError(null)
   }, [sessionData?.user])
   const [bookingId, setBookingId] = useState<number | null>(null)
+  const equipmentRestored = useRef(false)
   const { data: savedProfile } = useSWR(
     sessionData?.user.role === "user" ? ["customer-profile", sessionData.user.id] : null,
     () => getCustomerProfile(),
@@ -195,8 +197,68 @@ export default function BookingPage() {
   const { data: bookingOptions, isLoading: optionsLoading, mutate: reloadOptions } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
   useEffect(() => {
     // Artists start with their own equipment package selected; photographers have none.
-    if (bookingOptions?.package && artist) setSelectedEquipment((prev) => (prev.length ? prev : [PACKAGE_OPTION_ID]))
+    if (bookingOptions?.package && artist && !equipmentRestored.current) setSelectedEquipment((prev) => (prev.length ? prev : [PACKAGE_OPTION_ID]))
   }, [bookingOptions, artist])
+
+  useBookingDraft(
+    professionalKey,
+    {
+      step: currentStep, eventDate, eventLocation, distance, eventName, startTime, endTime, selectedEventTypes, selectedMusicGenres, capacity,
+      description, specialRequests, playlistLink, openingDanceOption, openingDanceLink, lastSongOption, lastSongLink, dressCode,
+      streetName, houseNumber, houseNumberExt, postalCode, city, country, selectedEquipment,
+    },
+    (saved) => {
+      const text = (value: unknown) => (typeof value === "string" ? value : "")
+      const list = (value: unknown) => (Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [])
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(text(saved.eventDate)) && text(saved.eventDate) >= todayIso() ? text(saved.eventDate) : ""
+      const place = text(saved.eventLocation)
+      const km = typeof saved.distance === "number" && place ? saved.distance : null
+      if (!initialDate && date) {
+        setEventDate(date)
+        setCurrentYear(Number(date.slice(0, 4)))
+        setCurrentMonth(Number(date.slice(5, 7)) - 1)
+      }
+      setEventLocation(place)
+      setDistance(km)
+      setEventName(text(saved.eventName))
+      setStartTime(text(saved.startTime))
+      setEndTime(text(saved.endTime))
+      setSelectedEventTypes(list(saved.selectedEventTypes))
+      setSelectedMusicGenres(list(saved.selectedMusicGenres))
+      setCapacity(text(saved.capacity))
+      setDescription(text(saved.description))
+      setSpecialRequests(text(saved.specialRequests))
+      setPlaylistLink(text(saved.playlistLink))
+      setOpeningDanceOption(saved.openingDanceOption === "link" ? "link" : "upload")
+      setOpeningDanceLink(text(saved.openingDanceLink))
+      setLastSongOption(saved.lastSongOption === "link" ? "link" : "upload")
+      setLastSongLink(text(saved.lastSongLink))
+      setDressCode(text(saved.dressCode))
+      setStreetName(text(saved.streetName))
+      setHouseNumber(text(saved.houseNumber))
+      setHouseNumberExt(text(saved.houseNumberExt))
+      setPostalCode(text(saved.postalCode))
+      setCity(text(saved.city))
+      setCountry(text(saved.country))
+      setSelectedEquipment(list(saved.selectedEquipment))
+      equipmentRestored.current = true
+      // Files and personal details are not kept, so never further than step 2.
+      if (date && km !== null && Number(saved.step) >= 2) setCurrentStep(2)
+    },
+    currentStep === 5,
+  )
+
+  // The back button of the browser goes to the previous step instead of leaving the form.
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const step = Number(event.state?.bookingStep ?? 1)
+      setCurrentStep((current) => (current === 5 ? 5 : Math.min(Math.max(step, 1), 4)))
+      setSubmitError(null)
+      setChangedTotal(null)
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [])
 
   useEffect(() => {
     if (!initialDate) return
@@ -353,6 +415,7 @@ export default function BookingPage() {
   const sideEvents = tagLabels(professional.eventTypes, eventLabel, language === "nl")
 
   const goToStep = (step: number) => {
+    if (step !== currentStep) window.history.pushState({ ...window.history.state, bookingStep: step }, "")
     setCurrentStep(step)
     setSubmitError(null)
     setChangedTotal(null)
