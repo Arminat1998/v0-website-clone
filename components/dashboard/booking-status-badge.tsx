@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 const statusStyles: Record<BookingStatus, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
-  accepted: "bg-green-500/10 text-green-700 dark:text-green-500",
+  accepted: "bg-green-500/10 text-green-800 dark:text-green-500",
   rejected: "bg-muted text-muted-foreground",
   completed: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   cancelled: "bg-muted text-muted-foreground",
@@ -24,7 +24,7 @@ export function BookingStatusBadge({ status, className }: { status: BookingStatu
 const paymentStyles: Record<PaymentStatus, string> = {
   unpaid: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
   deposit_paid: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  paid: "bg-green-500/10 text-green-700 dark:text-green-500",
+  paid: "bg-green-500/10 text-green-800 dark:text-green-500",
   refunded: "bg-muted text-muted-foreground",
 }
 
@@ -39,7 +39,7 @@ export function PaymentStatusBadge({ status, className }: { status: PaymentStatu
 
 const payoutStyles: Record<PayoutStatus, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
-  paid: "bg-green-500/10 text-green-700 dark:text-green-500",
+  paid: "bg-green-500/10 text-green-800 dark:text-green-500",
 }
 
 export function PayoutStatusBadge({ status, className }: { status: PayoutStatus; className?: string }) {
@@ -54,7 +54,7 @@ export function PayoutStatusBadge({ status, className }: { status: PayoutStatus;
 const invoiceStyles: Record<InvoiceStatus | "missing", string> = {
   missing: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
   submitted: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  approved: "bg-green-500/10 text-green-700 dark:text-green-500",
+  approved: "bg-green-500/10 text-green-800 dark:text-green-500",
   rejected: "bg-red-500/10 text-red-700 dark:text-red-400",
 }
 

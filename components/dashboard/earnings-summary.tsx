@@ -16,7 +16,7 @@ export function EarningsSummary({ bookings }: { bookings: Booking[] }) {
 
   const stats = [
     { label: t.completed.totalEarned, value: formatEuro(total, locale), icon: Wallet, tone: "text-foreground" },
-    { label: t.completed.paidOut, value: formatEuro(paidOut, locale), icon: Banknote, tone: "text-green-700 dark:text-green-500" },
+    { label: t.completed.paidOut, value: formatEuro(paidOut, locale), icon: Banknote, tone: "text-green-800 dark:text-green-500" },
     { label: t.completed.awaitingPayout, value: formatEuro(awaiting, locale), icon: Hourglass, tone: "text-amber-800 dark:text-amber-500" },
     { label: `${t.completed.eventsCount} ${t.completed.thisYear}`, value: thisYear.toString(), icon: CalendarCheck, tone: "text-foreground" },
   ]

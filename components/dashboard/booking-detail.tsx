@@ -84,7 +84,7 @@ function ExternalRef({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex max-w-full items-center gap-1.5 truncate text-sm text-red-700 dark:text-red-400 hover:underline"
+      className="inline-flex min-h-11 max-w-full items-center gap-1.5 truncate text-sm text-red-700 dark:text-red-400 hover:underline"
     >
       <Link2 className="h-4 w-4 flex-shrink-0" aria-hidden />
       <span className="truncate">{label}</span>
@@ -151,7 +151,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
 
       {booking.status === "accepted" && (
         <div role="status" className="mt-6 flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-foreground">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-700 dark:text-green-500" aria-hidden />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
           <span>{t.detail.acceptedBanner}</span>
         </div>
       )}
@@ -204,16 +204,16 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 <ul className="mt-2 flex flex-col gap-2 text-sm text-muted-foreground">
                   {booking.equipment.length > 0 && (
                     <li className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-700 dark:text-green-500" aria-hidden />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                       {t.detail.reminderEquipment}: {booking.equipment.map((id) => EQUIPMENT_OPTIONS.find((o) => o.id === id)?.label ?? id).join(", ")}
                     </li>
                   )}
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-700 dark:text-green-500" aria-hidden />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                     {t.detail.reminderMusic}
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-700 dark:text-green-500" aria-hidden />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                     {t.detail.reminderContact}
                   </li>
                 </ul>
@@ -313,7 +313,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 href={mapsUrl(booking)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:underline"
+                className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:underline"
               >
                 {t.detail.mapsLink}
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
@@ -433,7 +433,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
               {timeline.map((item) => (
                 <li key={item.label} className="flex items-start gap-3 text-sm">
                   <span
-                    className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-500/15 text-green-700 dark:text-green-500" : "border border-border text-transparent"}`}
+                    className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-500/15 text-green-800 dark:text-green-500" : "border border-border text-transparent"}`}
                     aria-hidden
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
