@@ -7,6 +7,7 @@ import { bookings, customerNotifications, invoices, notifications, type Booking,
 import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
 import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
 import { distanceBetween } from "@/lib/bookings/distance"
+import { todayIso } from "@/lib/bookings/format"
 import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
@@ -67,10 +68,6 @@ function revalidateDashboard(bookingId?: number) {
   revalidatePath("/account", "layout")
   for (const path of DASHBOARD_PATHS) revalidatePath(path)
   if (bookingId) revalidatePath(`/dashboard/bookings/${bookingId}`)
-}
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10)
 }
 
 export interface CreateBookingInput {
