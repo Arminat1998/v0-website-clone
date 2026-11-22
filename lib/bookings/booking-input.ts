@@ -4,32 +4,26 @@ import { linkFromInput } from "@/lib/http-url"
 
 export type BookingErrorCode =
   | "UNAUTHORIZED"
-  | "INVALID"
-  | "PROFESSIONAL_UNAVAILABLE"
-  | "DATE_UNAVAILABLE"
+  | "INVALID_DETAILS"
+  | "UNAVAILABLE"
+  | "DATE_TAKEN"
   | "INVALID_HOURS"
-  | "OUTSIDE_RANGE"
-  | "TOO_MANY"
-  | "FAILED"
+  | "OUT_OF_RANGE"
+  | "RETRY"
 
-const MESSAGES: Record<BookingErrorCode, string> = {
-  UNAUTHORIZED: "Unauthorized",
-  INVALID: "Invalid booking details",
-  PROFESSIONAL_UNAVAILABLE: "Professional unavailable",
-  DATE_UNAVAILABLE: "Date unavailable",
-  INVALID_HOURS: "Invalid booking hours",
-  OUTSIDE_RANGE: "Outside travel range",
-  TOO_MANY: "Too many requests",
-  FAILED: "Booking failed",
-}
+export type CreateBookingResult =
+  | { ok: true; id: number }
+  /** `field` is the name of the first invalid input field, when there is one. */
+  | { ok: false; error: BookingErrorCode; field?: string }
+  | { ok: false; error: "PRICE_CHANGED"; totalCents: number }
 
-/** A reason to refuse a booking request that the customer may see; `field` names the invalid field. */
+/** A reason to refuse a booking request that the customer gets to see. */
 export class BookingError extends Error {
   constructor(
     readonly code: BookingErrorCode,
     readonly field?: string,
   ) {
-    super(MESSAGES[code])
+    super(code)
   }
 }
 
@@ -95,6 +89,7 @@ const bookingInputSchema = z
     billingCountry: text(300),
     vatNumber: text(300),
     paymentMethod: z.enum(["ideal", "card", "invoice"]),
+    expectedTotalCents: z.number().int().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.customerType !== "business") return
@@ -108,7 +103,7 @@ export type BookingInput = z.infer<typeof bookingInputSchema>
 export function parseBookingInput(input: unknown): BookingInput {
   const parsed = bookingInputSchema.safeParse(input)
   if (parsed.success) return parsed.data
-  throw new BookingError("INVALID", String(parsed.error.issues[0]?.path[0] ?? ""))
+  throw new BookingError("INVALID_DETAILS", String(parsed.error.issues[0]?.path[0] ?? ""))
 }
 
 /** A booking id from the client that fits the database column. */

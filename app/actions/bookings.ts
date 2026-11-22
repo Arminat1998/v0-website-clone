@@ -8,7 +8,7 @@ import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@
 import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
 import { distanceBetween } from "@/lib/bookings/distance"
 import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
-import { BookingError, isBookingId, optionalText, parseBookingInput, type BookingErrorCode } from "@/lib/bookings/booking-input"
+import { BookingError, isBookingId, optionalText, parseBookingInput, type CreateBookingResult } from "@/lib/bookings/booking-input"
 import { todayIso } from "@/lib/bookings/format"
 import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
@@ -116,6 +116,8 @@ export interface CreateBookingInput {
   billingCountry: string
   vatNumber: string
   paymentMethod: "ideal" | "card" | "invoice"
+  /** The total incl. VAT the customer saw; when the server comes to another total, nothing is stored. */
+  expectedTotalCents?: number
 }
 
 const orNull = (value: string) => value || null
@@ -129,9 +131,9 @@ async function resolveDistance(professionalId: string, eventLocation: string, cl
   const from = await loadProfessionalCity(professionalId)
   const place = eventLocation.slice(0, 120)
   const serverKm = from && place ? await distanceBetween(from, place) : "unavailable"
-  if (serverKm === null) throw new BookingError("INVALID", "eventLocation")
+  if (serverKm === null) throw new BookingError("INVALID_DETAILS", "eventLocation")
   const km = serverKm === "unavailable" ? Math.round(clientKm) : serverKm
-  if (km > options.rangeKm) throw new BookingError("OUTSIDE_RANGE")
+  if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
   return km
 }
 
@@ -160,46 +162,39 @@ export async function calculateBookingDistance(professionalId: string, eventLoca
   return { ok: true, distanceKm, rangeKm: options.rangeKm }
 }
 
-export type CreateBookingResult = { ok: true; id: number } | { ok: false; error: BookingErrorCode; field?: string }
-
-/** Sends a booking request and tells why it was refused. Server actions hide thrown messages in production. */
-export async function submitBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
+/** Sends a booking request. Refusals are returned: server actions hide thrown messages in production. */
+export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
   try {
-    return { ok: true, id: await placeBooking(input) }
+    return await placeBooking(input)
   } catch (error) {
     if (error instanceof BookingError) return { ok: false, error: error.code, field: error.field }
     console.error("Failed to create booking:", error)
-    return { ok: false, error: "FAILED" }
+    return { ok: false, error: "RETRY" }
   }
 }
 
-/** The older contract of submitBooking: throws when the request is refused. */
-export async function createBooking(input: CreateBookingInput) {
-  return { id: await placeBooking(input) }
-}
-
-async function placeBooking(raw: CreateBookingInput): Promise<number> {
+async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResult> {
   const session = await getSession()
   if (!session?.user) throw new BookingError("UNAUTHORIZED")
   const customerId = session.user.id
   const input = parseBookingInput(raw)
 
   for (const field of ["openingDanceFileName", "lastSongFileName"] as const) {
-    if (input[field] && !isOwnAudioPath(input[field], customerId)) throw new BookingError("INVALID", field)
+    if (input[field] && !isOwnAudioPath(input[field], customerId)) throw new BookingError("INVALID_DETAILS", field)
   }
   // Sample profiles have no account behind them, so a request would never reach anyone.
-  if (isDemoProfessional(input.professionalId) || input.professionalId === customerId) throw new BookingError("PROFESSIONAL_UNAVAILABLE")
-  if (!takeToken(`booking:${customerId}`, 20, 10 * 60 * 1000)) throw new BookingError("TOO_MANY")
+  if (isDemoProfessional(input.professionalId) || input.professionalId === customerId) throw new BookingError("UNAVAILABLE")
+  if (!takeToken(`booking:${customerId}`, 20, 10 * 60 * 1000)) throw new BookingError("RETRY")
   const professional = await resolveCustomerProfessional(input.professionalId, input.professionalType)
-  if (!professional) throw new BookingError("PROFESSIONAL_UNAVAILABLE")
+  if (!professional) throw new BookingError("UNAVAILABLE")
 
   // The price comes from the professional's own profile, never from the browser.
   const options = await loadBookingOptions(input.professionalId)
-  if (!options) throw new BookingError("PROFESSIONAL_UNAVAILABLE")
+  if (!options) throw new BookingError("UNAVAILABLE")
   if (input.startTime === input.endTime || hoursProblem(options, hoursBetween(input.startTime, input.endTime))) {
     throw new BookingError("INVALID_HOURS")
   }
-  if (input.professionalType === "photographer" && input.equipment.includes("package")) throw new BookingError("INVALID", "equipment")
+  if (input.professionalType === "photographer" && input.equipment.includes("package")) throw new BookingError("INVALID_DETAILS", "equipment")
   const distanceKm = await resolveDistance(input.professionalId, input.eventLocation, input.distanceKm, options)
   const pricing = priceBooking(options, {
     startTime: input.startTime,
@@ -207,6 +202,10 @@ async function placeBooking(raw: CreateBookingInput): Promise<number> {
     equipment: input.equipment,
     distanceKm,
   })
+
+  if (input.expectedTotalCents !== undefined && input.expectedTotalCents !== pricing.totalCents) {
+    return { ok: false, error: "PRICE_CHANGED", totalCents: pricing.totalCents }
+  }
 
   const hasTable = await hasUnavailableDatesTable()
   const created = await db.transaction(async (tx) => {
@@ -234,7 +233,7 @@ async function placeBooking(raw: CreateBookingInput): Promise<number> {
     // Checked under the lock of this date, so a booking that is accepted or a date that is blocked at the
     // same moment cannot slip through.
     await lockDate(tx, input.professionalId, input.eventDate)
-    if (await dateProblem(tx, input.professionalId, input.eventDate, hasTable)) throw new BookingError("DATE_UNAVAILABLE")
+    if (await dateProblem(tx, input.professionalId, input.eventDate, hasTable)) throw new BookingError("DATE_TAKEN")
 
     const [inserted] = await tx
       .insert(bookings)
@@ -301,7 +300,7 @@ async function placeBooking(raw: CreateBookingInput): Promise<number> {
   })
 
   if (!created.duplicate) revalidateDashboard(created.id)
-  return created.id
+  return { ok: true, id: created.id }
 }
 
 function formatDutchDate(iso: string) {
