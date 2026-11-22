@@ -55,3 +55,29 @@ export async function tidyLooseAudio(customerId: string): Promise<boolean> {
     return true
   }
 }
+
+const SWEEP_EVERY_MS = 24 * HOUR
+let lastSweep = 0
+
+/**
+ * Once a day per server instance: removes every customer's uploads that no booking uses and that are too old to be
+ * booked. There is no scheduled job, so an upload starts it. Files of a booking are never removed.
+ */
+export async function sweepLooseAudio() {
+  if (Date.now() - lastSweep < SWEEP_EVERY_MS) return
+  lastSweep = Date.now()
+  try {
+    const { blobs } = await list({ prefix: BOOKING_AUDIO_PREFIX, limit: 1000, abortSignal: AbortSignal.timeout(10_000) })
+    const old = blobs.filter((blob) => Date.now() - blob.uploadedAt.getTime() > CLEANUP_MS).map((blob) => blob.pathname)
+    if (old.length === 0) return
+    const rows = await db
+      .select({ openingDance: bookings.openingDanceFileName, lastSong: bookings.lastSongFileName })
+      .from(bookings)
+      .where(or(isNotNull(bookings.openingDanceFileName), isNotNull(bookings.lastSongFileName)))
+    const used = new Set(rows.flatMap((row) => [row.openingDance, row.lastSong]))
+    const loose = old.filter((pathname) => !used.has(pathname))
+    if (loose.length) await del(loose, { abortSignal: AbortSignal.timeout(10_000) })
+  } catch (error) {
+    logError("Failed to sweep booking audio:", error)
+  }
+}

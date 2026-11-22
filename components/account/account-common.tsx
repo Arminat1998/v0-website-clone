@@ -18,14 +18,14 @@ import type { BookingStatus } from "@/lib/db/schema";
 export const statusLabels = {
   nl: {
     pending: "In afwachting",
-    accepted: "Bevestigd",
+    accepted: "Geaccepteerd",
     rejected: "Afgewezen",
     completed: "Afgerond",
     cancelled: "Geannuleerd",
   },
   en: {
     pending: "Pending",
-    accepted: "Confirmed",
+    accepted: "Accepted",
     rejected: "Declined",
     completed: "Completed",
     cancelled: "Cancelled",

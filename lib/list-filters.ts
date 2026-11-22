@@ -1,5 +1,6 @@
 // The filters of the artist list and the photo & video list: one shape, one way to apply them.
 
+import { demoEventLabel, demoStyleLabel } from "@/lib/demo-labels"
 import type { Language } from "@/lib/i18n"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
 import { formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
@@ -172,12 +173,13 @@ export function styleLabel(raw: string, nl: boolean) {
     const option = group.options.find((item) => [item.value, item.nl, item.en].some((name) => tagKey(name) === key))
     if (option) return nl ? option.nl : option.en
   }
-  return genreLabel(canonicalGenre(raw), nl)
+  return (nl && demoStyleLabel(raw)) || genreLabel(canonicalGenre(raw), nl)
 }
 
 /** The label of an event type, however it is written on a profile. */
 export function eventLabel(raw: string, nl: boolean) {
-  return eventTypeLabel(canonicalEventType(raw), nl)
+  const label = eventTypeLabel(canonicalEventType(raw), nl)
+  return (nl && label === raw && demoEventLabel(raw)) || label
 }
 
 /** The tags of a profile in the current language, without doubles ("club" and "Club Night" are both "Clubavond"). */

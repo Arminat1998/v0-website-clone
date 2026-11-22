@@ -1423,8 +1423,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       ↔
                     </span>
                     {L
-                      ? "Sleep de handvatten op de schuifbalk hieronder om je minimum en maximum boekingsuren in te stellen"
-                      : "Drag the handles on the slider below to set your minimum and maximum booking hours"}
+                      ? "Sleep de handvatten of kies hieronder je minimum en maximum boekingsuren"
+                      : "Drag the handles or choose your minimum and maximum booking hours below"}
                   </p>
                 </div>
 
@@ -1437,6 +1437,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     maxValue={maxHours}
                     onMinChange={setMinHours}
                     onMaxChange={setMaxHours}
+                    minLabel={L ? "Minimum boekingsuren" : "Minimum booking hours"}
+                    maxLabel={L ? "Maximum boekingsuren" : "Maximum booking hours"}
                   />
                 </div>
 
@@ -1447,9 +1449,18 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     <Label htmlFor="minHours" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
                       {L ? "Minimum boekingsuren" : "Minimum Booking Hours"}
                     </Label>
-                    <div className="h-12 w-full rounded-[10px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] px-4 py-3 text-base font-bold text-[var(--rf-text)] flex items-center justify-center cursor-default">
-                      {minHours}
-                    </div>
+                    <select
+                      id="minHours"
+                      value={minHours}
+                      onChange={(event) => setMinHours(Number(event.target.value))}
+                      className="h-12 w-full rounded-[10px] border border-[var(--rf-line)] bg-[var(--rf-field)] px-4 text-base font-bold text-[var(--rf-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--rf-focus)]"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8].filter((option) => option <= maxHours).map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Maximum Booking Hours */}
@@ -1457,9 +1468,18 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     <Label htmlFor="maxHours" className="text-sm sm:text-base font-medium text-[var(--rf-text)] ">
                       {L ? "Maximum boekingsuren" : "Maximum Booking Hours"}
                     </Label>
-                    <div className="h-12 w-full rounded-[10px] border border-[var(--rf-line-soft)] bg-[var(--rf-card)] px-4 py-3 text-base font-bold text-[var(--rf-text)] flex items-center justify-center cursor-default">
-                      {maxHours}
-                    </div>
+                    <select
+                      id="maxHours"
+                      value={maxHours}
+                      onChange={(event) => setMaxHours(Number(event.target.value))}
+                      className="h-12 w-full rounded-[10px] border border-[var(--rf-line)] bg-[var(--rf-field)] px-4 text-base font-bold text-[var(--rf-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--rf-focus)]"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8].filter((option) => option >= minHours).map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>

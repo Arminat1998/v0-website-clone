@@ -123,6 +123,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
               </dt>
               <dd className="text-right font-bold text-base text-foreground">
                 {artist.price.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perHour}</span>
+                <span className="block text-xs font-normal text-muted-foreground">{t.exVat}</span>
               </dd>
             </div>
             {/* Always shown, so every card has the same rows. */}
@@ -134,6 +135,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
                 {artist.equipmentPrice ? (
                   <dd className="text-right font-semibold text-foreground">
                     {artist.equipmentPrice.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perDay}</span>
+                    <span className="block text-xs font-normal text-muted-foreground">{t.exVat}</span>
                   </dd>
                 ) : (
                   <dd className="text-right text-sm text-muted-foreground">

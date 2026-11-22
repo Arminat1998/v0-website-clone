@@ -414,9 +414,9 @@ export const translations: Record<Language, Translations> = {
     viewProfile: "Bekijk Profiel",
     bookNow: "Boek Nu",
     viewed: "Bekeken",
-    exVat: "ex. BTW", // Added Dutch translation
-    exVat9: "ex. BTW", // Removed percentage from VAT label
-    exVat21: "ex. BTW", // Removed percentage from VAT label
+    exVat: "excl. btw", // Added Dutch translation
+    exVat9: "excl. btw", // Removed percentage from VAT label
+    exVat21: "excl. btw", // Removed percentage from VAT label
     equipmentPrice: "Apparatuur", // Added Dutch translation
     performanceFee: "Gage",
     playDuration: "Speelduur",
@@ -729,9 +729,9 @@ export const translations: Record<Language, Translations> = {
     viewProfile: "View Profile",
     bookNow: "Book Now",
     viewed: "Viewed",
-    exVat: "ex. VAT", // Added English translation
-    exVat9: "ex. VAT", // Removed percentage from VAT label
-    exVat21: "ex. VAT", // Removed percentage from VAT label
+    exVat: "excl. VAT", // Added English translation
+    exVat9: "excl. VAT", // Removed percentage from VAT label
+    exVat21: "excl. VAT", // Removed percentage from VAT label
     equipmentPrice: "Equipment", // Added English translation
     performanceFee: "Fee",
     playDuration: "Duration",
