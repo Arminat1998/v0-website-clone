@@ -16,8 +16,9 @@ import { isDemoProfessional } from "@/lib/demo-professionals"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
-import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions } from "@/app/actions/bookings"
+import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
 import { useLiveProfessionals } from "@/hooks/use-live-professionals"
+import { bookingErrorMessage, readBookingResult } from "./submit-result"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
@@ -114,9 +115,10 @@ export default function BookingPage() {
   const [billingCity, setBillingCity] = useState("")
   const [billingCountry, setBillingCountry] = useState("Nederland")
   const [vatNumber, setVatNumber] = useState("")
-  const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<{ text: string; step?: number } | null>(null)
+  // The total the server calculated when it differs from the one shown; sending again confirms it.
+  const [changedTotal, setChangedTotal] = useState<number | null>(null)
   const [uploadPercent, setUploadPercent] = useState<number | null>(null)
   // Files that are already stored, so a second attempt does not upload them again.
   const uploadedAudio = useRef(new Map<File, string>())
@@ -156,7 +158,7 @@ export default function BookingPage() {
   }, [savedProfile, profileApplied, currentStep, sessionData?.user.name, sessionData?.user.phone])
 
   const professionalKey = artistId ?? professionalId
-  const { data: blockedDates = [] } = useSWR(
+  const { data: blockedDates = [], mutate: reloadBlockedDates } = useSWR(
     professionalKey ? ["blocked-dates", professionalKey] : null,
     ([, id]) => getBlockedDates(id),
   )
@@ -309,6 +311,14 @@ export default function BookingPage() {
       (openingDanceOption === "upload" || isWebLink(openingDanceLink)) &&
       (lastSongOption === "upload" || isWebLink(lastSongLink)))
 
+  const shownTotal = changedTotal ?? pricing?.totalCents ?? 0
+
+  const goToStep = (step: number) => {
+    setCurrentStep(step)
+    setSubmitError(null)
+    setChangedTotal(null)
+  }
+
   // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
   const missingStep1 = [
     !eventDate && tr("een datum in de kalender", "a date in the calendar"),
@@ -338,7 +348,7 @@ export default function BookingPage() {
   const changeInStep1 = (label: string) => (
     <button
       type="button"
-      onClick={() => setCurrentStep(1)}
+      onClick={() => goToStep(1)}
       aria-label={label}
       className="shrink-0 rounded text-sm font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-red-600 dark:text-red-400"
     >
@@ -368,13 +378,9 @@ export default function BookingPage() {
   }
 
   const handleSubmitBooking = async () => {
+    if (!pricing) return
     if (!sessionData?.user) {
-      setSubmitError(
-        tr(
-          "Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.",
-          "Log in or create an account with the buttons at the top to send your request. Your details are kept.",
-        ),
-      )
+      setSubmitError(bookingErrorMessage("UNAUTHORIZED", language === "nl"))
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
@@ -387,19 +393,20 @@ export default function BookingPage() {
       if (lastSongOption === "upload") lastSongUpload = await uploadAudio(lastSongFile, sessionData.user.id)
     } catch (error) {
       console.error("Booking audio upload failed:", error)
-      setSubmitError(
-        tr(
+      setSubmitError({
+        text: tr(
           "Het uploaden van je muziek is niet gelukt, dus je aanvraag is nog niet verstuurd. Probeer het opnieuw, kies een ander bestand of gebruik een link.",
           "Uploading your music failed, so your request has not been sent yet. Try again, choose another file or use a link.",
         ),
-      )
+        step: 2,
+      })
       setSubmitting(false)
       return
     } finally {
       setUploadPercent(null)
     }
     try {
-      const result = await createBooking({
+      const input: CreateBookingInput & { expectedTotalCents: number } = {
         professionalId: String(professional.id),
         professionalName: professional.name,
         professionalType: artist ? "artist" : "photographer",
@@ -442,25 +449,26 @@ export default function BookingPage() {
         billingCountry,
         vatNumber,
         paymentMethod: "invoice",
-      })
-      setBookingId(result.id)
-      setSubmitted(true)
-      setCurrentStep(5)
+        expectedTotalCents: changedTotal ?? pricing.totalCents,
+      }
+      const result = readBookingResult(await createBooking(input))
+      if (result.ok) {
+        setBookingId(result.id)
+        goToStep(5)
+      } else if (result.error === "PRICE_CHANGED" && result.totalCents !== undefined) {
+        setChangedTotal(result.totalCents)
+        void reloadOptions()
+      } else {
+        if (result.error === "DATE_TAKEN") {
+          setEventDate("")
+          setDateNotice("booked")
+          void reloadBlockedDates()
+        }
+        setSubmitError(bookingErrorMessage(result.error, language === "nl"))
+      }
     } catch (error) {
       console.error("Booking submit failed:", error)
-      const message = error instanceof Error ? error.message : ""
-      setSubmitError(
-        message.includes("travel range")
-          ? tr("Deze locatie ligt buiten het werkgebied van deze professional.", "This location is outside this professional's travel range.")
-          : message.includes("hours")
-            ? tr(
-                "De gekozen tijden passen niet bij de minimale of maximale boekingsduur van deze professional.",
-                "The chosen times do not fit this professional's minimum or maximum booking length.",
-              )
-            : message.includes("Date unavailable")
-              ? tr("Op deze datum is de professional al geboekt. Kies een andere datum.", "The professional is already booked on this date. Choose another date.")
-              : tr("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.", "Sending failed. Check your details and try again."),
-      )
+      setSubmitError(bookingErrorMessage("RETRY", language === "nl"))
     } finally {
       setSubmitting(false)
     }
@@ -897,7 +905,7 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => goToStep(2)}
                   disabled={!eventDate || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
@@ -1374,13 +1382,13 @@ export default function BookingPage() {
               {/* Navigation Buttons */}
               <div className="flex gap-3">
                 <Button
-                  onClick={() => setCurrentStep(1)}
+                  onClick={() => goToStep(1)}
                   className="px-6 py-3 bg-accent text-foreground hover:bg-muted"
                 >
                   {tr("Terug", "Back")}
                 </Button>
                 <Button
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => goToStep(3)}
                   disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
@@ -1421,7 +1429,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
               {missingHint(missingStep3)}
             </div>
           )}
@@ -1443,7 +1451,7 @@ export default function BookingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
                   <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw", "VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
-                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-500">{formatEuro(shownTotal)}</span></div>
                   </>}
                   <p className="text-xs text-muted-foreground">{tr("De professional bevestigt dit bedrag als je aanvraag wordt geaccepteerd. Je betaalt pas daarna.", "The professional confirms this amount when your request is accepted. You only pay after that.")}</p>
                 </div>
@@ -1452,8 +1460,8 @@ export default function BookingPage() {
                   <ol className="space-y-3 text-sm">
                     {[
                       [tr("Nu", "Now"), tr("Je verstuurt je aanvraag en betaalt nog niets.", "You send your request and pay nothing yet.")],
-                      [`${tr("Na goedkeuring", "After approval")}: ${formatEuro(depositCents(pricing?.totalCents ?? 0))}`, tr(`Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`, `You receive a quote and pay a ${DEPOSIT_PERCENT}% deposit. That makes your booking final.`)],
-                      [`${tr("Na het evenement", "After the event")}: ${formatEuro((pricing?.totalCents ?? 0) - depositCents(pricing?.totalCents ?? 0))}`, tr("Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op.", "You pay the rest with the final invoice. Extra costs, such as an extra hour or parking, are listed there separately.")],
+                      [`${tr("Na goedkeuring", "After approval")}: ${formatEuro(depositCents(shownTotal))}`, tr(`Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`, `You receive a quote and pay a ${DEPOSIT_PERCENT}% deposit. That makes your booking final.`)],
+                      [`${tr("Na het evenement", "After the event")}: ${formatEuro(shownTotal - depositCents(shownTotal))}`, tr("Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op.", "You pay the rest with the final invoice. Extra costs, such as an extra hour or parking, are listed there separately.")],
                     ].map(([title, text], index) => (
                       <li key={title} className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground" aria-hidden="true">{index + 1}</span>
@@ -1466,12 +1474,30 @@ export default function BookingPage() {
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />{tr("Je gegevens worden veilig verwerkt.", "Your details are processed securely.")}</div>
               </div>
               {submitError && (
-                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  <span>{submitError}</span>
+                  <div className="space-y-2">
+                    <p>{submitError.text}</p>
+                    {submitError.step && (
+                      <button type="button" onClick={() => goToStep(submitError.step!)} className="min-h-9 font-medium underline underline-offset-4">
+                        {tr(`Naar stap ${submitError.step}`, `Go to step ${submitError.step}`)}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              {changedTotal !== null && pricing && (
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-foreground">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                  <p>
+                    {tr(
+                      `Het totaal is veranderd: het is nu ${formatEuro(changedTotal)} incl. btw. Je aanvraag is nog niet verstuurd. Klopt dit bedrag? Verstuur je aanvraag dan opnieuw.`,
+                      `The total has changed: it is now ${formatEuro(changedTotal)} incl. VAT. Your request has not been sent yet. If you agree with this amount, send your request again.`,
+                    )}
+                  </p>
+                </div>
+              )}
+              <div className="flex gap-3"><Button onClick={() => goToStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : changedTotal !== null ? tr(`Akkoord met ${formatEuro(changedTotal)}, verstuur`, `Agree to ${formatEuro(changedTotal)}, send`) : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
