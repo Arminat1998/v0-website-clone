@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  FileAudio,
   Link2,
   Lock,
   Mail,
@@ -35,6 +34,8 @@ import {
   mapsUrl,
   shiftTime,
 } from "@/lib/bookings/format"
+import { audioDisplayName } from "@/lib/bookings/audio"
+import { BookingAudio } from "@/components/booking/booking-audio"
 import { BookingStatusBadge } from "./booking-status-badge"
 import { BookingPricingCard } from "./booking-pricing-card"
 import { BookingRespondPanel } from "./booking-respond-panel"
@@ -175,7 +176,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 {[
                   { time: shiftTime(booking.startTime, -90), label: t.accepted.setup, note: t.accepted.setupNote },
                   { time: booking.startTime, label: t.accepted.start, note: booking.musicGenres.join(", ") },
-                  { time: booking.endTime, label: t.accepted.end, note: booking.lastSongLink || booking.lastSongFileName ? `${t.detail.lastSong}: ${booking.lastSongLink ?? booking.lastSongFileName}` : "" },
+                  { time: booking.endTime, label: t.accepted.end, note: booking.lastSongLink || booking.lastSongFileName ? `${t.detail.lastSong}: ${booking.lastSongLink ?? audioDisplayName(booking.lastSongFileName ?? "")}` : "" },
                   { time: shiftTime(booking.endTime, 45), label: t.accepted.breakdown, note: "" },
                 ].map((item, index, all) => (
                   <li key={item.label} className="flex gap-4">
@@ -270,11 +271,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 {booking.openingDanceLink ? (
                   <ExternalRef href={booking.openingDanceLink} label={booking.openingDanceLink} />
                 ) : booking.openingDanceFileName ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <FileAudio className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    {booking.openingDanceFileName}
-                    <span className="text-xs text-muted-foreground">({t.detail.uploadedFile})</span>
-                  </span>
+                  <BookingAudio bookingId={booking.id} kind="opening-dance" stored={booking.openingDanceFileName} />
                 ) : (
                   notProvided
                 )}
@@ -283,11 +280,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 {booking.lastSongLink ? (
                   <ExternalRef href={booking.lastSongLink} label={booking.lastSongLink} />
                 ) : booking.lastSongFileName ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <FileAudio className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    {booking.lastSongFileName}
-                    <span className="text-xs text-muted-foreground">({t.detail.uploadedFile})</span>
-                  </span>
+                  <BookingAudio bookingId={booking.id} kind="last-song" stored={booking.lastSongFileName} />
                 ) : (
                   notProvided
                 )}

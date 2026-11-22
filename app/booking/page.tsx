@@ -1,11 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
 import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { uploadPresigned } from "@vercel/blob/client"
+import { AudioUpload } from "@/components/booking/audio-upload"
+import { audioContentType, newAudioPath } from "@/lib/bookings/audio"
 import { artists, photographers } from "@/lib/smart-search"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { Header } from "@/components/header"
@@ -89,6 +92,9 @@ export default function BookingPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null)
+  // Files that are already stored, so a second attempt does not upload them again.
+  const uploadedAudio = useRef(new Map<File, string>())
   const { data: sessionData, isPending: sessionPending } = authClient.useSession()
 
   useEffect(() => {
@@ -289,6 +295,21 @@ export default function BookingPage() {
       </p>
     ) : null
 
+  const uploadAudio = async (file: File | null, customerId: string) => {
+    if (!file) return ""
+    const known = uploadedAudio.current.get(file)
+    if (known) return known
+    setUploadPercent(0)
+    const { pathname } = await uploadPresigned(newAudioPath(customerId, file.name), file, {
+      access: "private",
+      contentType: audioContentType(file.name) ?? undefined,
+      handleUploadUrl: "/api/booking-audio",
+      onUploadProgress: ({ percentage }) => setUploadPercent(Math.round(percentage)),
+    })
+    uploadedAudio.current.set(file, pathname)
+    return pathname
+  }
+
   const handleSubmitBooking = async () => {
     if (!sessionData?.user) {
       setSubmitError("Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.")
@@ -297,6 +318,24 @@ export default function BookingPage() {
     }
     setSubmitting(true)
     setSubmitError(null)
+    let openingDanceUpload = ""
+    let lastSongUpload = ""
+    try {
+      if (openingDanceOption === "upload") openingDanceUpload = await uploadAudio(openingDanceFile, sessionData.user.id)
+      if (lastSongOption === "upload") lastSongUpload = await uploadAudio(lastSongFile, sessionData.user.id)
+    } catch (error) {
+      console.error("Booking audio upload failed:", error)
+      setSubmitError(
+        tr(
+          "Het uploaden van je muziek is niet gelukt, dus je aanvraag is nog niet verstuurd. Probeer het opnieuw, kies een ander bestand of gebruik een link.",
+          "Uploading your music failed, so your request has not been sent yet. Try again, choose another file or use a link.",
+        ),
+      )
+      setSubmitting(false)
+      return
+    } finally {
+      setUploadPercent(null)
+    }
     try {
       const result = await createBooking({
         professionalId: String(professional.id),
@@ -315,9 +354,9 @@ export default function BookingPage() {
         dressCode,
         playlistLink: linkOption === "playlist" ? playlistLink : "",
         openingDanceLink: openingDanceOption === "link" ? openingDanceLink : "",
-        openingDanceFileName: openingDanceOption === "upload" ? (openingDanceFile?.name ?? "") : "",
+        openingDanceFileName: openingDanceUpload,
         lastSongLink: lastSongOption === "link" ? lastSongLink : "",
-        lastSongFileName: lastSongOption === "upload" ? (lastSongFile?.name ?? "") : "",
+        lastSongFileName: lastSongUpload,
         street: streetName,
         houseNumber,
         houseNumberExt,
@@ -1020,20 +1059,7 @@ export default function BookingPage() {
                     </label>
                   </div>
                   {openingDanceOption === "upload" ? (
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        onChange={(e) => setOpeningDanceFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                        id="opening-dance-upload"
-                      />
-                      <label htmlFor="opening-dance-upload" className="cursor-pointer">
-                        <p className="text-sm text-muted-foreground">
-                          {openingDanceFile ? openingDanceFile.name : 'Choose file No file chosen'}
-                        </p>
-                      </label>
-                    </div>
+                    <AudioUpload label={tr("Muziek voor de openingsdans", "Opening Dance Music")} file={openingDanceFile} onChange={setOpeningDanceFile} />
                   ) : (
                     <input
                       type="url"
@@ -1069,20 +1095,7 @@ export default function BookingPage() {
                     </label>
                   </div>
                   {lastSongOption === "upload" ? (
-                    <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        onChange={(e) => setLastSongFile(e.target.files?.[0] || null)}
-                        className="hidden"
-                        id="last-song-upload"
-                      />
-                      <label htmlFor="last-song-upload" className="cursor-pointer">
-                        <p className="text-sm text-muted-foreground">
-                          {lastSongFile ? lastSongFile.name : 'Choose file No file chosen'}
-                        </p>
-                      </label>
-                    </div>
+                    <AudioUpload label={tr("Muziek voor het laatste nummer", "Last Song Music")} file={lastSongFile} onChange={setLastSongFile} />
                   ) : (
                     <input
                       type="url"
@@ -1342,7 +1355,7 @@ export default function BookingPage() {
                   <span>{submitError}</span>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
