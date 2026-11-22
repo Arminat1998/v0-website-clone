@@ -51,8 +51,11 @@ export function FavoriteButton({
     // On a card the button sits inside a clickable card: don't open the profile.
     event?.stopPropagation();
     if (!session) {
-      router.push(
-        `/?login=1&next=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+      // Log in on top of the current page and come back to this same list or profile.
+      window.dispatchEvent(
+        new CustomEvent("arsi:open-login", {
+          detail: { next: window.location.pathname + window.location.search },
+        }),
       );
       return;
     }
@@ -103,7 +106,7 @@ export function FavoriteButton({
           title={label}
           disabled={disabled}
           onClick={toggle}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
+          className="flex size-11 items-center justify-center rounded-full bg-black/55 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60"
         >
           {busy ? (
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
