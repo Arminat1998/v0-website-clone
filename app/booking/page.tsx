@@ -20,6 +20,9 @@ import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/inpu
 import { getCustomerProfile } from "@/app/actions/customer"
 import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking } from "@/lib/bookings/pricing"
 
+/** Every half hour of the day, as "HH:MM". */
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`)
+
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -255,8 +258,11 @@ export default function BookingPage() {
   const selectedIsoDate = selectedDate ? toIsoDate(currentYear, currentMonth, selectedDate) : ""
   const effectiveEventDate = eventDate || selectedIsoDate
 
+  // An end time before the start time is after midnight; the same time twice is not a duration (the server refuses it too).
+  const sameTime = Boolean(startTime) && startTime === endTime
+  const endsNextDay = Boolean(startTime && endTime) && endTime < startTime
   const bookedHours = startTime && endTime ? hoursBetween(startTime, endTime) : 0
-  const hoursIssue = bookingOptions && startTime && endTime ? hoursProblem(bookingOptions, bookedHours) : null
+  const hoursIssue = bookingOptions && startTime && endTime && !sameTime ? hoursProblem(bookingOptions, bookedHours) : null
   const pricing = bookingOptions
     ? priceBooking(bookingOptions, {
         startTime: startTime || "20:00",
@@ -871,10 +877,8 @@ export default function BookingPage() {
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
                       <option value="">{tr("Kies", "Select")}</option>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                          {`${i.toString().padStart(2, '0')}:00`}
-                        </option>
+                      {TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>{time}</option>
                       ))}
                     </select>
                   </div>
@@ -886,15 +890,24 @@ export default function BookingPage() {
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
                       <option value="">{tr("Kies", "Select")}</option>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={`${i.toString().padStart(2, '0')}:30`}>
-                          {`${i.toString().padStart(2, '0')}:30`}
-                        </option>
+                      {TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>{time}</option>
                       ))}
                     </select>
                   </div>
                 </div>
                 
+                {startTime && endTime && !sameTime && (
+                  <p className="-mt-2 mb-4 text-sm text-muted-foreground" aria-live="polite">
+                    {tr("Duur", "Duration")}: {bookedHours.toLocaleString(dateLocale)} {tr("uur", bookedHours === 1 ? "hour" : "hours")}
+                    {endsNextDay && tr(" (eindigt na middernacht)", " (ends after midnight)")}
+                  </p>
+                )}
+                {sameTime && (
+                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
+                    {tr("De start- en eindtijd zijn gelijk. Kies een andere eindtijd.", "The start and end time are the same. Choose another end time.")}
+                  </p>
+                )}
                 {hoursIssue && bookingOptions && (
                   <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
                     {hoursIssue === "min"
@@ -1265,7 +1278,7 @@ export default function BookingPage() {
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!eventName || eventName.length < 3 || !startTime || !endTime || Boolean(hoursIssue) || !bookingOptions}
+                  disabled={!eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
