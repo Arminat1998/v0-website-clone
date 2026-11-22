@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { professionalIdOrNull } from "@/lib/bookings/professional"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MEDIA_PREFIX } from "@/lib/artist-page-types"
 import { isSafeBlobPath } from "@/lib/blob-paths"
+import { takeToken } from "@/lib/rate-limit"
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -16,6 +17,7 @@ const KINDS = ["banner", "avatar", "gallery", "equipment"] as const
 export async function POST(request: NextRequest) {
   const professionalId = await professionalIdOrNull()
   if (!professionalId) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!takeToken(`artist-media:${professionalId}`, 80, 10 * 60 * 1000)) return NextResponse.json({ error: "too_many" }, { status: 429 })
   try {
     const formData = await request.formData()
     const file = formData.get("file")

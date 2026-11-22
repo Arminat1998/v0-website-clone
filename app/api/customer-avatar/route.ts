@@ -6,6 +6,7 @@ import { user as userTable } from "@/lib/db/schema"
 import { getSession } from "@/lib/session"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/artist-page-types"
 import { isSafeBlobPath } from "@/lib/blob-paths"
+import { takeToken } from "@/lib/rate-limit"
 
 const PREFIX = "customer-avatars/"
 const ROUTE = "/api/customer-avatar"
@@ -46,6 +47,7 @@ async function removeOld(image: string | null | undefined, userId: string) {
 export async function POST(request: NextRequest) {
   const account = await customer()
   if (!account) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!takeToken(`customer-avatar:${account.id}`, 10, 10 * 60 * 1000)) return NextResponse.json({ error: "too_many" }, { status: 429 })
 
   try {
     const formData = await request.formData()

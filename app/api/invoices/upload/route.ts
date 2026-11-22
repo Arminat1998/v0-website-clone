@@ -5,10 +5,12 @@ import { db } from "@/lib/db"
 import { bookings } from "@/lib/db/schema"
 import { professionalIdOrNull } from "@/lib/bookings/professional"
 import { INVOICE_FILE_TYPES, invoiceBlobPrefix, MAX_INVOICE_FILE_BYTES } from "@/lib/bookings/invoicing"
+import { takeToken } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   const professionalId = await professionalIdOrNull()
   if (!professionalId) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (!takeToken(`invoice-upload:${professionalId}`, 40, 10 * 60 * 1000)) return NextResponse.json({ error: "too_many" }, { status: 429 })
   try {
     const formData = await request.formData()
     const file = formData.get("file")

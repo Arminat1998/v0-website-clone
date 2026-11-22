@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core"
 import { db } from "@/lib/db"
 import { bookings, conversations, messages, professionalProfiles, user, type MessageRole } from "@/lib/db/schema"
 import { isBookingId } from "@/lib/bookings/booking-input"
+import { takeToken } from "@/lib/rate-limit"
 import { getSession } from "@/lib/session"
 
 type Viewer = { id: string; role: MessageRole }
@@ -117,6 +118,7 @@ export async function sendMessage(id: number, body: string) {
   const v = await viewer()
   const text = typeof body === "string" ? body.replaceAll("\u0000", "").trim() : ""
   if (!text || text.length > 2000) return { ok: false as const, error: "invalid" }
+  if (!takeToken(`message:${v.id}`, 30, 60 * 1000)) return { ok: false as const, error: "too_many" }
   const conversation = await accessible(v, id)
   if (!conversation) return { ok: false as const, error: "not_found" }
   const now = new Date()
