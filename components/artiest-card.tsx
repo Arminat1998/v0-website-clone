@@ -38,7 +38,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
     >
       <div className="relative h-48 overflow-hidden">
         <img
-          src={artist.image || `/placeholder.svg?height=200&width=400&query=${artist.category} performance`}
+          src={artist.banner || artist.image || `/placeholder.svg?height=200&width=400&query=${artist.category} performance`}
           alt={artist.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -71,7 +71,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
           <div className="relative flex-shrink-0">
             <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-card shadow-lg">
               <img
-                src={artist.image || `/placeholder.svg?height=96&width=96&query=${artist.name} profile`}
+                src={artist.avatar || artist.image || `/placeholder.svg?height=96&width=96&query=${artist.name} profile`}
                 alt={artist.name}
                 className="w-full h-full object-cover"
               />

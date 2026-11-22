@@ -2,7 +2,8 @@ import "server-only"
 
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { professionalProfiles, user as userTable } from "@/lib/db/schema"
+import { artistPages, professionalProfiles, user as userTable } from "@/lib/db/schema"
+import { mediaUrl } from "@/lib/artist-page-types"
 import { slugify } from "@/lib/artist-slug"
 import { getRestriction } from "@/lib/moderation"
 import { digitsOnlyPrice } from "@/lib/professional-profile-types"
@@ -14,6 +15,8 @@ interface ProfessionalAccount {
   name: string
   image?: string | null
   category?: string | null
+  bannerPath?: string | null
+  avatarPath?: string | null
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -67,6 +70,8 @@ export function buildProfessionalArtist(account: ProfessionalAccount, profile?: 
     available: true,
     category: account.category ?? undefined,
     image: account.image ?? undefined,
+    banner: account.bannerPath ? mediaUrl(account.bannerPath) : undefined,
+    avatar: account.avatarPath ? mediaUrl(account.avatarPath) : undefined,
     kind: isPhotoVideo(account.category) ? "photo-video" : "artist",
   }
 }
@@ -132,9 +137,12 @@ async function listLiveAccounts() {
       status: userTable.status,
       statusReason: userTable.statusReason,
       suspendedUntil: userTable.suspendedUntil,
+      bannerPath: artistPages.bannerPath,
+      avatarPath: artistPages.avatarPath,
     })
     .from(userTable)
     .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
+    .leftJoin(artistPages, eq(artistPages.professionalId, userTable.id))
     .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
   return rows.filter((account) => !getRestriction(account))
 }
@@ -187,6 +195,8 @@ export async function listLivePhotographers(): Promise<Photographer[]> {
             // The page filters on "Photographer", "Videographer" or both.
             category: type,
             image: artist.image,
+            banner: artist.banner,
+            avatar: artist.avatar,
             href: getProfessionalArtistPath(account),
             equipmentDetails: artist.equipmentDetails,
           }

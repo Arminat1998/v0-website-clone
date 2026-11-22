@@ -44,6 +44,8 @@ function photographerAsArtist(professional: Photographer): Artist {
     unavailableDates: professional.unavailableDates,
     category: professional.category,
     image: professional.image,
+    banner: professional.banner,
+    avatar: professional.avatar,
     // No sample DJ equipment: photographers only show the extras they listed.
     equipmentDetails: { packageItems: [], extraItems: professional.equipmentDetails?.extraItems ?? [] },
     kind: "photo-video",
