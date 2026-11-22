@@ -18,9 +18,11 @@ interface PhotoVideoCardProps {
   professional: Photographer
   onClick: () => void
   isVisited?: boolean
+  /** Distance to the searched city. */
+  distanceKm?: number | null
 }
 
-export function PhotoVideoCard({ professional, onClick, isVisited = false }: PhotoVideoCardProps) {
+export function PhotoVideoCard({ professional, onClick, isVisited = false, distanceKm }: PhotoVideoCardProps) {
   const { t, language } = useLanguage()
   const router = useRouter()
   const bookGuard = useBookGuard()
@@ -85,7 +87,10 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
             <h3 className="font-bold text-lg leading-tight mb-1 text-foreground">{professional.name}</h3>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
-              <span>{professional.location}</span>
+              <span>
+                {professional.location}
+                {distanceKm ? ` · ${distanceKm} km` : ""}
+              </span>
             </div>
           </div>
         </div>

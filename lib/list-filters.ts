@@ -1,5 +1,7 @@
 // The filters of the artist list and the photo & video list: one shape, one way to apply them.
 
+import { canonicalCity, normalizeText } from "@/lib/city-names"
+import { townDistance } from "@/lib/places"
 import { demoEventLabel, demoStyleLabel } from "@/lib/demo-labels"
 import type { Language } from "@/lib/i18n"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
@@ -54,31 +56,8 @@ export type FilterKey = keyof ListFilters
 /** The parts of an artist or photographer the lists filter and sort on. */
 export type ListedProfessional = Pick<
   Artist,
-  "id" | "name" | "price" | "location" | "specialty" | "rating" | "reviews" | "available" | "category" | "artistTypes" | "musicStyles" | "eventTypes" | "availableDates" | "unavailableDates" | "minHours" | "maxHours"
+  "id" | "name" | "price" | "location" | "specialty" | "rating" | "reviews" | "available" | "category" | "artistTypes" | "musicStyles" | "eventTypes" | "availableDates" | "unavailableDates" | "minHours" | "maxHours" | "rangeKm"
 >
-
-/** Lower case without accents or punctuation, so texts can be compared. */
-export function normalizeText(text: string) {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/&/g, " n ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-}
-
-const CITY_ALIASES: Record<string, string> = {
-  "the hague": "Den Haag",
-  "s gravenhage": "Den Haag",
-  "den bosch": "'s-Hertogenbosch",
-  "s hertogenbosch": "'s-Hertogenbosch",
-}
-
-/** The Dutch name of a city that people write in more than one way. */
-export function canonicalCity(city: string) {
-  return CITY_ALIASES[normalizeText(city)] ?? city.trim()
-}
 
 function hasPriceFilter([min, max]: [number, number]) {
   return min > PRICE_MIN || max < PRICE_MAX
@@ -114,16 +93,28 @@ function isFreeOn(professional: ListedProfessional, date: string) {
   return Boolean(professional.availableDates?.includes(date)) || professional.available
 }
 
+/** How far someone lives from the searched city; null when that is the same town or the distance is unknown. */
+export function distanceToCity(professional: Pick<ListedProfessional, "location">, city: string): number | null {
+  return city.trim() ? townDistance(professional.location, city) || null : null
+}
+
+/** Based in the city, or (real profiles) willing to travel there. */
+function servesCity(professional: ListedProfessional, city: string) {
+  if (normalizeText(canonicalCity(professional.location)).includes(normalizeText(canonicalCity(city)))) return true
+  const distance = professional.rangeKm ? townDistance(professional.location, city) : null
+  return distance !== null && distance <= (professional.rangeKm ?? 0)
+}
+
 export function filterProfessionals<T extends ListedProfessional>(list: T[], filters: ListFilters): T[] {
   const { categories, genres, eventTypes, selectedDate, priceRange } = filters
   const hours = Number(filters.duration) || 0
-  const city = normalizeText(canonicalCity(filters.city))
+  const city = filters.city.trim()
   const [min, max] = priceRange[0] <= priceRange[1] ? priceRange : [priceRange[1], priceRange[0]]
-  return list.filter((professional) => {
+  const found = list.filter((professional) => {
     if (categories.length > 0 && !categories.some((category) => hasCategory(professional, category))) return false
     const rate = hourlyRate(professional)
     if (rate < min || (max < PRICE_MAX && rate > max)) return false
-    if (city && !normalizeText(canonicalCity(professional.location)).includes(city)) return false
+    if (city && !servesCity(professional, city)) return false
     if (
       genres.length > 0 &&
       !genres.some(
@@ -139,6 +130,8 @@ export function filterProfessionals<T extends ListedProfessional>(list: T[], fil
     if (hours > 0 && (hours < (professional.minHours ?? 1) || hours > (professional.maxHours ?? 8))) return false
     return true
   })
+  // Nearest first; the sort is stable, so the rest of the order stays.
+  return city ? found.sort((a, b) => (distanceToCity(a, city) ?? 0) - (distanceToCity(b, city) ?? 0)) : found
 }
 
 export const SORT_OPTIONS = ["relevance", "price-low", "price-high", "rating", "popularity", "availability"] as const

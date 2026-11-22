@@ -22,6 +22,8 @@ import {
   UserRound,
   X,
 } from "lucide-react"
+import useSWR from "swr"
+import { getDashboardCounts } from "@/app/actions/bookings"
 import { authClient } from "@/lib/auth-client"
 import { useTheme } from "@/contexts/theme-context"
 import { useLanguage } from "@/contexts/language-context"
@@ -49,13 +51,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [signingOut, setSigningOut] = useState(false)
   const [error, setError] = useState("")
 
-  const items = [
+  const { data: counts } = useSWR("dashboard-counts", () => getDashboardCounts(), { refreshInterval: 60_000 })
+
+  const items: { label: string; href: string; icon: typeof Inbox; count?: number; unit?: string }[] = [
     { label: t.dashboard, href: "/dashboard", icon: LayoutDashboard },
-    { label: nl ? "Boekingsaanvragen" : t.bookingRequests, href: "/dashboard/booking-requests", icon: Inbox },
+    { label: nl ? "Boekingsaanvragen" : t.bookingRequests, href: "/dashboard/booking-requests", icon: Inbox, count: counts?.requests, unit: nl ? "open aanvragen" : "open requests" },
     { label: nl ? "Geaccepteerde boekingen" : t.acceptedBookings, href: "/dashboard/accepted-bookings", icon: CalendarCheck },
     { label: nl ? "Afgeronde boekingen" : t.completedBookings, href: "/dashboard/completed-bookings", icon: CheckCircle2 },
     { label: t.calendar, href: "/dashboard/calendar", icon: CalendarDays },
-    { label: t.chats, href: "/dashboard/chats", icon: MessageSquare },
+    { label: t.chats, href: "/dashboard/chats", icon: MessageSquare, count: counts?.messages, unit: nl ? "ongelezen gesprekken" : "unread conversations" },
     { label: t.reviews, href: "/dashboard/reviews", icon: Star },
     { label: nl ? "Profiel bewerken" : t.editProfile, href: "/dashboard/edit-profile", icon: UserRound },
     { label: nl ? "Mijn website" : t.myWebsite, href: "/dashboard/my-page", icon: Globe },
@@ -80,7 +84,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const nav = (
     <nav aria-label="Dashboard" className="flex flex-col gap-1">
-      {items.map(({ href, label, icon: Icon }) => (
+      {items.map(({ href, label, icon: Icon, count, unit }) => (
         <Link
           key={href}
           href={href}
@@ -94,7 +98,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
         >
           <Icon className="size-5 shrink-0" aria-hidden />
-          {label}
+          <span className="flex-1">{label}</span>
+          {count ? (
+            <span className="min-w-6 rounded-full bg-red-700 px-2 py-0.5 text-center text-xs font-semibold text-white">
+              {count > 99 ? "99+" : count}
+              <span className="sr-only"> {unit}</span>
+            </span>
+          ) : null}
         </Link>
       ))}
     </nav>

@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect } from "react"
 import useSWR from "swr"
+import { trackUserTest } from "@/lib/usertest"
 import { X, ExternalLink } from "lucide-react"
 import { Dialog, DialogContent, DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { useLanguage } from "@/contexts/language-context"
@@ -27,6 +29,10 @@ export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }
   const { data: content } = useSWR(pageId ? ["artist-page", pageId] : null, ([, id]) => getPublicArtistPageContent(id), {
     revalidateOnFocus: false,
   })
+  const openedType = artist && open ? (isDemoProfessional(artist.id) ? "sample" : "real") : null
+  useEffect(() => {
+    if (openedType) trackUserTest("profile_opened", { type: openedType })
+  }, [openedType])
   if (!artist) return null
   const pageHref = fullPageHref === undefined ? getArtistPath(artist) : fullPageHref
 

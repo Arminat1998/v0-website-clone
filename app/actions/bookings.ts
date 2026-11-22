@@ -16,6 +16,7 @@ import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
+import { getUnreadMessageCount } from "@/app/actions/messages"
 import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 import { createReviewInvite } from "@/lib/reviews"
 import { emailAccepted, emailNewRequest, emailRejected } from "@/lib/email"
@@ -577,4 +578,17 @@ export async function getCalendarBookings(): Promise<CalendarBooking[]> {
 export async function getBlockedDates(professionalId: string): Promise<string[]> {
   if (typeof professionalId !== "string" || !professionalId || professionalId.length > 100) return []
   return (await loadUnavailableDates([professionalId])).get(professionalId) ?? []
+}
+
+/** What waits for the signed-in professional, for the dashboard menu. */
+export async function getDashboardCounts(): Promise<{ requests: number; messages: number }> {
+  const professionalId = await getProfessionalId()
+  const [[row], messages] = await Promise.all([
+    db
+      .select({ requests: sql<number>`count(*)`.mapWith(Number) })
+      .from(bookings)
+      .where(and(eq(bookings.professionalId, professionalId), eq(bookings.status, "pending"), gte(bookings.eventDate, todayIso()))),
+    getUnreadMessageCount(),
+  ])
+  return { requests: row?.requests ?? 0, messages }
 }
