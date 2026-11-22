@@ -65,7 +65,6 @@ export default function BookingPage() {
   const [capacity, setCapacity] = useState("")
   const [description, setDescription] = useState("")
   const [specialRequests, setSpecialRequests] = useState("")
-  const [linkOption, setLinkOption] = useState<"playlist" | "individual">("playlist")
   const [playlistLink, setPlaylistLink] = useState("")
   const [openingDanceOption, setOpeningDanceOption] = useState<"upload" | "link">("upload")
   const [openingDanceFile, setOpeningDanceFile] = useState<File | null>(null)
@@ -364,7 +363,7 @@ export default function BookingPage() {
         description,
         specialRequests,
         dressCode,
-        playlistLink: linkOption === "playlist" ? playlistLink : "",
+        playlistLink,
         openingDanceLink: openingDanceOption === "link" ? openingDanceLink : "",
         openingDanceFileName: openingDanceUpload,
         lastSongLink: lastSongOption === "link" ? lastSongLink : "",
@@ -984,7 +983,8 @@ export default function BookingPage() {
                   </div>
                 </div>
                 
-                {/* Music Genres */}
+                {/* Music Genres: artists only */}
+                {artist && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziekgenres", "Music Genres")}</label>
                   <div className="flex flex-wrap gap-2">
@@ -1008,7 +1008,8 @@ export default function BookingPage() {
                     ))}
                   </div>
                 </div>
-                
+                )}
+
                 {/* Description */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-foreground mb-2">{tr("Omschrijving", "Description")}</label>
@@ -1035,48 +1036,27 @@ export default function BookingPage() {
                   />
                 </div>
                 
-                {/* Link Option */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Soort link", "Link Option")}</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={linkOption === "playlist"}
-                        onChange={() => setLinkOption("playlist")}
-                        className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
-                      />
-                      <span className="text-sm text-foreground">{tr("Link naar favoriete playlist", "Favorite Playlist Link")}</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={linkOption === "individual"}
-                        onChange={() => setLinkOption("individual")}
-                        className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
-                      />
-                      <span className="text-sm text-foreground">{tr("Link per nummer", "Links for Each Song")}</span>
-                    </label>
-                  </div>
-                </div>
-                
+                {/* Music and dress code: artists only */}
+                {artist && (
+                <>
                 {/* Playlist Link */}
-                {linkOption === "playlist" && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Playlistlink", "Playlist Link")}</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={playlistLink}
-                        onChange={(e) => setPlaylistLink(e.target.value)}
-                        placeholder="https://..."
-                        className="flex-1 px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                      />
-                      <Button className="bg-accent text-foreground hover:bg-muted px-4">{tr("Link toevoegen", "Add Link")}</Button>
-                    </div>
-                  </div>
-                )}
-                
+                <div className="mb-4">
+                  <label htmlFor="booking-playlist" className="block text-sm font-medium text-foreground mb-2">{tr("Link naar je favoriete playlist", "Link to your favourite playlist")}</label>
+                  <input
+                    id="booking-playlist"
+                    type="url"
+                    maxLength={300}
+                    value={playlistLink}
+                    onChange={(e) => setPlaylistLink(e.target.value)}
+                    placeholder="https://..."
+                    aria-describedby="booking-playlist-hint"
+                    className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
+                  />
+                  <p id="booking-playlist-hint" className="mt-1 text-xs text-muted-foreground">
+                    {tr("Losse nummers? Zet ze bij speciale wensen.", "Separate songs? List them under special requests.")}
+                  </p>
+                </div>
+
                 {/* Opening Dance Music */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor de openingsdans", "Opening Dance Music")}</label>
@@ -1149,9 +1129,9 @@ export default function BookingPage() {
                   )}
                 </div>
                 
-                {/* DJ Dress Code Preference */}
+                {/* Dress code preference */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode voor de DJ (bijv. formeel of thema)", "DJ Dress Code Preference (e.g. Formal or theme)")}</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode (bijv. formeel of thema)", "Dress code preference (e.g. formal or theme)")}</label>
                   <input
                     type="text"
                     value={dressCode}
@@ -1161,6 +1141,9 @@ export default function BookingPage() {
                   />
                 </div>
                 
+                </>
+                )}
+
                 {/* Event Venue Address */}
                 <div className="border-t border-border pt-4">
                   <h3 className="text-lg font-semibold text-foreground mb-3">{tr("Adres van de locatie", "Event Venue Address")}</h3>
