@@ -74,6 +74,10 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const declaredCents = parseEuroInput(declaredTotal)
   const totalMatches = declaredCents !== null && declaredCents === totals.totalCents
 
+  // Same rule as the server: an approved, paid or paid-out invoice can no longer be replaced.
+  const invoiceLocked =
+    invoice?.status === "approved" || booking.paymentStatus === "paid" || booking.payoutStatus === "paid"
+
   const canSubmit =
     method === "self_billing"
       ? profileComplete && !editingProfile && invoiceNumber.trim().length > 0 && invoiceDate.length > 0 && consent
@@ -91,6 +95,24 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
     if (method === "self_billing") setInvoiceNumber(proposeInvoiceNumber(saved))
   }
 
+  // A production build hides the message of a server error; then the last, general text remains.
+  function submitErrorText(err: unknown) {
+    const nl = locale.startsWith("nl")
+    const code = err instanceof Error ? err.message : ""
+    if (code === "TOTAL_MISMATCH") return ti.totalMismatch(formatEuro(totals.totalCents, locale))
+    if (code === "INVOICE_LOCKED" || code === "Payout already completed")
+      return nl
+        ? "Deze factuur staat vast, omdat hij is goedgekeurd of betaald. Je kunt hem niet meer wijzigen."
+        : "This invoice is final because it was approved or paid. You can no longer change it."
+    if (code === "Billing profile incomplete")
+      return nl ? "Je factuurgegevens zijn nog niet compleet. Vul ze aan en probeer het opnieuw." : "Your billing details are incomplete. Complete them and try again."
+    if (code === "Invoice date cannot be in the future")
+      return nl ? "De factuurdatum mag niet in de toekomst liggen." : "The invoice date cannot be in the future."
+    return context.invoice
+      ? `${ti.submitError} ${nl ? "Is de factuur al goedgekeurd of betaald, dan kun je hem niet meer wijzigen." : "An approved or paid invoice can no longer be changed."}`
+      : ti.submitError
+  }
+
   function submit() {
     setError(null)
     startTransition(async () => {
@@ -104,7 +126,9 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
         window.scrollTo({ top: 0, behavior: "smooth" })
         router.refresh()
       } catch (err) {
-        setError(err instanceof Error && err.message === "TOTAL_MISMATCH" ? ti.totalMismatch(formatEuro(totals.totalCents, locale)) : ti.submitError)
+        setError(submitErrorText(err))
+        // The invoice may have been approved or paid in the meantime: show the current state.
+        router.refresh()
       }
     })
   }
@@ -420,9 +444,11 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 <Button asChild variant="outline">
                   <Link href="/dashboard/completed-bookings">{ti.backToCompleted}</Link>
                 </Button>
-                <button type="button" onClick={restart} className="text-sm text-muted-foreground hover:text-foreground hover:underline">
-                  {ti.resubmit}
-                </button>
+                {!invoiceLocked && (
+                  <button type="button" onClick={restart} className="min-h-11 text-sm text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring">
+                    {ti.resubmit}
+                  </button>
+                )}
               </div>
             </section>
 

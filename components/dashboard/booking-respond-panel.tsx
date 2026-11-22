@@ -18,8 +18,12 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState("")
 
-  const errorText = (code: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN") =>
-    code === "DATE_TAKEN"
+  const errorText = (code: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN", blocked = false) =>
+    code === "DATE_TAKEN" && blocked
+      ? nl
+        ? "Je hebt deze datum zelf geblokkeerd. Maak hem vrij in je kalender om deze aanvraag te accepteren."
+        : "You blocked this date yourself. Free it in your calendar to accept this request."
+      : code === "DATE_TAKEN"
       ? nl
         ? "Je hebt op deze datum al een geaccepteerde boeking. Wijs deze aanvraag af of neem contact op met de klant."
         : "You already have an accepted booking on this date. Decline this request or contact the customer."
@@ -35,13 +39,16 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
     if (mode === "idle") return
     startTransition(async () => {
       setError("")
-      if (mode === "accept") {
-        const result = await acceptBooking(bookingId, message)
+      try {
+        const result = mode === "accept" ? await acceptBooking(bookingId, message) : await rejectBooking(bookingId, message)
         if (!result.ok) {
-          setError(errorText(result.error))
+          setError(errorText(result.error, "blocked" in result && result.blocked))
           return
         }
-      } else await rejectBooking(bookingId, message)
+      } catch {
+        setError(nl ? "Versturen is niet gelukt. Probeer het opnieuw." : "Sending failed. Please try again.")
+        return
+      }
       router.refresh()
     })
   }
