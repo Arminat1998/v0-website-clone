@@ -16,12 +16,14 @@ import {
   messages,
   notifications,
   professionalProfiles,
+  professionalUnavailableDates,
   reviews,
   session as sessionTable,
   user as userTable,
   userNotes,
   userWarnings,
 } from "@/lib/db/schema"
+import { hasUnavailableDatesTable } from "@/lib/bookings/availability"
 import { requireAdmin, requireUser } from "@/lib/session"
 import { type AdminUserRow, listAdminUsers } from "@/lib/admin/users"
 import { BLACKLIST_TYPES, type BlacklistType, logAdminAction, normalizeValue } from "@/lib/moderation"
@@ -303,6 +305,7 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
     }
   }
 
+  const hasUnavailableDates = await hasUnavailableDatesTable()
   try {
     await db.transaction(async (tx) => {
       const threads = await tx
@@ -319,6 +322,7 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
       await tx.delete(customerNotifications).where(eq(customerNotifications.userId, id))
       await tx.delete(customerProfiles).where(eq(customerProfiles.userId, id))
       await tx.delete(notifications).where(eq(notifications.professionalId, id))
+      if (hasUnavailableDates) await tx.delete(professionalUnavailableDates).where(eq(professionalUnavailableDates.professionalId, id))
       await tx.delete(artistPages).where(eq(artistPages.professionalId, id))
       await tx.delete(billingProfiles).where(eq(billingProfiles.professionalId, id))
       await tx.delete(professionalProfiles).where(eq(professionalProfiles.professionalId, id))

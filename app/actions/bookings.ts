@@ -7,6 +7,7 @@ import { bookings, customerNotifications, invoices, notifications, type Booking,
 import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
 import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
 import { distanceBetween } from "@/lib/bookings/distance"
+import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
 import { todayIso } from "@/lib/bookings/format"
 import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
@@ -193,7 +194,6 @@ export async function createBooking(input: CreateBookingInput) {
   if (isDemoProfessional(input.professionalId)) throw new Error("Professional unavailable")
   const professional = await resolveCustomerProfessional(input.professionalId, input.professionalType)
   if (!professional) throw new Error("Professional unavailable")
-  if ((await getBlockedDates(input.professionalId)).includes(input.eventDate)) throw new Error("Date unavailable")
 
   // The price comes from the professional's own profile, never from the browser.
   const options = await loadBookingOptions(input.professionalId)
@@ -212,6 +212,7 @@ export async function createBooking(input: CreateBookingInput) {
 
   const capacity = Number.parseInt(input.capacity, 10)
 
+  const hasTable = await hasUnavailableDatesTable()
   const created = await db.transaction(async (tx) => {
     // Serialise requests from this customer for this professional and date, so a double click,
     // a retry after a network error or a second tab cannot create the same request twice.
@@ -233,6 +234,11 @@ export async function createBooking(input: CreateBookingInput) {
       )
       .limit(1)
     if (existing) return { id: existing.id, duplicate: true }
+
+    // Checked under the lock of this date, so a booking that is accepted or a date that is blocked at the
+    // same moment cannot slip through.
+    await lockDate(tx, input.professionalId, input.eventDate)
+    if (await dateProblem(tx, input.professionalId, input.eventDate, hasTable)) throw new Error("Date unavailable")
 
     const [inserted] = await tx
       .insert(bookings)
@@ -335,10 +341,14 @@ export async function getBooking(id: number) {
   return booking ? redactContactDetails(booking) : null
 }
 
-export type AcceptBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN" }
+/** DATE_TAKEN with `blocked`: the professional blocked the date by hand instead of having a booking on it. */
+export type AcceptBookingResult =
+  | { ok: true }
+  | { ok: false; error: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN"; blocked?: boolean }
 
 export async function acceptBooking(id: number, message: string): Promise<AcceptBookingResult> {
   const professionalId = await getProfessionalId()
+  const hasTable = await hasUnavailableDatesTable()
   const result = await db.transaction(async (tx): Promise<AcceptBookingResult> => {
     const [booking] = await tx
       .select({ eventDate: bookings.eventDate })
@@ -349,19 +359,9 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
     if (booking.eventDate < todayIso()) return { ok: false, error: "DATE_PASSED" }
 
     // One accepted booking per professional per date, also when two requests are accepted at the same time.
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`accept:${professionalId}:${booking.eventDate}`}))`)
-    const [taken] = await tx
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.professionalId, professionalId),
-          eq(bookings.eventDate, booking.eventDate),
-          inArray(bookings.status, ["accepted", "completed"]),
-        ),
-      )
-      .limit(1)
-    if (taken) return { ok: false, error: "DATE_TAKEN" }
+    await lockDate(tx, professionalId, booking.eventDate)
+    const problem = await dateProblem(tx, professionalId, booking.eventDate, hasTable)
+    if (problem) return { ok: false, error: "DATE_TAKEN", blocked: problem === "blocked" }
 
     const updated = await tx
       .update(bookings)
@@ -539,11 +539,8 @@ export async function getCalendarBookings(): Promise<CalendarBooking[]> {
     .orderBy(asc(bookings.eventDate))
 }
 
-/** Dates that are already taken for a professional; used by the public booking calendar. */
+/** Dates that cannot be booked, from today on: accepted bookings and dates blocked by hand. Public. */
 export async function getBlockedDates(professionalId: string): Promise<string[]> {
-  const rows = await db
-    .select({ eventDate: bookings.eventDate })
-    .from(bookings)
-    .where(and(eq(bookings.professionalId, professionalId), inArray(bookings.status, ["accepted", "completed"])))
-  return rows.map((r) => r.eventDate)
+  if (typeof professionalId !== "string" || !professionalId || professionalId.length > 100) return []
+  return (await loadUnavailableDates([professionalId])).get(professionalId) ?? []
 }
