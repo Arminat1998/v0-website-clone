@@ -848,8 +848,10 @@ export default function BookingPage() {
                 
                 {/* Event Name */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Naam van het evenement", "Event Name")}</label>
+                  <label htmlFor="booking-event-name" className="block text-sm font-medium text-foreground mb-2">{tr("Naam van het evenement", "Event Name")}</label>
                   <input
+                    id="booking-event-name"
+                    maxLength={300}
                     type="text"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
@@ -864,8 +866,9 @@ export default function BookingPage() {
                 {/* Date and Times */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</label>
+                    <label htmlFor="booking-date" className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</label>
                     <input
+                      id="booking-date"
                       type="date"
                       value={eventDate}
                       min={todayIso()}
@@ -890,8 +893,9 @@ export default function BookingPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}</label>
+                    <label htmlFor="booking-start" className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}</label>
                     <select
+                      id="booking-start"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
@@ -903,8 +907,9 @@ export default function BookingPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Eindtijd", "End Time")}</label>
+                    <label htmlFor="booking-end" className="block text-sm font-medium text-foreground mb-2">{tr("Eindtijd", "End Time")}</label>
                     <select
+                      id="booking-end"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
@@ -953,8 +958,9 @@ export default function BookingPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
+                    <label htmlFor="booking-guests" className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
                     <input
+                      id="booking-guests"
                       type="text"
                       inputMode="numeric"
                       maxLength={6}
@@ -986,8 +992,9 @@ export default function BookingPage() {
 
                 {/* Description */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Omschrijving", "Description")}</label>
+                  <label htmlFor="booking-description" className="block text-sm font-medium text-foreground mb-2">{tr("Omschrijving", "Description")}</label>
                   <textarea
+                    id="booking-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder={tr("Beschrijf je evenement...", "Describe your event...")}
@@ -1000,8 +1007,10 @@ export default function BookingPage() {
                 
                 {/* Special Requests */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Speciale wensen", "Special Requests")}</label>
+                  <label htmlFor="booking-requests" className="block text-sm font-medium text-foreground mb-2">{tr("Speciale wensen", "Special Requests")}</label>
                   <textarea
+                    id="booking-requests"
+                    maxLength={5000}
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
                     placeholder={tr("Speciale wensen of eisen...", "Any special requests or requirements...")}
@@ -1033,11 +1042,12 @@ export default function BookingPage() {
 
                 {/* Opening Dance Music */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor de openingsdans", "Opening Dance Music")}</label>
-                  <div className="flex gap-4 mb-2">
+                  <span id="booking-opening-label" className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor de openingsdans", "Opening Dance Music")}</span>
+                  <div role="radiogroup" aria-labelledby="booking-opening-label" className="flex flex-wrap gap-x-4 gap-y-2 mb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-opening-option"
                         checked={openingDanceOption === "upload"}
                         onChange={() => setOpeningDanceOption("upload")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1047,6 +1057,7 @@ export default function BookingPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-opening-option"
                         checked={openingDanceOption === "link"}
                         onChange={() => setOpeningDanceOption("link")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1059,6 +1070,8 @@ export default function BookingPage() {
                   ) : (
                     <input
                       type="url"
+                      maxLength={300}
+                      aria-labelledby="booking-opening-label"
                       value={openingDanceLink}
                       onChange={(e) => setOpeningDanceLink(e.target.value)}
                       placeholder="https://..."
@@ -1069,11 +1082,12 @@ export default function BookingPage() {
                 
                 {/* Last Song Music */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor het laatste nummer", "Last Song Music")}</label>
-                  <div className="flex gap-4 mb-2">
+                  <span id="booking-last-song-label" className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor het laatste nummer", "Last Song Music")}</span>
+                  <div role="radiogroup" aria-labelledby="booking-last-song-label" className="flex flex-wrap gap-x-4 gap-y-2 mb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-last-song-option"
                         checked={lastSongOption === "upload"}
                         onChange={() => setLastSongOption("upload")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1083,6 +1097,7 @@ export default function BookingPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-last-song-option"
                         checked={lastSongOption === "link"}
                         onChange={() => setLastSongOption("link")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1095,6 +1110,8 @@ export default function BookingPage() {
                   ) : (
                     <input
                       type="url"
+                      maxLength={300}
+                      aria-labelledby="booking-last-song-label"
                       value={lastSongLink}
                       onChange={(e) => setLastSongLink(e.target.value)}
                       placeholder="https://..."
@@ -1105,8 +1122,10 @@ export default function BookingPage() {
                 
                 {/* Dress code preference */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode (bijv. formeel of thema)", "Dress code preference (e.g. formal or theme)")}</label>
+                  <label htmlFor="booking-dresscode" className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode (bijv. formeel of thema)", "Dress code preference (e.g. formal or theme)")}</label>
                   <input
+                    id="booking-dresscode"
+                    maxLength={300}
                     type="text"
                     value={dressCode}
                     onChange={(e) => setDressCode(e.target.value)}
@@ -1124,8 +1143,10 @@ export default function BookingPage() {
                   
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">{tr("Straat", "Street Name")}</label>
+                      <label htmlFor="booking-street" className="block text-sm font-medium text-foreground mb-2">{tr("Straat", "Street Name")}</label>
                       <input
+                        id="booking-street"
+                        maxLength={300}
                         type="text"
                         value={streetName}
                         onChange={(e) => setStreetName(e.target.value)}
@@ -1135,8 +1156,10 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Huisnummer", "House Number")}</label>
+                        <label htmlFor="booking-house-number" className="block text-sm font-medium text-foreground mb-2">{tr("Huisnummer", "House Number")}</label>
                         <input
+                          id="booking-house-number"
+                          maxLength={20}
                           type="text"
                           value={houseNumber}
                           onChange={(e) => setHouseNumber(digitsOnly(e.target.value))}
@@ -1144,8 +1167,10 @@ export default function BookingPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Toevoeging", "House Number Extension")}</label>
+                        <label htmlFor="booking-house-ext" className="block text-sm font-medium text-foreground mb-2">{tr("Toevoeging", "House Number Extension")}</label>
                         <input
+                          id="booking-house-ext"
+                          maxLength={20}
                           type="text"
                           value={houseNumberExt}
                           onChange={(e) => setHouseNumberExt(e.target.value)}
@@ -1156,8 +1181,10 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
+                        <label htmlFor="booking-postal" className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
                         <input
+                          id="booking-postal"
+                          maxLength={20}
                           type="text"
                           value={postalCode}
                           onChange={(e) => setPostalCode(postalCodeChars(e.target.value))}
@@ -1165,8 +1192,10 @@ export default function BookingPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
+                        <label htmlFor="booking-city" className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
                         <input
+                          id="booking-city"
+                          maxLength={120}
                           type="text"
                           value={city}
                           onChange={(e) => setCity(lettersOnly(e.target.value))}
@@ -1176,8 +1205,10 @@ export default function BookingPage() {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">{tr("Land", "Country")}</label>
+                      <label htmlFor="booking-country" className="block text-sm font-medium text-foreground mb-2">{tr("Land", "Country")}</label>
                       <input
+                        id="booking-country"
+                        maxLength={120}
                         type="text"
                         value={country}
                         onChange={(e) => setCountry(lettersOnly(e.target.value))}
@@ -1290,8 +1321,8 @@ export default function BookingPage() {
                   <h3 className="font-semibold text-foreground">{tr("Factuurgegevens", "Billing details")}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{tr("Deze gegevens gebruiken we om de factuur op te stellen.", "We use these details to prepare the invoice.")}</p>
                   <div className="mt-4 flex gap-2" role="radiogroup" aria-label={tr("Type klant", "Customer type")}>
-                    <button type="button" onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Particulier", "Private")}</button>
-                    <button type="button" onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
+                    <button type="button" role="radio" aria-checked={customerType === "private"} onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Particulier", "Private")}</button>
+                    <button type="button" role="radio" aria-checked={customerType === "business"} onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
                   </div>
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}<input required autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
