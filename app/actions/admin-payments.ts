@@ -73,6 +73,7 @@ export async function markPaymentReceived(input: { bookingId: number; part: "dep
       : `De klant heeft de aanbetaling voor ${row.eventName} betaald. De boeking is definitief.`,
   })
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: balance ? "payment_balance" : "payment_deposit",
     targetLabel: `Boeking #${row.id} · ${row.eventName}`,

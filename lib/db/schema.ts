@@ -190,6 +190,17 @@ export const bookings = pgTable("bookings", {
 export type Booking = typeof bookings.$inferSelect
 export type NewBooking = typeof bookings.$inferInsert
 
+/** Dates a professional blocked by hand. The table is created by lib/bookings/availability.ts on first use. */
+export const professionalUnavailableDates = pgTable(
+  "professional_unavailable_dates",
+  {
+    professionalId: text("professional_id").notNull(),
+    date: date("date").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.professionalId, table.date] })],
+)
+
 export const NOTIFICATION_TYPES = ["new_request", "payment", "payout", "reminder"] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 

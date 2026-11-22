@@ -11,7 +11,7 @@ import { takeToken } from "@/lib/rate-limit"
  * does not fill in the whole registration form only to be refused at the end.
  */
 export async function isEmailAvailable(input: { email: string }): Promise<boolean> {
-  const email = input.email.trim().toLowerCase()
+  const email = String(input?.email ?? "").trim().toLowerCase()
   if (!email || email.length > 254) return false
   // Limits how fast someone can test which addresses have an account. Past the limit the answer is
   // "available"; the signup itself still refuses an address that is taken.

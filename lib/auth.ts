@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth"
 import { APIError } from "better-auth/api"
+import { after } from "next/server"
 import { pool } from "@/lib/db"
+import { sendPasswordResetEmail } from "@/lib/email"
 import {
   BLOCKED_MESSAGE_NL,
   SUSPENDED_MESSAGE_NL,
@@ -15,13 +17,20 @@ const PROFESSIONAL_CATEGORIES = ["artist", "photo-video"] as const
 // (server actions and admin tools), never through /api/auth/update-user.
 const SIGNUP_ONLY_FIELDS = ["role", "category", "phone", "status", "statusReason", "suspendedUntil"] as const
 
-/**
- * Connection point for the email provider. Until one is connected nothing is sent: the link holds a login token,
- * so it is only written to the log during local development.
- */
-async function deliverResetLink(_to: string, url: string) {
-  if (process.env.NODE_ENV === "development") console.log(`[auth] Wachtwoord-resetlink: ${url}`)
-  else console.warn("[auth] Wachtwoord-reset aangevraagd, maar er is nog geen e-mailprovider gekoppeld.")
+/** Sent after the response, so the response time does not reveal whether the address has an account. */
+async function deliverResetLink(to: string, url: string) {
+  // The link holds a login token, so it is only written to the log during local development.
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[auth] Wachtwoord-resetlink: ${url}`)
+    return
+  }
+  after(async () => {
+    try {
+      if (!(await sendPasswordResetEmail(to, url))) console.warn("[auth] Resetmail is niet verstuurd.")
+    } catch {
+      console.error("[auth] Resetmail kon niet worden verstuurd.")
+    }
+  })
 }
 
 export const auth = betterAuth({

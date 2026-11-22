@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Photographer } from "@/lib/smart-search"
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
 import { useRouter } from "next/navigation"
@@ -19,15 +20,18 @@ interface PhotoVideoCardProps {
 }
 
 export function PhotoVideoCard({ professional, onClick, isVisited = false }: PhotoVideoCardProps) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const router = useRouter()
   const bookGuard = useBookGuard()
 
-  const displayedServices = professional.serviceTypes?.slice(0, 2) || []
-  const remainingServices = (professional.serviceTypes?.length || 0) - 2
+  const nl = language === "nl"
+  const services = tagLabels(professional.serviceTypes, styleLabel, nl)
+  const displayedServices = services.slice(0, 2)
+  const remainingServices = services.length - 2
 
-  const displayedEvents = professional.eventTypes?.slice(0, 2) || []
-  const remainingEvents = (professional.eventTypes?.length || 0) - 2
+  const events = tagLabels(professional.eventTypes, eventLabel, nl)
+  const displayedEvents = events.slice(0, 2)
+  const remainingEvents = events.length - 2
 
   return (
     <Card
@@ -76,10 +80,10 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
             </div>
           </div>
 
-          <div className="flex-1 mt-12">
+          <div className="min-w-0 flex-1 mt-12">
             <h3 className="font-bold text-lg leading-tight mb-1 text-foreground">{professional.name}</h3>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MapPin className="w-3.5 h-3.5" />
+              <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
               <span>{professional.location}</span>
             </div>
           </div>
@@ -88,8 +92,8 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
         <div className="space-y-3 mb-4">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
-              <span>1 - 8 hrs</span>
+              <Clock className="w-3.5 h-3.5" aria-hidden />
+              <span>{t.hoursRange}</span>
             </div>
             <div className="text-right">
               <span className="font-bold text-base text-foreground">
@@ -100,13 +104,13 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Service Types</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">{nl ? "Specialisaties" : "Specialities"}</p>
             <div className="flex flex-wrap gap-1.5">
               {displayedServices.map((service) => (
                 <Badge
                   key={service}
                   variant="secondary"
-                  className="text-xs capitalize px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  className="text-xs px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
                   {service}
                 </Badge>
@@ -126,7 +130,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
                 <Badge
                   key={event}
                   variant="secondary"
-                  className="text-xs capitalize px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  className="text-xs px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
                   {event}
                 </Badge>

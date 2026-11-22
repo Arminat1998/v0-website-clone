@@ -1,83 +1,20 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { Search, Sparkles } from "lucide-react"
-import { SmartSearchInput } from "@/components/smart-search-input"
-import type { FilterState } from "@/lib/conversational-ai"
+import { belongsToOtherList } from "@/lib/adaptive-filters"
 import { useLanguage } from "@/contexts/language-context"
 
 export function HeroSearch() {
   const [query, setQuery] = useState("")
-  const [showSmartSearch, setShowSmartSearch] = useState(false)
-  const [accumulatedFilters, setAccumulatedFilters] = useState<Partial<FilterState>>({})
-  const router = useRouter()
   const { t } = useLanguage()
 
-  const handleFilterUpdate = (filters: Partial<FilterState>) => {
-    setAccumulatedFilters((prev) => ({ ...prev, ...filters }))
-  }
-
-  const navigateWithFilters = () => {
-    const params = new URLSearchParams()
-
-    if (accumulatedFilters.categories && accumulatedFilters.categories.length > 0) {
-      params.set("artistTypes", accumulatedFilters.categories.join(","))
-    }
-    if (accumulatedFilters.genres && accumulatedFilters.genres.length > 0) {
-      params.set("genres", accumulatedFilters.genres.join(","))
-    }
-    if (accumulatedFilters.eventTypes && accumulatedFilters.eventTypes.length > 0) {
-      params.set("eventTypes", accumulatedFilters.eventTypes.join(","))
-    }
-    if (accumulatedFilters.selectedDate) {
-      params.set("date", accumulatedFilters.selectedDate)
-    }
-    if (accumulatedFilters.city) {
-      params.set("location", accumulatedFilters.city)
-    }
-    if (accumulatedFilters.priceRange) {
-      params.set("minPrice", accumulatedFilters.priceRange[0].toString())
-      params.set("maxPrice", accumulatedFilters.priceRange[1].toString())
-    }
-    if (accumulatedFilters.duration) {
-      params.set("duration", accumulatedFilters.duration)
-    }
-
-    router.push(`/artiesten?${params.toString()}`)
-  }
-
   const handleSearch = () => {
-    if (query.trim()) {
-      window.location.href = `/artiesten?q=${encodeURIComponent(query.trim())}`
-    }
-  }
-
-  useEffect(() => {
-    if (showSmartSearch && accumulatedFilters.city && accumulatedFilters.selectedDate) {
-      const hasAllFilters =
-        accumulatedFilters.categories &&
-        accumulatedFilters.genres &&
-        accumulatedFilters.eventTypes &&
-        accumulatedFilters.duration &&
-        accumulatedFilters.priceRange
-
-      if (hasAllFilters) {
-        setTimeout(() => {
-          navigateWithFilters()
-        }, 2000)
-      }
-    }
-  }, [accumulatedFilters, showSmartSearch])
-
-  if (showSmartSearch) {
-    return (
-      <div className="w-full max-w-2xl mx-auto px-4 sm:px-0">
-        <SmartSearchInput value={query} onChange={setQuery} onFilterUpdate={handleFilterUpdate} />
-      </div>
-    )
+    const text = query.trim()
+    if (!text) return
+    // Searches for a photographer or videographer open their own list.
+    const list = belongsToOtherList(text, "artist") ? "/photo-video" : "/artiesten"
+    window.location.href = `${list}?q=${encodeURIComponent(text)}`
   }
 
   return (
@@ -90,6 +27,7 @@ export function HeroSearch() {
               <Search className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 mr-3 sm:mr-4 flex-shrink-0" />
               <input
                 type="text"
+                maxLength={300}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react"
 import { Check, ChevronDown, Search, X } from "lucide-react"
+import type { OptionGroup } from "@/lib/profile-options"
 
 export interface ComboOption {
   value: string
@@ -13,6 +14,14 @@ export interface ComboOption {
 export interface ComboGroup {
   label?: string
   options: ComboOption[]
+}
+
+/** The option groups of lib/profile-options with labels in the current language. */
+export function comboGroups(groups: OptionGroup[], nl: boolean): ComboGroup[] {
+  return groups.map((group) => ({
+    label: nl ? group.nl : group.en,
+    options: group.options.map((option) => ({ value: option.value, label: nl ? option.nl : option.en })),
+  }))
 }
 
 interface ComboSelectBase {

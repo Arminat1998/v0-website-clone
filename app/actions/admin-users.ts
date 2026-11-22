@@ -16,12 +16,14 @@ import {
   messages,
   notifications,
   professionalProfiles,
+  professionalUnavailableDates,
   reviews,
   session as sessionTable,
   user as userTable,
   userNotes,
   userWarnings,
 } from "@/lib/db/schema"
+import { hasUnavailableDatesTable } from "@/lib/bookings/availability"
 import { requireAdmin, requireUser } from "@/lib/session"
 import { type AdminUserRow, listAdminUsers } from "@/lib/admin/users"
 import { BLACKLIST_TYPES, type BlacklistType, logAdminAction, normalizeValue } from "@/lib/moderation"
@@ -71,6 +73,7 @@ export async function warnUser(input: { userId: string; message: string; severit
     adminName: admin.name,
   })
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "warn",
     targetUserId: target.id,
@@ -101,6 +104,7 @@ export async function updateWarning(input: {
 
   const [target] = await db.select({ name: userTable.name }).from(userTable).where(eq(userTable.id, input.userId)).limit(1)
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "warn_edit",
     targetUserId: input.userId,
@@ -121,6 +125,7 @@ export async function revokeWarning(input: { warningId: number; userId: string }
 
   const [target] = await db.select({ name: userTable.name }).from(userTable).where(eq(userTable.id, input.userId)).limit(1)
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "warn_revoke",
     targetUserId: input.userId,
@@ -147,6 +152,7 @@ export async function suspendUser(input: { userId: string; days: number; reason:
     .where(eq(userTable.id, target.id))
   await db.delete(sessionTable).where(eq(sessionTable.userId, target.id))
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "suspend",
     targetUserId: target.id,
@@ -187,6 +193,7 @@ export async function banUser(input: {
   }
 
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "ban",
     targetUserId: target.id,
@@ -210,6 +217,7 @@ export async function reinstateUser(input: { userId: string }): Promise<Result> 
     .delete(blacklist)
     .where(and(eq(blacklist.type, "email"), eq(blacklist.value, normalizeValue("email", target.email))))
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "reinstate",
     targetUserId: target.id,
@@ -225,7 +233,7 @@ export async function forceLogout(input: { userId: string }): Promise<Result> {
   if (!target) return { ok: false, error: error ?? "Onbekende fout." }
 
   await db.delete(sessionTable).where(eq(sessionTable.userId, target.id))
-  await logAdminAction({ adminName: admin.name, action: "force_logout", targetUserId: target.id, targetLabel: target.name })
+  await logAdminAction({ adminId: admin.id, adminName: admin.name, action: "force_logout", targetUserId: target.id, targetLabel: target.name })
   refresh(target.id)
   return { ok: true }
 }
@@ -242,7 +250,7 @@ export async function addUserNote(input: { userId: string; note: string }): Prom
   if (!target) return { ok: false, error: "Gebruiker niet gevonden." }
 
   await db.insert(userNotes).values({ userId: target.id, note: note.slice(0, 2000), adminName: admin.name })
-  await logAdminAction({ adminName: admin.name, action: "note", targetUserId: target.id, targetLabel: target.name })
+  await logAdminAction({ adminId: admin.id, adminName: admin.name, action: "note", targetUserId: target.id, targetLabel: target.name })
   refresh(target.id)
   return { ok: true }
 }
@@ -265,6 +273,7 @@ export async function unpublishProfessional(input: { userId: string }): Promise<
     .set({ reviewStatus: "in-beoordeling", reviewedAt: null })
     .where(eq(professionalProfiles.professionalId, target.id))
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "unpublish",
     targetUserId: target.id,
@@ -303,6 +312,7 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
     }
   }
 
+  const hasUnavailableDates = await hasUnavailableDatesTable()
   try {
     await db.transaction(async (tx) => {
       const threads = await tx
@@ -319,6 +329,7 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
       await tx.delete(customerNotifications).where(eq(customerNotifications.userId, id))
       await tx.delete(customerProfiles).where(eq(customerProfiles.userId, id))
       await tx.delete(notifications).where(eq(notifications.professionalId, id))
+      if (hasUnavailableDates) await tx.delete(professionalUnavailableDates).where(eq(professionalUnavailableDates.professionalId, id))
       await tx.delete(artistPages).where(eq(artistPages.professionalId, id))
       await tx.delete(billingProfiles).where(eq(billingProfiles.professionalId, id))
       await tx.delete(professionalProfiles).where(eq(professionalProfiles.professionalId, id))
@@ -331,6 +342,7 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
   }
 
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "delete",
     targetUserId: id,
@@ -359,6 +371,7 @@ export async function addBlacklistEntry(input: { type: string; value: string; re
     .values({ type, value, reason: input.reason.trim().slice(0, 500) || null, adminName: admin.name })
     .onConflictDoNothing()
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "blacklist_add",
     targetLabel: `${type}: ${value}`,
@@ -374,6 +387,7 @@ export async function removeBlacklistEntry(input: { id: number }): Promise<Resul
   if (!entry) return { ok: false, error: "Item niet gevonden." }
   await db.delete(blacklist).where(eq(blacklist.id, input.id))
   await logAdminAction({
+    adminId: admin.id,
     adminName: admin.name,
     action: "blacklist_remove",
     targetLabel: `${entry.type}: ${entry.value}`,
