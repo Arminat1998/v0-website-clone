@@ -66,7 +66,19 @@ export const auth = betterAuth({
                 ? category
                 : "artist"
               : null
-          return { data: { ...user, role: safeRole, category: safeCategory } }
+          // The signup endpoint is public, so the free text has a ceiling. A photo is only ever set by the upload
+          // routes; a URL of someone's own choosing would load in the browser of whoever sees the account.
+          const phone = (user as { phone?: string | null }).phone
+          return {
+            data: {
+              ...user,
+              name: user.name.trim().slice(0, 120),
+              phone: typeof phone === "string" ? phone.slice(0, 40) : null,
+              image: null,
+              role: safeRole,
+              category: safeCategory,
+            },
+          }
         },
       },
       update: {
