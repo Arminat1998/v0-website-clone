@@ -1,8 +1,6 @@
 import useSWR from "swr"
+import type { ProfessionalKind } from "@/lib/list-filters"
 import type { Artist, Photographer } from "@/lib/smart-search"
-
-/** Which list: artists, or photographers and videographers. */
-export type ProfessionalKind = "artist" | "photo-video"
 
 interface LiveProfessionals {
   artist: Artist
