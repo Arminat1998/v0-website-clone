@@ -125,13 +125,13 @@ const orNull = (value: string) => value || null
 
 /**
  * The distance the server charges for: calculated again from the professional's city to the event location.
- * When the geocoder is unavailable, the distance from the browser is used. A place that does not exist or lies
- * beyond the professional's travel range is refused.
+ * Only when the geocoder fails, the distance from the browser is used. A place that does not exist or lies beyond
+ * the professional's travel range is refused.
  */
 async function resolveDistance(professionalId: string, eventLocation: string, clientKm: number, options: BookingOptions) {
   const from = await loadProfessionalCity(professionalId)
   const place = eventLocation.slice(0, 120)
-  const serverKm = from && place ? await distanceBetween(from, place) : "unavailable"
+  const serverKm = from && place ? await distanceBetween(from, place) : null
   if (serverKm === null) throw new BookingError("INVALID_DETAILS", "eventLocation")
   const km = serverKm === "unavailable" ? Math.round(clientKm) : serverKm
   if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
@@ -185,7 +185,7 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
   }
   // Sample profiles have no account behind them, so a request would never reach anyone.
   if (isDemoProfessional(input.professionalId) || input.professionalId === customerId) throw new BookingError("UNAVAILABLE")
-  if (!takeToken(`booking:${customerId}`, 20, 10 * 60 * 1000)) throw new BookingError("RETRY")
+  if (!takeToken(`booking:${customerId}`, 10, 10 * 60 * 1000)) throw new BookingError("RETRY")
   const professional = await resolveCustomerProfessional(input.professionalId, input.professionalType)
   if (!professional) throw new BookingError("UNAVAILABLE")
 

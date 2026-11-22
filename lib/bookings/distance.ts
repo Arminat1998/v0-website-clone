@@ -43,13 +43,13 @@ async function geocode(place: string): Promise<Point | null | "unavailable"> {
 }
 
 /**
- * Straight-line distance in whole km from the professional's town to the event. Null when the event place does
- * not exist; "unavailable" when it cannot be determined now.
+ * Straight-line distance in whole km between two places. Null when one of them does not exist; "unavailable"
+ * when the geocoder fails.
  */
 export async function distanceBetween(from: string, to: string): Promise<number | null | "unavailable"> {
   const [a, b] = await Promise.all([geocode(from), geocode(to)])
-  if (b === null) return null
-  if (a === null || a === "unavailable" || b === "unavailable") return "unavailable"
+  if (a === null || b === null) return null
+  if (a === "unavailable" || b === "unavailable") return "unavailable"
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
   const dLon = ((b.lon - a.lon) * Math.PI) / 180

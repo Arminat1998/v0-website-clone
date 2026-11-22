@@ -57,7 +57,7 @@ const bookingInputSchema = z
     musicGenres: labels(30),
     capacity: z.string().max(300).transform((value) => {
       const guests = Number.parseInt(value, 10)
-      return guests >= 1 && guests <= 1_000_000 ? guests : null
+      return guests >= 1 && guests <= 100_000 ? guests : null
     }),
     description: text(5000),
     specialRequests: text(5000),
