@@ -2,7 +2,8 @@
 
 import { todayIso } from "@/lib/bookings/format"
 import { ARTIST_TYPES, EVENT_TYPE_GROUPS, GENRE_GROUPS, PHOTO_VIDEO_TYPES } from "@/lib/profile-options"
-import { NO_FILTERS, PRICE_MAX, canonicalCity, isRealDate, normalizeText, type ListFilters, type ProfessionalKind } from "@/lib/list-filters"
+import { canonicalCity, normalizeText } from "@/lib/city-names"
+import { NO_FILTERS, PRICE_MAX, isRealDate, type ListFilters, type ProfessionalKind } from "@/lib/list-filters"
 
 // Names of types, genres and event types
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { trackUserTest } from "@/lib/usertest"
 import { parseSearch } from "@/lib/adaptive-filters"
 import {
   NO_FILTERS,
@@ -42,6 +43,7 @@ export function useListSearch(kind: ProfessionalKind) {
     (text: string) => {
       const after = parseSearch(text, kind).filters
       fromText.current = after
+      if (text.trim()) trackUserTest("search_started", { kind, filters: Object.keys(after) })
       setQueryState(text)
       setFilters({ ...NO_FILTERS, ...after })
     },

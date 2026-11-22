@@ -19,6 +19,7 @@ import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
 import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
 import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import { bookingErrorMessage, readBookingResult } from "./submit-result"
+import { reachUserTestGoal, trackUserTest } from "@/lib/usertest"
 import { useBookingDraft } from "@/hooks/use-booking-draft"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
@@ -75,6 +76,7 @@ export default function BookingPage() {
   // After a step change the heading of the new step comes into view and gets the focus.
   const stepHeading = useRef<HTMLHeadingElement>(null)
   const shownStep = useRef(1)
+  useEffect(() => trackUserTest("booking_step_viewed", { step: currentStep }), [currentStep])
   useEffect(() => {
     if (shownStep.current === currentStep) return
     shownStep.current = currentStep
@@ -552,7 +554,9 @@ export default function BookingPage() {
         expectedTotalCents: changedTotal ?? pricing.totalCents,
       }
       const result = readBookingResult(await createBooking(input))
+      if (!result.ok) trackUserTest("booking_error", { code: result.error, field: result.field ?? null })
       if (result.ok) {
+        reachUserTestGoal("booking_request_sent")
         setBookingId(result.id)
         goToStep(5)
       } else if (result.error === "PRICE_CHANGED" && result.totalCents !== undefined) {

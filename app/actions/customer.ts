@@ -19,7 +19,7 @@ import {
   type CustomerProfileInput,
   type FavoriteItem,
 } from "@/lib/customer-types";
-import { resolveCustomerProfessional } from "@/lib/customer-catalog";
+import { resolveCustomerProfessional, resolveCustomerProfessionals } from "@/lib/customer-catalog";
 
 async function customerUser() {
   const session = await getSession();
@@ -194,24 +194,22 @@ export async function getCustomerFavorites(): Promise<FavoriteItem[]> {
     .from(customerFavorites)
     .where(eq(customerFavorites.userId, account.id))
     .orderBy(desc(customerFavorites.createdAt));
-  return Promise.all(
-    rows.map(
-      async (row) =>
-        (await resolveCustomerProfessional(
-          row.professionalId,
-          row.professionalType,
-        )) ?? {
-          professionalId: row.professionalId,
-          professionalType: row.professionalType,
-          name: "",
-          specialty: "",
-          location: "",
-          price: "",
-          image: null,
-          available: false,
-          href: "/",
-        },
-    ),
+  const items = await resolveCustomerProfessionals(
+    rows.map((row) => ({ id: row.professionalId, type: row.professionalType })),
+  );
+  return rows.map(
+    (row, index) =>
+      items[index] ?? {
+        professionalId: row.professionalId,
+        professionalType: row.professionalType,
+        name: "",
+        specialty: "",
+        location: "",
+        price: "",
+        image: null,
+        available: false,
+        href: "/",
+      },
   );
 }
 

@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
+import { trackUserTest } from "@/lib/usertest"
 import { ArrowRight, RotateCcw, SearchX, Sparkles, TriangleAlert, Wallet, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -68,6 +70,8 @@ export function NoResults({
   if (query.trim() && (withoutText > 0 || releases.length === 0)) {
     releases.push({ key: "text", label: `"${query.trim().slice(0, 40)}"`, results: withoutText, onClick: search.dropText })
   }
+  const zeroFilters = releases.map(({ key }) => key).join(",")
+  useEffect(() => trackUserTest("search_zero_results", { kind, filters: zeroFilters }), [kind, zeroFilters])
   const starts = suggestions.filter((text) => count(text, filtersFromText(text, kind)) > 0)
   const results = (n: number) => (nl ? `${n} ${n === 1 ? "resultaat" : "resultaten"}` : `${n} ${n === 1 ? "result" : "results"}`)
 

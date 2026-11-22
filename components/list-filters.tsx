@@ -79,7 +79,11 @@ export function ListFilters({ kind, filters, onChange, onClear, fromSearch, isMo
           placeholder={t.searchCity}
           value={filters.city}
           onChange={(event) => onChange({ city: lettersOnly(event.target.value) })}
+          aria-describedby="filter-city-hint"
         />
+        <p id="filter-city-hint" className="mt-1.5 text-xs text-muted-foreground">
+          {nl ? "Toont ook wie naar deze plaats reist." : "Also shows who travels to this place."}
+        </p>
       </Section>
 
       <Section title={t.durationInHours}>

@@ -7,7 +7,7 @@ import { ArtiestProfileModal } from "@/components/artiest-profile-modal"
 import { BudgetNote, LiveListError, ListSkeleton, NoResults, OtherListHint, ResultCount, SortSelect } from "@/components/list-status"
 import { smartSearch, enhancedArtists } from "@/lib/smart-search"
 import type { Artist } from "@/lib/smart-search"
-import { filterProfessionals, sortProfessionals, type ListFilters } from "@/lib/list-filters"
+import { distanceToCity, filterProfessionals, sortProfessionals, type ListFilters } from "@/lib/list-filters"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import type { ListSearch } from "@/hooks/use-list-search"
@@ -97,6 +97,7 @@ export function ArtiestGrid({ search, initialSort, autoStart, onAutoStartComplet
               artist={artist}
               onClick={() => handleArtistClick(artist)}
               isVisited={visitedArtistIds.has(artist.id)}
+              distanceKm={distanceToCity(artist, filters.city)}
             />
           ))}
         </div>

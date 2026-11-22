@@ -19,9 +19,11 @@ interface ArtiestCardProps {
   artist: Artist
   onClick: () => void
   isVisited?: boolean
+  /** Distance to the searched city. */
+  distanceKm?: number | null
 }
 
-export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardProps) {
+export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: ArtiestCardProps) {
   const router = useRouter()
   const bookGuard = useBookGuard()
   const { t, language } = useLanguage()
@@ -88,7 +90,10 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
               <h3 className="font-bold text-lg leading-tight text-foreground text-balance">{artist.name}</h3>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{artist.location}</span>
+                <span className="truncate">
+                  {artist.location}
+                  {distanceKm ? ` · ± ${distanceKm} km` : ""}
+                </span>
               </div>
             </div>
             {typeLabels.length > 0 && (

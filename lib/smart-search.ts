@@ -1,6 +1,7 @@
 // The sample professionals, and the text search of the lists.
 import { parseSearch } from "@/lib/adaptive-filters"
-import { normalizeText, type ProfessionalKind } from "@/lib/list-filters"
+import { normalizeText } from "@/lib/city-names"
+import { type ProfessionalKind } from "@/lib/list-filters"
 
 export interface Artist {
   id: number
