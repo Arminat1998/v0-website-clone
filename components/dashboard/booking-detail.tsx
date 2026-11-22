@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking, Invoice } from "@/lib/db/schema"
+import { canonicalEventType, eventTypeLabel } from "@/lib/profile-options"
 import { EQUIPMENT_OPTIONS, formatEuro } from "@/lib/bookings/pricing"
 import { isContactUnlocked } from "@/lib/bookings/privacy"
 import {
@@ -44,9 +45,9 @@ import { BookingInvoicePanel } from "./booking-invoice-panel"
 
 function Section({ id, title, icon, children }: { id: string; title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="rounded-lg border border-border bg-card p-5 md:p-6">
+    <section aria-labelledby={id} className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
       <h2 id={id} className="flex items-center gap-2 text-base font-semibold text-foreground">
-        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500/10 text-red-500">{icon}</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-red-500/10 text-red-700 dark:text-red-400">{icon}</span>
         {title}
       </h2>
       <div className="mt-4">{children}</div>
@@ -75,13 +76,15 @@ function Chips({ items }: { items: string[] }) {
   )
 }
 
+/** A link from the client: only web addresses become a link, anything else (javascript:, data:, plain text) is shown as text. */
 function ExternalRef({ href, label }: { href: string; label: string }) {
+  if (!/^https?:\/\//i.test(href)) return <span className="break-words">{label}</span>
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex max-w-full items-center gap-1.5 truncate text-sm text-red-500 hover:underline"
+      className="inline-flex min-h-11 max-w-full items-center gap-1.5 truncate text-sm text-red-700 dark:text-red-400 hover:underline"
     >
       <Link2 className="h-4 w-4 flex-shrink-0" aria-hidden />
       <span className="truncate">{label}</span>
@@ -113,10 +116,10 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
   ]
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8 lg:p-10">
+    <div className="p-4 sm:p-8 lg:p-10">
       <Link
         href={booking.status === "pending" ? "/dashboard/booking-requests" : booking.status === "accepted" ? "/dashboard/accepted-bookings" : "/dashboard/completed-bookings"}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
         {t.common.back}
@@ -128,19 +131,19 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
             <BookingStatusBadge status={booking.status} />
             <span className="font-mono text-sm text-muted-foreground">{bookingNumber(booking.id)}</span>
           </div>
-          <h1 className="mt-3 text-balance text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">{booking.eventName}</h1>
+          <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{booking.eventName}</h1>
           <p className="mt-1 text-muted-foreground">
             {clientName(booking)}
             {booking.companyName ? ` · ${booking.companyName}` : ""} · {t.common.requestedOn} {formatDateTime(booking.createdAt, locale)}
           </p>
         </div>
-        <div className="flex items-center gap-3 text-sm text-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-foreground">
           <span className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
-            <Calendar className="h-4 w-4 text-red-500" aria-hidden />
+            <Calendar className="h-4 w-4 text-red-700 dark:text-red-400" aria-hidden />
             <span className="capitalize">{formatEventDate(booking.eventDate, locale)}</span>
           </span>
           <span className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
-            <Clock className="h-4 w-4 text-red-500" aria-hidden />
+            <Clock className="h-4 w-4 text-red-700 dark:text-red-400" aria-hidden />
             {booking.startTime} – {booking.endTime}
           </span>
         </div>
@@ -148,13 +151,13 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
 
       {booking.status === "accepted" && (
         <div role="status" className="mt-6 flex items-start gap-3 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-foreground">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" aria-hidden />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
           <span>{t.detail.acceptedBanner}</span>
         </div>
       )}
       {booking.status === "completed" && (
         <div role="status" className="mt-6 flex items-start gap-3 rounded-lg border border-blue-500/30 bg-blue-500/10 p-4 text-sm text-foreground">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-500" aria-hidden />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-700 dark:text-blue-400" aria-hidden />
           <span>
             {t.accepted.completedBanner} {t.common.completedOn} {formatDateTime(booking.completedAt, locale)}.
           </span>
@@ -201,16 +204,16 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 <ul className="mt-2 flex flex-col gap-2 text-sm text-muted-foreground">
                   {booking.equipment.length > 0 && (
                     <li className="flex items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" aria-hidden />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                       {t.detail.reminderEquipment}: {booking.equipment.map((id) => EQUIPMENT_OPTIONS.find((o) => o.id === id)?.label ?? id).join(", ")}
                     </li>
                   )}
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" aria-hidden />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                     {t.detail.reminderMusic}
                   </li>
                   <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" aria-hidden />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                     {t.detail.reminderContact}
                   </li>
                 </ul>
@@ -220,7 +223,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
 
           <Section id="event" title={t.detail.event} icon={<Calendar className="h-4 w-4" aria-hidden />}>
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={t.detail.eventType}>{booking.eventTypes.length ? <Chips items={booking.eventTypes} /> : notProvided}</Field>
+              <Field label={t.detail.eventType}>{booking.eventTypes.length ? <Chips items={booking.eventTypes.map((type) => eventTypeLabel(canonicalEventType(type), locale.startsWith("nl")))} /> : notProvided}</Field>
               <Field label={t.detail.duration}>
                 {Number(booking.hours)} {t.common.hours} ({booking.startTime} – {booking.endTime})
               </Field>
@@ -310,7 +313,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                 href={mapsUrl(booking)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:underline"
+                className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:underline"
               >
                 {t.detail.mapsLink}
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
@@ -363,11 +366,11 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
               <Field label={t.detail.contact}>
                 <div className="flex flex-col gap-1.5">
                   <span className="font-medium">{clientName(booking)}</span>
-                  <a href={`mailto:${booking.email}`} className="inline-flex items-center gap-1.5 text-red-500 hover:underline">
+                  <a href={`mailto:${booking.email}`} className="inline-flex min-h-11 items-center gap-1.5 text-red-700 dark:text-red-400 hover:underline">
                     <Mail className="h-4 w-4" aria-hidden />
                     {booking.email}
                   </a>
-                  <a href={`tel:${booking.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-1.5 text-red-500 hover:underline">
+                  <a href={`tel:${booking.phone.replace(/\s/g, "")}`} className="inline-flex min-h-11 items-center gap-1.5 text-red-700 dark:text-red-400 hover:underline">
                     <Phone className="h-4 w-4" aria-hidden />
                     {booking.phone}
                   </a>
@@ -409,7 +412,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
           {booking.status === "completed" && <BookingInvoicePanel booking={booking} invoice={invoice} />}
 
           {(booking.responseMessage || booking.rejectionReason) && (
-            <section aria-labelledby="message-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+            <section aria-labelledby="message-heading" className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
               <h2 id="message-heading" className="text-base font-semibold text-foreground">
                 {t.detail.yourMessage}
               </h2>
@@ -422,7 +425,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
             </section>
           )}
 
-          <section aria-labelledby="timeline-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+          <section aria-labelledby="timeline-heading" className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
             <h2 id="timeline-heading" className="text-base font-semibold text-foreground">
               {t.detail.timeline}
             </h2>
@@ -430,7 +433,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
               {timeline.map((item) => (
                 <li key={item.label} className="flex items-start gap-3 text-sm">
                   <span
-                    className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-500/15 text-green-500" : "border border-border text-transparent"}`}
+                    className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${item.done ? "bg-green-500/15 text-green-800 dark:text-green-500" : "border border-border text-transparent"}`}
                     aria-hidden
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />

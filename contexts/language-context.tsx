@@ -34,6 +34,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   // matches the server-rendered HTML and hydration stays consistent.
   const activeLanguage: Language = mounted ? language : "nl"
 
+  // Screen readers pick their voice from this, so it follows the language of the interface.
+  useEffect(() => {
+    document.documentElement.lang = activeLanguage
+  }, [activeLanguage])
+
   const value = {
     language: activeLanguage,
     setLanguage,

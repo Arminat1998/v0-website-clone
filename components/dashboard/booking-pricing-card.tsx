@@ -12,7 +12,7 @@ export function BookingPricingCard({ booking }: { booking: Booking }) {
   const isEstimate = booking.status === "pending"
 
   return (
-    <section aria-labelledby="pricing-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+    <section aria-labelledby="pricing-heading" className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
       <h2 id="pricing-heading" className="text-base font-semibold text-foreground">
         {isEstimate ? t.detail.priceTitle : t.common.receipt}
       </h2>
@@ -49,7 +49,7 @@ export function BookingPricingCard({ booking }: { booking: Booking }) {
         </div>
         <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
           <dt className="font-semibold text-foreground">{t.detail.payout}</dt>
-          <dd className="text-2xl font-bold text-green-500">{formatEuro(booking.payoutCents, locale)}</dd>
+          <dd className="text-2xl font-bold text-green-800 dark:text-green-500">{formatEuro(booking.payoutCents, locale)}</dd>
         </div>
       </dl>
       {isEstimate && <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{t.detail.priceNote}</p>}

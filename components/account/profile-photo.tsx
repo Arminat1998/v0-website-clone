@@ -116,7 +116,9 @@ export function AccountProfilePhoto({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{nl ? "Profielfoto" : "Profile photo"}</CardTitle>
+        <CardTitle>
+            <h2>{nl ? "Profielfoto" : "Profile photo"}</h2>
+          </CardTitle>
         <CardDescription>
           {nl
             ? "Professionals zien deze foto bij je aanvragen en berichten."

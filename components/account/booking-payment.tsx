@@ -178,7 +178,9 @@ export function BookingPayment({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{nl ? "Betaling" : "Payment"}</CardTitle>
+          <CardTitle>
+            <h2>{nl ? "Betaling" : "Payment"}</h2>
+          </CardTitle>
           <CardDescription>
             {b.paymentStatus === "refunded"
               ? nl
@@ -201,7 +203,9 @@ export function BookingPayment({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>{nl ? "Zo betaal je" : "How you pay"}</CardTitle>
+          <CardTitle>
+            <h2>{nl ? "Zo betaal je" : "How you pay"}</h2>
+          </CardTitle>
           <CardDescription>
             {nl
               ? "Je ziet vooraf wanneer je wat betaalt."
@@ -261,12 +265,12 @@ export function BookingPayment({
         <Card className="border-brand">
           <CardHeader>
             <CardTitle>
-              {s.due.part === "deposit"
+            <h2>{s.due.part === "deposit"
                 ? nl ? "Betaal je aanbetaling" : "Pay your deposit"
                 : s.depositPaid
                   ? nl ? "Betaal het restant" : "Pay the balance"
-                  : nl ? "Betaal je factuur" : "Pay your invoice"}
-            </CardTitle>
+                  : nl ? "Betaal je factuur" : "Pay your invoice"}</h2>
+          </CardTitle>
             <CardDescription>
               {nl
                 ? "Maak het bedrag over met je eigen bank-app. Zodra ARSI Events je betaling heeft ontvangen, zie je dat hier terug."
@@ -315,9 +319,9 @@ export function BookingPayment({
       <Card>
         <CardHeader>
           <CardTitle>
-            {quoted
+            <h2>{quoted
               ? nl ? "Offerte" : "Quote"
-              : nl ? "Prijsindicatie" : "Price estimate"}
+              : nl ? "Prijsindicatie" : "Price estimate"}</h2>
           </CardTitle>
           <CardDescription>
             {quoted && b.respondedAt
@@ -376,7 +380,9 @@ export function BookingPayment({
       {invoice && (
         <Card>
           <CardHeader>
-            <CardTitle>{nl ? "Eindfactuur" : "Final invoice"}</CardTitle>
+            <CardTitle>
+            <h2>{nl ? "Eindfactuur" : "Final invoice"}</h2>
+          </CardTitle>
             <CardDescription>
               {nl ? "Factuur" : "Invoice"} {invoice.invoiceNumber} ·{" "}
               {date(invoice.invoiceDate, nl)}

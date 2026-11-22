@@ -7,13 +7,13 @@ import { Clock, MapPin, Pencil, Plus, Target, Wallet, Music2 } from "lucide-reac
 import { Button } from "@/components/ui/button"
 import { SOCIAL_META } from "@/components/artist-portfolio"
 import { SOCIAL_KEYS, getVideoEmbed, mediaUrl } from "@/lib/artist-page-types"
-import { bookingHref, useWebsite } from "@/components/artist-website/website-context"
+import { bookingHref, eventTagLabel, experienceLabel, genreTagLabel, professionLabel, useWebsite } from "@/components/artist-website/website-context"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
 
 export function EditPencil({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
   const className =
-    "flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+    "flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
   if (href) {
     return (
       <Link href={href} aria-label={label} title={label} className={className}>
@@ -78,6 +78,8 @@ export function BookingCard() {
 
 export function DetailsCard() {
   const { artist, edit, t } = useWebsite()
+  const nl = t.locale.startsWith("nl")
+  const experience = experienceLabel(artist.experience, nl)
   const rows = [
     {
       icon: Wallet,
@@ -85,11 +87,10 @@ export function DetailsCard() {
       value: artist.price,
       note: t.rateNote,
     },
-    { icon: MapPin, label: t.city, value: artist.location },
-    ...(artist.experience ? [{ icon: Target, label: t.experience, value: artist.experience }] : []),
-    { icon: Music2, label: t.type, value: artist.specialty },
+    ...(artist.location ? [{ icon: MapPin, label: t.city, value: artist.location }] : []),
+    ...(experience ? [{ icon: Target, label: t.experience, value: experience }] : []),
+    { icon: Music2, label: t.type, value: professionLabel(artist.specialty, nl) },
     { icon: Clock, label: t.duration, value: t.durationValue },
-    { icon: MapPin, label: t.travel, value: t.travelValue },
   ]
 
   return (
@@ -133,6 +134,7 @@ export function TagsCard() {
   const { artist, content, edit, t, openDialog } = useWebsite()
   const eventTypes = edit ? content.eventTypes : content.eventTypes.length ? content.eventTypes : (artist.eventTypes ?? [])
   const genres = edit ? content.musicGenres : content.musicGenres.length ? content.musicGenres : (artist.musicStyles ?? [])
+  const nl = t.locale.startsWith("nl")
   const empty = eventTypes.length === 0 && genres.length === 0
 
   return (
@@ -151,7 +153,7 @@ export function TagsCard() {
               <ul className="flex flex-wrap gap-2">
                 {eventTypes.map((tag) => (
                   <li key={tag} className="rounded-full border border-foreground/60 px-3 py-1 text-sm text-foreground">
-                    {tag}
+                    {eventTagLabel(tag, nl)}
                   </li>
                 ))}
               </ul>
@@ -162,8 +164,8 @@ export function TagsCard() {
               <h3 className="mb-2 text-sm font-semibold text-foreground">{t.genres}</h3>
               <ul className="flex flex-wrap gap-2">
                 {genres.map((tag) => (
-                  <li key={tag} className="rounded-full bg-red-900/30 px-3 py-1 text-sm font-medium text-red-300">
-                    {tag}
+                  <li key={tag} className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                    {genreTagLabel(tag, nl)}
                   </li>
                 ))}
               </ul>
@@ -217,7 +219,7 @@ export function PhotosCard({ limit, columns = "sm:grid-cols-3" }: { limit?: numb
   const action = (
     <div className="flex items-center gap-2">
       {limit && content.gallery.length > limit && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => goToTab("photos")} className="text-red-500 hover:text-red-400">
+        <Button type="button" variant="ghost" size="sm" onClick={() => goToTab("photos")} className="text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
           {t.allPhotos}
         </Button>
       )}
@@ -266,7 +268,7 @@ export function VideosCard({ limit }: { limit?: number }) {
   const action = (
     <div className="flex items-center gap-2">
       {limit && all.length > limit && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => goToTab("videos")} className="text-red-500 hover:text-red-400">
+        <Button type="button" variant="ghost" size="sm" onClick={() => goToTab("videos")} className="text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
           {t.allVideos}
         </Button>
       )}

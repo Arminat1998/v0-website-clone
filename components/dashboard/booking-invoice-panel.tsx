@@ -15,7 +15,7 @@ export function BookingInvoicePanel({ booking, invoice }: { booking: Booking; in
   const ti = t.invoice
 
   return (
-    <section aria-labelledby="invoice-heading" className={`rounded-lg border bg-card p-5 md:p-6 ${invoice ? "border-border" : "border-amber-500/40"}`}>
+    <section aria-labelledby="invoice-heading" className={`rounded-xl border bg-card p-5 shadow-sm md:p-6 ${invoice ? "border-border" : "border-amber-500/40"}`}>
       <div className="flex items-start justify-between gap-3">
         <h2 id="invoice-heading" className="text-base font-semibold text-foreground">
           {ti.panelTitle}
@@ -83,7 +83,7 @@ export function BookingInvoicePanel({ booking, invoice }: { booking: Booking; in
             )}
           </>
         ) : (
-          <Button asChild className="w-full bg-red-600 text-white hover:bg-red-700">
+          <Button asChild className="w-full bg-red-700 text-white hover:bg-red-600">
             <Link href={`/dashboard/bookings/${booking.id}/invoice`}>
               <FileText className="mr-2 h-4 w-4" aria-hidden />
               {ti.panelCta}

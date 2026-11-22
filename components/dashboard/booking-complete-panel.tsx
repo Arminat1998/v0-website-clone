@@ -1,6 +1,6 @@
 "use client"
 
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle2, Loader2 } from "lucide-react"
 import { completeBooking } from "@/app/actions/bookings"
@@ -11,13 +11,15 @@ import { Button } from "@/components/ui/button"
 import { PaymentStatusBadge } from "./booking-status-badge"
 
 export function BookingCompletePanel({ booking }: { booking: Booking }) {
-  const { t } = useBookingT()
+  const { t, locale } = useBookingT()
+  const nl = locale.startsWith("nl")
+  const [error, setError] = useState("")
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const canComplete = isTodayOrPast(booking.eventDate)
 
   return (
-    <section aria-labelledby="complete-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+    <section aria-labelledby="complete-heading" className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
       <h2 id="complete-heading" className="text-base font-semibold text-foreground">
         {t.accepted.paymentTitle}
       </h2>
@@ -35,12 +37,29 @@ export function BookingCompletePanel({ booking }: { booking: Booking }) {
           disabled={!canComplete || isPending}
           onClick={() =>
             startTransition(async () => {
-              await completeBooking(booking.id)
+              setError("")
+              const result = await completeBooking(booking.id).catch(() => null)
+              if (!result?.ok) {
+                setError(
+                  result?.error === "TOO_EARLY"
+                    ? nl
+                      ? "Je kunt dit optreden pas op de dag zelf afronden."
+                      : "You can only complete this gig on the day itself."
+                    : result
+                      ? nl
+                        ? "Deze boeking is niet meer open. Ververs de pagina."
+                        : "This booking is no longer open. Refresh the page."
+                      : nl
+                        ? "Afronden is niet gelukt. Probeer het opnieuw."
+                        : "Completing failed. Please try again.",
+                )
+                return
+              }
               // Invoicing is the natural next step, so land the DJ straight in that flow.
               router.push(`/dashboard/bookings/${booking.id}/invoice`)
             })
           }
-          className="mt-4 w-full bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground"
+          className="mt-4 w-full bg-red-700 text-white hover:bg-red-600 disabled:bg-muted disabled:text-muted-foreground"
         >
           {isPending ? (
             <>
@@ -54,6 +73,11 @@ export function BookingCompletePanel({ booking }: { booking: Booking }) {
             </>
           )}
         </Button>
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
+            {error}
+          </p>
+        )}
       </div>
     </section>
   )
