@@ -28,6 +28,16 @@ import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking
 const toIsoDate = (year: number, month: number, day: number) =>
   `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
 
+/** Empty, or an address that starts with http(s). */
+function isWebLink(value: string) {
+  if (!value.trim()) return true
+  try {
+    return /^https?:$/.test(new URL(value.trim()).protocol)
+  } catch {
+    return false
+  }
+}
+
 /** A place name or a postal code. */
 const placeChars = (value: string) => value.replace(/[^\p{L}\p{M}\d '’.-]/gu, "")
 
@@ -286,6 +296,19 @@ export default function BookingPage() {
       })
     : null
 
+  const linkError = (value: string, id: string) =>
+    isWebLink(value) ? null : (
+      <p id={id} role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
+        {tr("Vul een volledige link in, die begint met https://", "Enter a full link that starts with https://")}
+      </p>
+    )
+  // Only the links that will be sent.
+  const linksOk =
+    !artist ||
+    (isWebLink(playlistLink) &&
+      (openingDanceOption === "upload" || isWebLink(openingDanceLink)) &&
+      (lastSongOption === "upload" || isWebLink(lastSongLink)))
+
   // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
   const missingStep1 = [
     !eventDate && tr("een datum in de kalender", "a date in the calendar"),
@@ -296,6 +319,7 @@ export default function BookingPage() {
     !eventDate && tr("een datum (stap 1)", "a date (step 1)"),
     (!eventName || eventName.length < 3) && tr("een naam voor je evenement (minimaal 3 tekens)", "a name for your event (at least 3 characters)"),
     (!startTime || !endTime) && tr("een start- en eindtijd", "a start and end time"),
+    !linksOk && tr("een geldige muzieklink", "a valid music link"),
   ].filter(Boolean) as string[]
   const missingStep3 = [
     !firstName.trim() && tr("voornaam", "first name"),
@@ -1041,6 +1065,7 @@ export default function BookingPage() {
                     rows={3}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground resize-none"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">{specialRequests.length}/5000 {tr("tekens", "characters")}</p>
                 </div>
                 
                 {/* Music and dress code: artists only */}
@@ -1048,7 +1073,7 @@ export default function BookingPage() {
                 <>
                 {/* Playlist Link */}
                 <div className="mb-4">
-                  <label htmlFor="booking-playlist" className="block text-sm font-medium text-foreground mb-2">{tr("Link naar je favoriete playlist", "Link to your favourite playlist")}</label>
+                  <label htmlFor="booking-playlist" className="block text-sm font-medium text-foreground mb-2">{tr("Link naar playlist of nummer (optioneel)", "Link to a playlist or song (optional)")}</label>
                   <input
                     id="booking-playlist"
                     type="url"
@@ -1056,9 +1081,11 @@ export default function BookingPage() {
                     value={playlistLink}
                     onChange={(e) => setPlaylistLink(e.target.value)}
                     placeholder="https://..."
-                    aria-describedby="booking-playlist-hint"
+                    aria-invalid={!isWebLink(playlistLink)}
+                    aria-describedby="booking-playlist-error booking-playlist-hint"
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
+                  {linkError(playlistLink, "booking-playlist-error")}
                   <p id="booking-playlist-hint" className="mt-1 text-xs text-muted-foreground">
                     {tr("Losse nummers? Zet ze bij speciale wensen.", "Separate songs? List them under special requests.")}
                   </p>
@@ -1092,15 +1119,20 @@ export default function BookingPage() {
                   {openingDanceOption === "upload" ? (
                     <AudioUpload label={tr("Muziek voor de openingsdans", "Opening Dance Music")} file={openingDanceFile} onChange={setOpeningDanceFile} />
                   ) : (
+                    <>
                     <input
                       type="url"
                       maxLength={300}
                       aria-labelledby="booking-opening-label"
+                      aria-invalid={!isWebLink(openingDanceLink)}
+                      aria-describedby="booking-opening-error"
                       value={openingDanceLink}
                       onChange={(e) => setOpeningDanceLink(e.target.value)}
                       placeholder="https://..."
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
+                    {linkError(openingDanceLink, "booking-opening-error")}
+                    </>
                   )}
                 </div>
                 
@@ -1132,15 +1164,20 @@ export default function BookingPage() {
                   {lastSongOption === "upload" ? (
                     <AudioUpload label={tr("Muziek voor het laatste nummer", "Last Song Music")} file={lastSongFile} onChange={setLastSongFile} />
                   ) : (
+                    <>
                     <input
                       type="url"
                       maxLength={300}
                       aria-labelledby="booking-last-song-label"
+                      aria-invalid={!isWebLink(lastSongLink)}
+                      aria-describedby="booking-last-song-error"
                       value={lastSongLink}
                       onChange={(e) => setLastSongLink(e.target.value)}
                       placeholder="https://..."
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
+                    {linkError(lastSongLink, "booking-last-song-error")}
+                    </>
                   )}
                 </div>
                 
@@ -1344,7 +1381,7 @@ export default function BookingPage() {
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !bookingOptions}
+                  disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
@@ -1401,7 +1438,7 @@ export default function BookingPage() {
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Factuuradres", "Billing address")}</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw-nummer", "VAT number")}</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   {pricing && <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Optreden", "Performance") : tr("Opdracht", "Assignment")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Optreden", "Performance") : tr("Inzet", "Service")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
                   {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Apparatuur en extra's", "Equipment and extras") : tr("Extra's", "Extras")} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
                   <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
