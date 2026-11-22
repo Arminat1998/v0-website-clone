@@ -1,19 +1,22 @@
 import "server-only"
 
 import { randomBytes } from "node:crypto"
-import { db } from "@/lib/db"
+import type { db } from "@/lib/db"
 import { reviews } from "@/lib/db/schema"
 
 // Not a server action: only server code that has just completed a booking may create an invite.
-/** Called once a booking is completed; the token is the customer's personal review link. */
-export async function createReviewInvite(booking: {
-  id: number
-  customerId: string | null
-  professionalId: string
-  professionalType: string
-}) {
+/** Called in the transaction that completes a booking; the token is the customer's personal review link. */
+export async function createReviewInvite(
+  booking: {
+    id: number
+    customerId: string | null
+    professionalId: string
+    professionalType: string
+  },
+  tx: Pick<typeof db, "insert">,
+) {
   if (!booking.customerId) return
-  await db
+  await tx
     .insert(reviews)
     .values({
       bookingId: booking.id,

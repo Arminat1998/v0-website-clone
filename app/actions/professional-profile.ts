@@ -7,6 +7,7 @@ import { artistPages, billingProfiles, professionalProfiles, user as userTable }
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { isPhotoVideo } from "@/lib/profile-options"
 import { MEDIA_PREFIX, SOCIAL_KEYS, mediaUrl, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
+import { httpUrl } from "@/lib/http-url"
 import { isSafeBlobPath } from "@/lib/blob-paths"
 import type {
   ProfessionalProfileData,
@@ -69,7 +70,7 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
   const socials: ProfileSocialLink[] = Array.isArray(input.socials)
     ? input.socials
         .map((link) => ({ id: text(link?.id, 60) || crypto.randomUUID(), platform: text(link?.platform, 30), url: text(link?.url, 300) }))
-        .filter((link) => link.platform && /^https?:\/\//i.test(link.url))
+        .filter((link) => link.platform && httpUrl(link.url))
         .slice(0, 12)
     : []
 

@@ -1,28 +1,42 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar, Loader2, MapPin, Clock } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { useBookingT } from "@/lib/booking-i18n"
+import { saveMyAvailability, type SaveAvailabilityResult } from "@/app/actions/availability"
 import type { CalendarBooking } from "@/app/actions/bookings"
-import { formatEventDate, todayIso } from "@/lib/bookings/format"
+import { formatEventDate, maxDateIso, todayIso } from "@/lib/bookings/format"
 
-// Dates the professional has blocked by hand (separate from bookings, which block automatically).
-const initialUnavailableDates = ["2026-12-24", "2026-12-25", "2026-12-31"]
+type SaveError = Extract<SaveAvailabilityResult, { ok: false }>["error"]
 
-export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
-  const { t } = useLanguage()
+export function CalendarView({ bookings, unavailableDates }: { bookings: CalendarBooking[]; unavailableDates: string[] }) {
+  const { t, language } = useLanguage()
   const { t: bt, locale } = useBookingT()
+  const tr = (nl: string, en: string) => (language === "en" ? en : nl)
   const today = todayIso()
+  const maxDate = maxDateIso()
   const [todayYear, todayMonth] = today.split("-").map(Number)
   const [currentMonth, setCurrentMonth] = useState(todayMonth - 1)
   const [currentYear, setCurrentYear] = useState(todayYear)
-  const [selectedDates, setSelectedDates] = useState<number[]>([])
-  const [selectedUnavailableDates, setSelectedUnavailableDates] = useState<number[]>([])
-  const [markedUnavailable, setMarkedUnavailable] = useState<string[]>(initialUnavailableDates)
-  const [selectionMode, setSelectionMode] = useState<"available" | "unavailable" | null>(null)
+  // Dates blocked by hand, as stored; bookings block their date by themselves.
+  const [markedUnavailable, setMarkedUnavailable] = useState(unavailableDates)
+  const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [lastSelectedDay, setLastSelectedDay] = useState<number | null>(null)
+  const [isSaving, startSaving] = useTransition()
+  const [error, setError] = useState<SaveError | null>(null)
+  const [savedMessage, setSavedMessage] = useState("")
+
+  // A selection holds only free or only blocked dates; the first date decides which.
+  const selectionMode = selectedDates.length === 0 ? null : markedUnavailable.includes(selectedDates[0]) ? "unavailable" : "available"
+
+  const errorText: Record<SaveError, string> = {
+    UNAUTHORIZED: tr("Je bent niet meer ingelogd. Log opnieuw in; je wijziging is niet opgeslagen.", "You are no longer logged in. Log in again; your change was not saved."),
+    INVALID: tr("Deze datums kunnen niet worden aangepast. Ververs de pagina en probeer het opnieuw.", "These dates cannot be changed. Refresh the page and try again."),
+    TOO_MANY: tr("Je hebt te veel wijzigingen achter elkaar gedaan. Probeer het over een paar minuten opnieuw.", "Too many changes in a row. Try again in a few minutes."),
+    FAILED: tr("Opslaan is niet gelukt. Je selectie staat er nog; probeer het opnieuw.", "Saving failed. Your selection is still there; try again."),
+  }
 
   const months = [t.january, t.february, t.march, t.april, t.may, t.june, t.july, t.august, t.september, t.october, t.november, t.december]
 
@@ -48,54 +62,58 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
   const isDatePending = (day: number) => pendingDates.has(getDateString(day))
   const isDateInPast = (day: number) => getDateString(day) < today
 
+  const isDateTooFar = (day: number) => getDateString(day) > maxDate
+
   const toggleDateSelection = (day: number, shiftKey = false) => {
+    const date = getDateString(day)
     const isUnavailable = isDateUnavailable(day)
+    setError(null)
+    setSavedMessage("")
 
     if (shiftKey && lastSelectedDay !== null && lastSelectedDay !== day) {
-      const start = Math.min(lastSelectedDay, day)
-      const end = Math.max(lastSelectedDay, day)
-      const range: number[] = []
-      for (let d = start; d <= end; d++) {
-        if (!isDateInPast(d) && !isDateBooked(d) && isDateUnavailable(d) === isUnavailable) range.push(d)
+      const range: string[] = []
+      for (let d = Math.min(lastSelectedDay, day); d <= Math.max(lastSelectedDay, day); d++) {
+        if (!isDateInPast(d) && !isDateTooFar(d) && !isDateBooked(d) && isDateUnavailable(d) === isUnavailable) range.push(getDateString(d))
       }
-      const setter = isUnavailable ? setSelectedUnavailableDates : setSelectedDates
-      if (selectionMode === null) setSelectionMode(isUnavailable ? "unavailable" : "available")
-      setter((prev) => {
-        const allSelected = range.every((d) => prev.includes(d))
-        if (allSelected) return prev.filter((d) => !range.includes(d))
-        const next = [...prev]
-        for (const d of range) if (!next.includes(d)) next.push(d)
-        return next
-      })
-      setLastSelectedDay(day)
-      return
+      setSelectedDates((prev) =>
+        range.every((d) => prev.includes(d)) ? prev.filter((d) => !range.includes(d)) : [...new Set([...prev, ...range])],
+      )
+    } else {
+      setSelectedDates((prev) => (prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]))
     }
-
-    const mode = isUnavailable ? "unavailable" : "available"
-    if (selectionMode === null) setSelectionMode(mode)
-    if (selectionMode === mode || selectionMode === null) {
-      const setter = isUnavailable ? setSelectedUnavailableDates : setSelectedDates
-      setter((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]))
-      setLastSelectedDay(day)
-    }
+    setLastSelectedDay(day)
   }
 
   const handleAction = () => {
-    if (selectionMode === "available") {
-      setMarkedUnavailable((prev) => [...prev, ...selectedDates.map(getDateString)])
-      setSelectedDates([])
-    } else if (selectionMode === "unavailable") {
-      const toFree = selectedUnavailableDates.map(getDateString)
-      setMarkedUnavailable((prev) => prev.filter((date) => !toFree.includes(date)))
-      setSelectedUnavailableDates([])
-    }
-    setSelectionMode(null)
+    if (!selectionMode || isSaving) return
+    const available = selectionMode === "unavailable"
+    const dates = selectedDates
+    setError(null)
+    setSavedMessage("")
+    startSaving(async () => {
+      let result: SaveAvailabilityResult
+      try {
+        result = await saveMyAvailability({ dates, available })
+      } catch {
+        // The request itself failed, e.g. no connection.
+        result = { ok: false, error: "FAILED" }
+      }
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      setMarkedUnavailable(result.unavailableDates)
+      resetSelection()
+      setSavedMessage(
+        available
+          ? tr(`Opgeslagen: ${dates.length} datum(s) weer beschikbaar.`, `Saved: ${dates.length} date(s) available again.`)
+          : tr(`Opgeslagen: ${dates.length} datum(s) niet beschikbaar.`, `Saved: ${dates.length} date(s) unavailable.`),
+      )
+    })
   }
 
   const resetSelection = () => {
     setSelectedDates([])
-    setSelectedUnavailableDates([])
-    setSelectionMode(null)
     setLastSelectedDay(null)
   }
 
@@ -127,9 +145,9 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
       const booked = bookedDates.get(dateStr)
       const pending = pendingDates.get(dateStr)
       const unavailable = isDateUnavailable(day)
-      const isSelected = selectedDates.includes(day)
-      const isUnavailableSelected = selectedUnavailableDates.includes(day)
+      const isSelected = selectedDates.includes(dateStr)
       const isPast = isDateInPast(day)
+      const isTooFar = isDateTooFar(day)
       const isDisabledByMode =
         (selectionMode === "available" && unavailable) || (selectionMode === "unavailable" && !unavailable)
 
@@ -139,11 +157,11 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
         classes += isPast
           ? "bg-blue-600/40 text-white/70 font-medium"
           : "bg-blue-600 text-white font-medium hover:bg-blue-700"
-      } else if (isPast) {
+      } else if (isPast || isTooFar) {
         classes += "bg-zinc-500 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-500 cursor-not-allowed line-through"
       } else if (isDisabledByMode) {
         classes += unavailable ? "bg-red-600/50 text-white/50 font-medium cursor-not-allowed" : "text-zinc-700/50 dark:text-zinc-400/50 bg-zinc-200/50 dark:bg-zinc-700/50 cursor-not-allowed"
-      } else if (unavailable && isUnavailableSelected) {
+      } else if (unavailable && isSelected) {
         classes += "bg-red-600 text-white font-medium cursor-pointer ring-2 ring-green-400"
       } else if (unavailable) {
         classes += "bg-red-600 text-white font-medium cursor-pointer hover:bg-red-700"
@@ -175,8 +193,14 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
           type="button"
           key={day}
           title={pending ? `${bt.calendar.pendingRequest}: ${pending.eventName}` : undefined}
-          onClick={(e) => !isPast && !isDisabledByMode && toggleDateSelection(day, e.shiftKey)}
-          disabled={isPast || isDisabledByMode}
+          aria-label={[
+            formatEventDate(dateStr, locale),
+            isPast || isTooFar ? "" : unavailable ? tr("niet beschikbaar", "unavailable") : tr("beschikbaar", "available"),
+            pending ? `${bt.calendar.pendingRequest}: ${pending.eventName}` : "",
+          ].filter(Boolean).join(", ")}
+          aria-pressed={isSelected}
+          onClick={(e) => toggleDateSelection(day, e.shiftKey)}
+          disabled={isPast || isTooFar || isDisabledByMode || isSaving}
           className={classes}
         >
           {day}
@@ -190,9 +214,9 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
   const legend = [
     { swatch: "bg-blue-600", label: bt.calendar.booked },
     { swatch: "bg-zinc-200 dark:bg-zinc-700 ring-2 ring-inset ring-amber-500", label: bt.calendar.pendingRequest },
-    { swatch: "bg-red-600", label: "Unavailable" },
-    { swatch: "bg-green-600", label: "Selected" },
-    { swatch: "bg-zinc-200 dark:bg-zinc-700", label: "Available" },
+    { swatch: "bg-red-600", label: tr("Niet beschikbaar", "Unavailable") },
+    { swatch: "bg-green-600", label: tr("Geselecteerd", "Selected") },
+    { swatch: "bg-zinc-200 dark:bg-zinc-700", label: tr("Beschikbaar", "Available") },
   ]
 
   return (
@@ -215,19 +239,19 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1fr_350px]">
           <div className="mx-auto w-full max-w-md lg:mx-0">
             <div className="mb-3 flex items-center justify-between sm:mb-4">
-              <button type="button" onClick={goToPreviousMonth} aria-label="Previous month" className="touch-manipulation rounded-lg bg-accent p-1.5 text-foreground transition-colors hover:bg-muted sm:p-2">
+              <button type="button" onClick={goToPreviousMonth} disabled={isSaving} aria-label={tr("Vorige maand", "Previous month")} className="touch-manipulation rounded-lg bg-accent p-1.5 text-foreground transition-colors hover:bg-muted sm:p-2">
                 <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
               <span className="text-sm font-semibold text-foreground sm:text-base md:text-lg">
                 {months[currentMonth]} {currentYear}
               </span>
-              <button type="button" onClick={goToNextMonth} aria-label="Next month" className="touch-manipulation rounded-lg bg-accent p-1.5 text-foreground transition-colors hover:bg-muted sm:p-2">
+              <button type="button" onClick={goToNextMonth} disabled={isSaving} aria-label={tr("Volgende maand", "Next month")} className="touch-manipulation rounded-lg bg-accent p-1.5 text-foreground transition-colors hover:bg-muted sm:p-2">
                 <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
 
             <div className="mb-2 grid grid-cols-7 gap-0.5 sm:gap-1">
-              {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
+              {tr("M D W D V Z Z", "M T W T F S S").split(" ").map((day, index) => (
                 <div key={index} className="flex h-6 items-center justify-center text-center text-[10px] font-semibold text-muted-foreground sm:h-8 sm:text-xs">
                   {day}
                 </div>
@@ -239,29 +263,33 @@ export function CalendarView({ bookings }: { bookings: CalendarBooking[] }) {
             <button
               type="button"
               onClick={handleAction}
-              className={`mt-3 w-full touch-manipulation rounded-lg py-2.5 text-xs font-medium transition-colors sm:mt-4 sm:py-3 sm:text-sm ${
-                selectionMode === "available" && selectedDates.length > 0
+              aria-busy={isSaving}
+              className={`mt-3 flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed sm:mt-4 sm:py-3 sm:text-sm ${
+                selectionMode === "available"
                   ? "bg-red-600 text-white hover:bg-red-700"
-                  : selectionMode === "unavailable" && selectedUnavailableDates.length > 0
+                  : selectionMode === "unavailable"
                     ? "bg-green-600 text-white hover:bg-green-700"
-                    : "cursor-not-allowed bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground"
               }`}
-              disabled={
-                (selectionMode === "available" && selectedDates.length === 0) ||
-                (selectionMode === "unavailable" && selectedUnavailableDates.length === 0) ||
-                selectionMode === null
-              }
+              disabled={selectionMode === null || isSaving}
             >
-              {selectionMode === "available" && selectedDates.length > 0
-                ? `${t.markAsUnavailable} (${selectedDates.length})`
-                : selectionMode === "unavailable" && selectedUnavailableDates.length > 0
-                  ? `${t.markAsAvailable} (${selectedUnavailableDates.length})`
-                  : selectionMode === "available"
-                    ? t.selectAvailableDates
-                    : selectionMode === "unavailable"
-                      ? t.selectUnavailableDates
-                      : t.selectDates}
+              {isSaving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+              {isSaving
+                ? tr("Opslaan…", "Saving…")
+                : selectionMode === "available"
+                  ? `${t.markAsUnavailable} (${selectedDates.length})`
+                  : selectionMode === "unavailable"
+                    ? `${t.markAsAvailable} (${selectedDates.length})`
+                    : t.selectDates}
             </button>
+            {error && (
+              <p role="alert" className="mt-2 text-sm text-red-600">
+                {errorText[error]}
+              </p>
+            )}
+            <p role="status" className="mt-2 text-sm text-muted-foreground empty:hidden">
+              {savedMessage}
+            </p>
           </div>
 
           <div>

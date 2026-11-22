@@ -17,6 +17,7 @@ import {
   type ArtistPageContent,
   type ArtistPageSocials,
 } from "@/lib/artist-page-types"
+import { httpUrl } from "@/lib/http-url"
 import { isSafeBlobPath } from "@/lib/blob-paths"
 import { getArtistPageContent } from "@/lib/artist-page"
 import { isLiveProfessional } from "@/lib/professional-artist"
@@ -37,21 +38,12 @@ function cleanTags(values: unknown) {
   return tags.slice(0, PAGE_LIMITS.tags)
 }
 
-function isHttpUrl(value: string) {
-  try {
-    const { protocol } = new URL(value)
-    return protocol === "https:" || protocol === "http:"
-  } catch {
-    return false
-  }
-}
-
 function cleanSocials(input: unknown): ArtistPageSocials {
   const socials: ArtistPageSocials = {}
   if (!input || typeof input !== "object") return socials
   for (const key of SOCIAL_KEYS) {
     const raw = String((input as Record<string, unknown>)[key] ?? "").trim().slice(0, PAGE_LIMITS.url)
-    if (raw && isHttpUrl(raw)) socials[key] = raw
+    if (raw && httpUrl(raw)) socials[key] = raw
   }
   return socials
 }
@@ -72,7 +64,7 @@ export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArti
     musicGenres: cleanTags(input.musicGenres),
     gallery: (Array.isArray(input.gallery) ? input.gallery : []).filter(ownPath).slice(0, PAGE_LIMITS.gallery),
     videos: (Array.isArray(input.videos) ? input.videos : [])
-      .filter((video) => video && typeof video.url === "string" && getVideoEmbed(video.url.trim()))
+      .filter((video) => video && typeof video.url === "string" && httpUrl(video.url.trim()) && getVideoEmbed(video.url.trim()))
       .slice(0, PAGE_LIMITS.videos)
       .map((video) => ({
         id: String(video.id || crypto.randomUUID()).slice(0, 40),

@@ -380,19 +380,24 @@ export default function BookingPage() {
         vatNumber,
         paymentMethod: "invoice",
       })
+      if (!result.ok) {
+        setSubmitError(
+          result.error === "OUT_OF_RANGE"
+            ? tr("Deze locatie ligt buiten het werkgebied van deze professional.", "This location is outside the professional's travel range.")
+            : result.error === "INVALID_HOURS"
+              ? tr("De gekozen tijden passen niet bij de minimale of maximale speelduur van deze professional.", "The chosen times do not fit the professional's minimum or maximum hours.")
+              : result.error === "DATE_TAKEN"
+                ? tr("Deze datum is net bezet geraakt. Kies in stap 1 een andere datum.", "This date was just taken. Choose another date in step 1.")
+                : tr("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.", "Sending failed. Check your details and try again."),
+        )
+        return
+      }
       setBookingId(result.id)
       setSubmitted(true)
       setCurrentStep(5)
     } catch (error) {
       console.error("Booking submit failed:", error)
-      const message = error instanceof Error ? error.message : ""
-      setSubmitError(
-        message.includes("travel range")
-          ? "Deze locatie ligt buiten het werkgebied van deze professional."
-          : message.includes("hours")
-            ? "De gekozen tijden passen niet bij de minimale of maximale speelduur van deze professional."
-            : "Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.",
-      )
+      setSubmitError(tr("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.", "Sending failed. Check your details and try again."))
     } finally {
       setSubmitting(false)
     }

@@ -4,8 +4,9 @@ import { and, eq, or } from "drizzle-orm"
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { bookings } from "@/lib/db/schema"
-import { getSession } from "@/lib/session"
+import { getSession, isAdmin } from "@/lib/session"
 import { takeToken } from "@/lib/rate-limit"
+import { tidyLooseAudio } from "@/lib/bookings/audio-storage"
 import { AUDIO_KINDS, MAX_AUDIO_BYTES, audioContentType, audioDisplayName, isOwnAudioPath, type AudioKind } from "@/lib/bookings/audio"
 
 const UPLOAD_WINDOW_MS = 10 * 60 * 1000
@@ -17,13 +18,16 @@ const UPLOAD_WINDOW_MS = 10 * 60 * 1000
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  // Admins have no bookings of their own and no access to the music of others.
+  if (isAdmin(session.user)) return NextResponse.json({ error: "forbidden" }, { status: 403 })
   const userId = session.user.id
-  if (!takeToken(`booking-audio:${userId}`, 20, UPLOAD_WINDOW_MS)) return NextResponse.json({ error: "too_many" }, { status: 429 })
+  if (!takeToken(`booking-audio:${userId}`, 10, UPLOAD_WINDOW_MS)) return NextResponse.json({ error: "too_many" }, { status: 429 })
 
   const body = (await request.json().catch(() => null)) as HandleUploadPresignedBody | null
   if (body?.type !== "blob.generate-presigned-url" || !isOwnAudioPath(body.payload?.pathname, userId)) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 })
   }
+  if (!(await tidyLooseAudio(userId))) return NextResponse.json({ error: "too_many" }, { status: 429 })
 
   try {
     const result = await handleUploadPresigned({
@@ -55,6 +59,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const session = await getSession()
   if (!session?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  if (isAdmin(session.user)) return NextResponse.json({ error: "forbidden" }, { status: 403 })
 
   const params = request.nextUrl.searchParams
   const bookingId = Number(params.get("bookingId"))
