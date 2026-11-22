@@ -79,6 +79,8 @@ export default function BookingPage() {
   const [houseNumberExt, setHouseNumberExt] = useState("")
   const [postalCode, setPostalCode] = useState("")
   const [city, setCity] = useState("")
+  // The place taken over from step 1, so a later change there still reaches an untouched city field.
+  const cityFromStep1 = useRef("")
   const [country, setCountry] = useState("")
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
   const [distanceError, setDistanceError] = useState<string | null>(null)
@@ -188,6 +190,7 @@ export default function BookingPage() {
   useEffect(() => {
     if (initialDate) {
       const [day, month, year] = initialDate.split("-").map(Number)
+      if (!day || !month || !year) return
       setEventDate(toIsoDate(year, month - 1, day))
       setCurrentMonth(month - 1)
       setCurrentYear(year)
@@ -774,7 +777,12 @@ export default function BookingPage() {
                   <input
                     type="text"
                     value={eventLocation}
-                    onChange={(e) => setEventLocation(lettersOnly(e.target.value))}
+                    onChange={(e) => {
+                      setEventLocation(lettersOnly(e.target.value))
+                      // The distance belongs to the previous place.
+                      setDistance(null)
+                      setDistanceError(null)
+                    }}
                     onKeyDown={(e) => {
                       // Enter does the same as the "Check distance" button.
                       if (e.key !== "Enter") return
@@ -815,7 +823,12 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => {
+                    const place = eventLocation.trim()
+                    setCity((current) => (!current.trim() || current === cityFromStep1.current ? place : current))
+                    cityFromStep1.current = place
+                    setCurrentStep(2)
+                  }}
                   disabled={!eventDate || Boolean(dateProblem) || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
