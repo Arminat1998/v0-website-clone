@@ -10,7 +10,7 @@ import { distanceBetween } from "@/lib/bookings/distance"
 import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
 import { BookingError, isBookingId, optionalText, parseBookingInput, type CreateBookingResult } from "@/lib/bookings/booking-input"
 import { todayIso } from "@/lib/bookings/format"
-import { audioFileExists, lockAudio } from "@/lib/bookings/audio-storage"
+import { isBookableAudio } from "@/lib/bookings/audio-storage"
 import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
@@ -132,9 +132,11 @@ const orNull = (value: string) => value || null
 async function resolveDistance(professionalId: string, eventLocation: string, clientKm: number, options: BookingOptions) {
   const from = await loadProfessionalCity(professionalId)
   const place = eventLocation.slice(0, 120)
-  const serverKm = from && place ? await distanceBetween(from, place) : null
-  if (serverKm === null) throw new BookingError("INVALID_DETAILS", "eventLocation")
-  const km = serverKm === "unavailable" ? Math.round(clientKm) : serverKm
+  if (!place) throw new BookingError("INVALID_DETAILS", "eventLocation")
+  const distance = from ? await distanceBetween(from, place) : "unknown_from"
+  if (distance === "unknown_to") throw new BookingError("INVALID_DETAILS", "eventLocation")
+  if (distance === "unknown_from") throw new BookingError("UNAVAILABLE")
+  const km = distance === "unavailable" ? Math.round(clientKm) : distance
   if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
   return km
 }
@@ -209,6 +211,10 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
     return { ok: false, error: "PRICE_CHANGED", totalCents: pricing.totalCents }
   }
 
+  for (const field of ["openingDanceFileName", "lastSongFileName"] as const) {
+    if (input[field] && !(await isBookableAudio(input[field]))) throw new BookingError("INVALID_DETAILS", field)
+  }
+
   const hasTable = await hasUnavailableDatesTable()
   const created = await db.transaction(async (tx) => {
     // Serialise requests from this customer for this professional and date, so a double click,
@@ -236,15 +242,6 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
     // same moment cannot slip through.
     await lockDate(tx, input.professionalId, input.eventDate)
     if (await dateProblem(tx, input.professionalId, input.eventDate, hasTable)) throw new BookingError("DATE_TAKEN")
-
-    const audio = [input.openingDanceFileName, input.lastSongFileName].filter(Boolean)
-    if (audio.length) {
-      // From here on the file belongs to a booking; the cleanup of loose files waits for this transaction.
-      await lockAudio(tx, customerId)
-      const found = await Promise.all(audio.map(audioFileExists))
-      const missing = audio.find((_, index) => !found[index])
-      if (missing) throw new BookingError("INVALID_DETAILS", missing === input.openingDanceFileName ? "openingDanceFileName" : "lastSongFileName")
-    }
 
     const [inserted] = await tx
       .insert(bookings)

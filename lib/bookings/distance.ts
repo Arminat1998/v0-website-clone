@@ -15,15 +15,15 @@ type Point = { lat: number; lon: number }
 const plain = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim()
 
 /**
- * A place abroad ("Londen", "New York") is not in the searched countries, but a street, shop or building with
- * that name is. Such a hit only counts when the text says more than the name, like the town it is in.
+ * A place abroad ("Londen", "New York") is not in the searched countries, but a street or shop with that name
+ * is. Such a hit only counts when the text says more than the name, like the town it is in.
  */
 function isOnlyNamesake(place: string, hit: Hit) {
-  return ["highway", "shop", "building"].includes(hit.class ?? "") && plain(hit.name ?? "") === plain(place)
+  return ["highway", "shop"].includes(hit.class ?? "") && plain(hit.name ?? "") === plain(place)
 }
 
 /** The coordinates of a place; null when there is no such place and "unavailable" when the geocoder fails. */
-async function geocode(place: string): Promise<Point | null | "unavailable"> {
+async function geocode(place: string, allowNamesake = false): Promise<Point | null | "unavailable"> {
   const url = `${GEOCODER}?format=json&limit=1&countrycodes=nl,be,de&q=${encodeURIComponent(place)}`
   try {
     const response = await fetch(url, {
@@ -33,7 +33,7 @@ async function geocode(place: string): Promise<Point | null | "unavailable"> {
     })
     if (!response.ok) return "unavailable"
     const [hit] = (await response.json()) as Hit[]
-    if (!hit || isOnlyNamesake(place, hit)) return null
+    if (!hit || (!allowNamesake && isOnlyNamesake(place, hit))) return null
     const lat = Number.parseFloat(hit.lat)
     const lon = Number.parseFloat(hit.lon)
     return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null
@@ -42,13 +42,13 @@ async function geocode(place: string): Promise<Point | null | "unavailable"> {
   }
 }
 
-/**
- * Straight-line distance in whole km between two places. Null when one of them does not exist; "unavailable"
- * when the geocoder fails.
- */
-export async function distanceBetween(from: string, to: string): Promise<number | null | "unavailable"> {
-  const [a, b] = await Promise.all([geocode(from), geocode(to)])
-  if (a === null || b === null) return null
+export type Distance = number | "unknown_from" | "unknown_to" | "unavailable"
+
+/** Straight-line distance in whole km from the professional's town to the event; "unavailable" when the geocoder fails. */
+export async function distanceBetween(from: string, to: string): Promise<Distance> {
+  const [a, b] = await Promise.all([geocode(from, true), geocode(to)])
+  if (b === null) return "unknown_to"
+  if (a === null) return "unknown_from"
   if (a === "unavailable" || b === "unavailable") return "unavailable"
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
