@@ -23,10 +23,13 @@ import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/inpu
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
 import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
 import { getCustomerProfile } from "@/app/actions/customer"
-import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking } from "@/lib/bookings/pricing"
+import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking, travelCents } from "@/lib/bookings/pricing"
 
 const toIsoDate = (year: number, month: number, day: number) =>
   `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
+
+/** A place name or a postal code. */
+const placeChars = (value: string) => value.replace(/[^\p{L}\p{M}\d '’.-]/gu, "")
 
 /** Every half hour of the day, as "HH:MM". */
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`)
@@ -60,8 +63,10 @@ export default function BookingPage() {
   
   // Step 2 - Event Details
   const [eventName, setEventName] = useState("")
-  // The chosen date as YYYY-MM-DD: the calendar of step 1 and the date field of step 2 show the same value.
+  // The chosen date as YYYY-MM-DD. It is chosen in step 1 only; every other step shows this value.
   const [eventDate, setEventDate] = useState("")
+  // Why a date (from the link, or one that was booked meanwhile) was not chosen.
+  const [dateNotice, setDateNotice] = useState<"invalid" | "past" | "booked" | null>(null)
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([])
@@ -82,8 +87,6 @@ export default function BookingPage() {
   const [houseNumberExt, setHouseNumberExt] = useState("")
   const [postalCode, setPostalCode] = useState("")
   const [city, setCity] = useState("")
-  // The place taken over from step 1, so a later change there still reaches an untouched city field.
-  const cityFromStep1 = useRef("")
   const [country, setCountry] = useState("")
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
   const [distanceError, setDistanceError] = useState<string | null>(null)
@@ -170,14 +173,31 @@ export default function BookingPage() {
   }, [bookingOptions, artist])
 
   useEffect(() => {
-    if (initialDate) {
-      const [day, month, year] = initialDate.split("-").map(Number)
-      if (!day || !month || !year) return
-      setEventDate(toIsoDate(year, month - 1, day))
-      setCurrentMonth(month - 1)
-      setCurrentYear(year)
+    if (!initialDate) return
+    // Links carry the date as day-month-year; an impossible day such as 31-2 is not a date.
+    const [day, month, year] = initialDate.split("-").map(Number)
+    const date = new Date(year, month - 1, day)
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      setDateNotice("invalid")
+      return
     }
+    const iso = toIsoDate(year, month - 1, day)
+    if (iso < todayIso()) {
+      setDateNotice("past")
+      return
+    }
+    setEventDate(iso)
+    setCurrentMonth(month - 1)
+    setCurrentYear(year)
   }, [initialDate])
+
+  const isBooked = (iso: string) => Boolean(professional?.unavailableDates?.includes(iso)) || blockedDates.includes(iso)
+  const chosenDateIsBooked = Boolean(eventDate) && isBooked(eventDate)
+  useEffect(() => {
+    if (!chosenDateIsBooked) return
+    setEventDate("")
+    setDateNotice("booked")
+  }, [chosenDateIsBooked])
 
   // Not in the list: the professional does not exist (any more). A failed lookup says nothing about that.
   const lookupFailed = liveArtists.failed || livePhotographers.failed
@@ -252,10 +272,6 @@ export default function BookingPage() {
     return day === 0 ? 6 : day - 1
   }
 
-  const isBooked = (iso: string) => Boolean(professional.unavailableDates?.includes(iso)) || blockedDates.includes(iso)
-  // The date field of step 2 also accepts typed dates, so past and booked dates are checked again here.
-  const dateProblem = !eventDate ? null : eventDate < todayIso() ? "past" : isBooked(eventDate) ? "booked" : null
-
   // An end time before the start time is after midnight; the same time twice is not a duration (the server refuses it too).
   const sameTime = Boolean(startTime) && startTime === endTime
   const endsNextDay = Boolean(startTime && endTime) && endTime < startTime
@@ -272,12 +288,12 @@ export default function BookingPage() {
 
   // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
   const missingStep1 = [
-    (!eventDate || dateProblem) && tr("een datum in de kalender", "a date in the calendar"),
+    !eventDate && tr("een datum in de kalender", "a date in the calendar"),
     !eventLocation.trim() && tr("de plaats van je evenement", "the place of your event"),
     eventLocation.trim() && distance === null && tr("de afstand (klik op de knop naast de plaats)", "the distance (click the button next to the place)"),
   ].filter(Boolean) as string[]
   const missingStep2 = [
-    (!eventDate || dateProblem) && tr("een beschikbare datum", "an available date"),
+    !eventDate && tr("een datum (stap 1)", "a date (step 1)"),
     (!eventName || eventName.length < 3) && tr("een naam voor je evenement (minimaal 3 tekens)", "a name for your event (at least 3 characters)"),
     (!startTime || !endTime) && tr("een start- en eindtijd", "a start and end time"),
   ].filter(Boolean) as string[]
@@ -293,6 +309,18 @@ export default function BookingPage() {
     customerType === "business" && !companyName.trim() && tr("bedrijfsnaam", "company name"),
     customerType === "business" && !vatNumber.trim() && tr("btw-nummer", "VAT number"),
   ].filter(Boolean) as string[]
+  // The place of step 1 decides the travel costs, so the address of step 2 takes it over. It may be a postal code too.
+  const locationIsPostcode = /\d/.test(eventLocation)
+  const changeInStep1 = (label: string) => (
+    <button
+      type="button"
+      onClick={() => setCurrentStep(1)}
+      aria-label={label}
+      className="shrink-0 rounded text-sm font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-red-600 dark:text-red-400"
+    >
+      {tr("Wijzig", "Change")}
+    </button>
+  )
   const missingHint = (items: string[]) =>
     items.length > 0 ? (
       <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
@@ -371,8 +399,8 @@ export default function BookingPage() {
         street: streetName,
         houseNumber,
         houseNumberExt,
-        postalCode,
-        city: city || eventLocation,
+        postalCode: locationIsPostcode ? eventLocation.trim().toUpperCase() : postalCode,
+        city: locationIsPostcode ? city.trim() || eventLocation : eventLocation,
         country,
         distanceKm: distance ?? 0,
         eventLocation,
@@ -452,7 +480,10 @@ export default function BookingPage() {
         <button
           key={day}
           type="button"
-          onClick={() => !unavailable && !isPast && setEventDate(isSelected ? "" : iso)}
+          onClick={() => {
+            setEventDate(isSelected ? "" : iso)
+            setDateNotice(null)
+          }}
           aria-pressed={isSelected}
           aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("al geboekt", "already booked")})` : ""}`}
           disabled={unavailable || isPast}
@@ -749,6 +780,15 @@ export default function BookingPage() {
                     <div className="mt-4 p-3 bg-muted rounded-lg">
                       <p className="text-sm font-medium text-muted-foreground">{t.selectedDateLabel}</p>
                       <p className="text-sm text-foreground font-semibold">{formatSelectedDate()}</p>
+                      {dateNotice && !eventDate && (
+                        <p role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {dateNotice === "past"
+                            ? tr("De gekozen datum is al voorbij. Kies een andere datum.", "The chosen date has passed. Choose another date.")
+                            : dateNotice === "booked"
+                              ? tr("De gekozen datum is al geboekt. Kies een andere datum.", "The chosen date is already booked. Choose another date.")
+                              : tr("De datum uit de link bestaat niet. Kies een datum in de kalender.", "The date in the link does not exist. Choose a date in the calendar.")}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -787,7 +827,7 @@ export default function BookingPage() {
                     type="text"
                     value={eventLocation}
                     onChange={(e) => {
-                      setEventLocation(lettersOnly(e.target.value))
+                      setEventLocation(placeChars(e.target.value))
                       // The distance belongs to the previous place.
                       setDistance(null)
                       setDistanceError(null)
@@ -801,6 +841,7 @@ export default function BookingPage() {
                     enterKeyHint="search"
                     aria-label={t.eventLocationLabel}
                     autoComplete="address-level2"
+                    maxLength={120}
                     placeholder={t.enterCityName}
                     className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
@@ -823,7 +864,7 @@ export default function BookingPage() {
                     </p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
-                      {t.estimatedTravelCost} {formatEuro(distance * 2 * 25)} {tr("excl. btw", "excl. VAT")} ({tr("retour", "round trip")}: {distance * 2} km)
+                      {t.estimatedTravelCost} {formatEuro(travelCents(distance))} {tr("excl. btw", "excl. VAT")} ({tr("retour", "round trip")}: {distance * 2} km)
                     </p>
                   </div>
                 )}
@@ -832,13 +873,8 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => {
-                    const place = eventLocation.trim()
-                    setCity((current) => (!current.trim() || current === cityFromStep1.current ? place : current))
-                    cityFromStep1.current = place
-                    setCurrentStep(2)
-                  }}
-                  disabled={!eventDate || Boolean(dateProblem) || !eventLocation.trim() || distance === null}
+                  onClick={() => setCurrentStep(2)}
+                  disabled={!eventDate || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
@@ -874,31 +910,11 @@ export default function BookingPage() {
                 {/* Date and Times */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label htmlFor="booking-date" className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</label>
-                    <input
-                      id="booking-date"
-                      type="date"
-                      value={eventDate}
-                      min={todayIso()}
-                      onChange={(e) => {
-                        setEventDate(e.target.value)
-                        const [year, month] = e.target.value.split("-").map(Number)
-                        if (year && month) {
-                          setCurrentYear(year)
-                          setCurrentMonth(month - 1)
-                        }
-                      }}
-                      aria-invalid={Boolean(dateProblem)}
-                      aria-describedby={dateProblem ? "booking-date-error" : undefined}
-                      className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                    />
-                    {dateProblem && (
-                      <p id="booking-date-error" role="alert" className="mt-1 text-xs text-red-500">
-                        {dateProblem === "past"
-                          ? tr("Deze datum is al voorbij.", "This date has passed.")
-                          : tr("Op deze datum is de professional al geboekt.", "The professional is already booked on this date.")}
-                      </p>
-                    )}
+                    <span className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</span>
+                    <div className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground">
+                      <span>{eventDate ? formatEventDate(eventDate, dateLocale, "short") : tr("Niet gekozen", "Not selected")}</span>
+                      {changeInStep1(tr("Datum wijzigen", "Change date"))}
+                    </div>
                   </div>
                   <div>
                     <label htmlFor="booking-start" className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}</label>
@@ -1189,26 +1205,45 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label htmlFor="booking-postal" className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
-                        <input
-                          id="booking-postal"
-                          maxLength={20}
-                          type="text"
-                          value={postalCode}
-                          onChange={(e) => setPostalCode(postalCodeChars(e.target.value))}
-                          className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                        />
+                        <label htmlFor={locationIsPostcode ? undefined : "booking-postal"} className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
+                        {locationIsPostcode ? (
+                          <div id="booking-postal" className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm sm:text-base text-foreground">
+                            <span>{eventLocation.trim().toUpperCase()}</span>
+                            {changeInStep1(tr("Postcode wijzigen", "Change postal code"))}
+                          </div>
+                        ) : (
+                          <input
+                            id="booking-postal"
+                            maxLength={20}
+                            type="text"
+                            value={postalCode}
+                            onChange={(e) => setPostalCode(postalCodeChars(e.target.value))}
+                            className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
+                          />
+                        )}
                       </div>
                       <div>
-                        <label htmlFor="booking-city" className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
-                        <input
-                          id="booking-city"
-                          maxLength={120}
-                          type="text"
-                          value={city}
-                          onChange={(e) => setCity(lettersOnly(e.target.value))}
-                          className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                        />
+                        {locationIsPostcode ? (
+                          <>
+                            <label htmlFor="booking-city" className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
+                            <input
+                              id="booking-city"
+                              maxLength={120}
+                              type="text"
+                              value={city}
+                              onChange={(e) => setCity(lettersOnly(e.target.value))}
+                              className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <span className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</span>
+                            <div className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm sm:text-base text-foreground">
+                              <span className="min-w-0 break-words">{eventLocation.trim()}</span>
+                              {changeInStep1(tr("Plaats wijzigen", "Change place"))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                     
@@ -1309,7 +1344,7 @@ export default function BookingPage() {
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!eventDate || Boolean(dateProblem) || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !bookingOptions}
+                  disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
@@ -1399,7 +1434,7 @@ export default function BookingPage() {
                   <span>{submitError}</span>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || Boolean(dateProblem) || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
