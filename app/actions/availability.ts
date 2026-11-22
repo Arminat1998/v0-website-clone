@@ -1,11 +1,11 @@
 "use server"
 
-import { and, eq, inArray } from "drizzle-orm"
+import { and, asc, eq, gte, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { professionalUnavailableDates } from "@/lib/db/schema"
 import { ensureUnavailableDatesTable, loadBlockedByHand, lockDate } from "@/lib/bookings/availability"
-import { isBookableDate } from "@/lib/bookings/format"
+import { isBookableDate, todayIso } from "@/lib/bookings/format"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { takeToken } from "@/lib/rate-limit"
 
@@ -39,9 +39,10 @@ export async function saveMyAvailability(input: { dates: string[]; available: bo
   // Sorted, so two saves at the same time take the locks in the same order.
   const dates = [...new Set(input.dates)].sort()
 
+  let stored: { date: string }[]
   try {
     await ensureUnavailableDatesTable()
-    await db.transaction(async (tx) => {
+    stored = await db.transaction(async (tx) => {
       for (const date of dates) await lockDate(tx, professionalId, date)
       if (input.available) {
         await tx
@@ -53,6 +54,11 @@ export async function saveMyAvailability(input: { dates: string[]; available: bo
           .values(dates.map((date) => ({ professionalId, date })))
           .onConflictDoNothing()
       }
+      return tx
+        .select({ date: professionalUnavailableDates.date })
+        .from(professionalUnavailableDates)
+        .where(and(eq(professionalUnavailableDates.professionalId, professionalId), gte(professionalUnavailableDates.date, todayIso())))
+        .orderBy(asc(professionalUnavailableDates.date))
     })
   } catch (error) {
     console.error("Failed to save availability:", error)
@@ -62,5 +68,5 @@ export async function saveMyAvailability(input: { dates: string[]; available: bo
   revalidatePath("/dashboard/calendar")
   revalidatePath("/artiest/[slug]", "page")
   revalidatePath("/foto-video/[slug]", "page")
-  return { ok: true, unavailableDates: await loadBlockedByHand(professionalId) }
+  return { ok: true, unavailableDates: stored.map((row) => row.date) }
 }
