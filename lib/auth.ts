@@ -24,6 +24,8 @@ export const auth = betterAuth({
       : process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : process.env.V0_RUNTIME_URL),
+  // Nothing on the site uses this endpoint: profiles are saved through server actions.
+  disabledPaths: ["/update-user"],
   emailAndPassword: {
     enabled: true,
     autoSignIn: true,
@@ -68,10 +70,12 @@ export const auth = betterAuth({
         },
       },
       update: {
+        // better-auth merges what a hook returns over the original data, so leaving a field out of the result
+        // does not remove it. Refuse the update instead.
         before: async (data) => {
-          const safe = { ...data } as Record<string, unknown>
-          for (const field of SIGNUP_ONLY_FIELDS) delete safe[field]
-          return { data: safe }
+          if (SIGNUP_ONLY_FIELDS.some((field) => (data as Record<string, unknown>)[field] !== undefined)) {
+            throw new APIError("FORBIDDEN", { message: "This field cannot be changed here." })
+          }
         },
       },
     },
