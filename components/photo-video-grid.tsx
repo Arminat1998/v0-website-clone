@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +12,8 @@ import { smartSearch, enhancedPhotographers } from "@/lib/smart-search"
 import type { Artist, Photographer } from "@/lib/smart-search"
 import type { FilterState } from "@/lib/conversational-ai"
 import { useLanguage } from "@/contexts/language-context"
-import { useToast } from "@/hooks/use-toast"
+import { LiveListError, ListSkeleton } from "@/components/list-status"
+import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 
 interface PhotoVideoGridProps {
   initialSearch?: string
@@ -69,19 +69,11 @@ export function PhotoVideoGrid({
   const [visitedIds, setVisitedIds] = useState<Set<number>>(new Set())
   const { t, language } = useLanguage()
   const nl = language === "nl"
-  const { toast } = useToast()
 
   // Approved photographers and videographers who registered themselves, shown before the example profiles.
-  const { data: liveData } = useSWR<{ photographers: Photographer[] }>(
-    "/api/photographers/live",
-    (url: string) => fetch(url).then((response) => response.json()),
-    { revalidateOnFocus: true },
-  )
-  // The example profiles show right away; registered ones are added on top once they have loaded.
-  const allPhotographers = useMemo(
-    () => [...(liveData?.photographers ?? []), ...enhancedPhotographers],
-    [liveData],
-  )
+  const { professionals: live, isLoading: liveLoading, failed, isRetrying, retry } = useLiveProfessionals("photo-video")
+  // The list appears in one go: nothing is shown until the registered professionals have loaded too.
+  const allPhotographers = useMemo(() => (liveLoading ? [] : [...live, ...enhancedPhotographers]), [live, liveLoading])
 
   useEffect(() => {
     if (initialSearch) {
@@ -244,6 +236,9 @@ export function PhotoVideoGrid({
         )}
       </div>
 
+      {failed && <LiveListError onRetry={retry} retrying={isRetrying} />}
+      {liveLoading && <ListSkeleton />}
+
       <div id="photo-video-results" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
         {sortedProfessionals.map((professional) => (
           <PhotoVideoCard
@@ -255,7 +250,7 @@ export function PhotoVideoGrid({
         ))}
       </div>
 
-      {sortedProfessionals.length === 0 && searchTerm && (
+      {!liveLoading && sortedProfessionals.length === 0 && searchTerm && (
         <div className="text-center text-muted-foreground py-12">
           <Sparkles className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
           <p className="text-lg font-medium mb-2 text-foreground">
@@ -282,7 +277,7 @@ export function PhotoVideoGrid({
         </div>
       )}
 
-      {sortedProfessionals.length === 0 && !searchTerm && (
+      {!liveLoading && sortedProfessionals.length === 0 && !searchTerm && (
         <div className="text-center text-muted-foreground py-12">
           <p className="text-lg text-foreground">No professionals available</p>
           <p className="text-sm mt-2">Start searching or use filters to find the perfect professional</p>

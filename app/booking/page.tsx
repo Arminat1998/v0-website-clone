@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { uploadPresigned } from "@vercel/blob/client"
 import { ComboSelect, comboGroups } from "@/components/combo-select"
+import { LiveListError } from "@/components/list-status"
 import { AudioUpload } from "@/components/booking/audio-upload"
 import { audioContentType, newAudioPath } from "@/lib/bookings/audio"
 import { artists, photographers } from "@/lib/smart-search"
@@ -16,6 +17,7 @@ import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
 import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions } from "@/app/actions/bookings"
+import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
@@ -149,29 +151,19 @@ export default function BookingPage() {
   // Get artist or photographer data
   const staticArtist = artistId ? artists.find(a => a.id === Number(artistId)) : null
   const needsLiveLookup = Boolean(artistId) && !staticArtist
-  const { data: liveData, isLoading: liveLoading } = useSWR<{ artists: typeof artists }>(
-    needsLiveLookup ? "/api/artists/live" : null,
-    (url: string) => fetch(url).then((response) => response.json()),
-  )
-  const liveArtist = needsLiveLookup
-    ? liveData?.artists.find((a) => String(a.id) === artistId)
-    : null
+  const liveArtists = useLiveProfessionals("artist", needsLiveLookup)
+  const liveArtist = needsLiveLookup ? liveArtists.professionals.find((a) => String(a.id) === artistId) : null
   const artist = staticArtist || liveArtist || null
   const staticPhotographer = professionalId ? photographers.find(p => p.id === Number(professionalId)) : null
   const needsPhotographerLookup = Boolean(professionalId) && !staticPhotographer
-  const { data: livePhotographerData, isLoading: livePhotographerLoading } = useSWR<{ photographers: typeof photographers }>(
-    needsPhotographerLookup ? "/api/photographers/live" : null,
-    (url: string) => fetch(url).then((response) => response.json()),
-  )
-  const livePhotographer = needsPhotographerLookup
-    ? livePhotographerData?.photographers.find((p) => String(p.id) === professionalId)
-    : null
+  const livePhotographers = useLiveProfessionals("photo-video", needsPhotographerLookup)
+  const livePhotographer = needsPhotographerLookup ? livePhotographers.professionals.find((p) => String(p.id) === professionalId) : null
   const photographer = staticPhotographer || livePhotographer || null
   const professional = artist || photographer
 
   // Rates, hours, travel range, the professional's own equipment and the VAT come from the server.
   const optionsKey = professional && !isDemoProfessional(professional.id) ? ["booking-options", String(professional.id)] : null
-  const { data: bookingOptions, isLoading: optionsLoading } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
+  const { data: bookingOptions, isLoading: optionsLoading, mutate: reloadOptions } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
   useEffect(() => {
     // Artists start with their own equipment package selected; photographers have none.
     if (bookingOptions?.package && artist) setSelectedEquipment((prev) => (prev.length ? prev : [PACKAGE_OPTION_ID]))
@@ -187,16 +179,32 @@ export default function BookingPage() {
     }
   }, [initialDate])
 
+  // Not in the list: the professional does not exist (any more). A failed lookup says nothing about that.
+  const lookupFailed = liveArtists.failed || livePhotographers.failed
+  const notFound = !professional && !lookupFailed && !liveArtists.isLoading && !livePhotographers.isLoading
   useEffect(() => {
-    const artistLookupDone = !liveLoading && (!needsLiveLookup || liveData)
-    const photographerLookupDone = !livePhotographerLoading && (!needsPhotographerLookup || livePhotographerData)
-    if (!professional && artistLookupDone && photographerLookupDone) {
-      router.push("/")
-    }
-  }, [professional, router, liveLoading, needsLiveLookup, liveData, livePhotographerLoading, needsPhotographerLookup, livePhotographerData])
+    if (notFound) router.push("/")
+  }, [notFound, router])
 
   if (!professional) {
-    return null
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto max-w-xl px-4 py-16">
+          {lookupFailed ? (
+            <LiveListError
+              onRetry={() => (liveArtists.failed ? liveArtists : livePhotographers).retry()}
+              retrying={liveArtists.isRetrying || livePhotographers.isRetrying}
+            />
+          ) : (
+            <div className="flex justify-center" role="status">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+              <span className="sr-only">{tr("Laden...", "Loading...")}</span>
+            </div>
+          )}
+        </main>
+      </div>
+    )
   }
 
   // Sample profiles cannot be booked: nobody would receive the request.
@@ -1284,6 +1292,12 @@ export default function BookingPage() {
                 </div>
               )}
               {optionsLoading && <p className="text-sm text-muted-foreground">{tr("Prijzen laden...", "Loading prices...")}</p>}
+              {!optionsLoading && !bookingOptions && (
+                <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-foreground">
+                  <span>{tr("De prijzen van deze professional konden niet worden geladen.", "This professional's prices could not be loaded.")}</span>
+                  <Button type="button" variant="outline" className="h-11" onClick={() => void reloadOptions()}>{tr("Opnieuw proberen", "Try again")}</Button>
+                </div>
+              )}
 
               {/* Navigation Buttons */}
               <div className="flex gap-3">

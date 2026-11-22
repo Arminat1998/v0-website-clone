@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { tagKey } from "@/lib/profile-options"
-import useSWR from "swr"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,10 +12,10 @@ import { ArtiestProfileModal } from "@/components/artiest-profile-modal"
 import { smartSearch, enhancedArtists } from "@/lib/smart-search"
 import type { Artist } from "@/lib/smart-search"
 import type { FilterState } from "@/lib/conversational-ai"
+import { LiveListError, ListSkeleton } from "@/components/list-status"
+import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import { useLanguage } from "@/contexts/language-context"
 import { updateListState, getViewedArtistIds, markArtistViewed, type ArtiestListState } from "@/lib/artiest-list-state"
-
-const fetcher = (url: string) => fetch(url).then((response) => response.json())
 
 interface ArtiestGridProps {
   restoredState?: ArtiestListState | null
@@ -71,13 +70,11 @@ export function ArtiestGrid({
     onFilterUpdate?.(filters)
   }
 
-  const { data: liveData, isLoading: liveLoading } = useSWR<{ artists: Artist[] }>("/api/artists/live", fetcher, {
-    revalidateOnFocus: true,
-  })
+  const { professionals: liveArtists, isLoading: liveLoading, failed, isRetrying, retry } = useLiveProfessionals("artist")
   // The list appears in one go: nothing is shown until the registered artists have loaded too.
   const allArtists = useMemo(
-    () => (liveLoading ? [] : [...(liveData?.artists ?? []), ...enhancedArtists]),
-    [liveData, liveLoading],
+    () => (liveLoading ? [] : [...liveArtists, ...enhancedArtists]),
+    [liveArtists, liveLoading],
   )
 
   const filteredArtists = useMemo(() => {
@@ -250,6 +247,8 @@ export function ArtiestGrid({
         )}
       </div>
 
+      {failed && <LiveListError onRetry={retry} retrying={isRetrying} />}
+
       <div id="artist-results" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
         {sortedArtists.map((artist) => (
           <ArtiestCard
@@ -286,14 +285,7 @@ export function ArtiestGrid({
         </div>
       )}
 
-      {liveLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5" aria-busy="true" aria-live="polite">
-          <span className="sr-only">{language === "nl" ? "Artiesten laden" : "Loading artists"}</span>
-          {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="h-[520px] animate-pulse rounded-xl border border-border bg-card" />
-          ))}
-        </div>
-      )}
+      {liveLoading && <ListSkeleton />}
 
       {!liveLoading && sortedArtists.length === 0 && !searchTerm && (
         <div className="text-center text-muted-foreground py-12">
