@@ -4,6 +4,7 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 import { db } from "@/lib/db"
 import { bookings, conversations, messages, professionalProfiles, user, type MessageRole } from "@/lib/db/schema"
+import { isBookingId } from "@/lib/bookings/booking-input"
 import { getSession } from "@/lib/session"
 
 type Viewer = { id: string; role: MessageRole }
@@ -119,33 +120,45 @@ export async function sendMessage(id: number, body: string) {
   const conversation = await accessible(v, id)
   if (!conversation) return { ok: false as const, error: "not_found" }
   const now = new Date()
-  await db.insert(messages).values({ conversationId: id, senderId: v.id, senderRole: v.role, body: text })
-  await db
-    .update(conversations)
-    .set({ lastMessageAt: now, ...(v.role === "customer" ? { customerLastReadAt: now } : { staffLastReadAt: now }) })
-    .where(eq(conversations.id, id))
+  await db.transaction(async (tx) => {
+    await tx.insert(messages).values({ conversationId: id, senderId: v.id, senderRole: v.role, body: text })
+    await tx
+      .update(conversations)
+      .set({ lastMessageAt: now, ...(v.role === "customer" ? { customerLastReadAt: now } : { staffLastReadAt: now }) })
+      .where(eq(conversations.id, id))
+  })
   return { ok: true as const }
 }
 
+/** The thread of this pair. The lock makes two requests at the same time end up in one thread. */
 async function findOrCreate(customerId: string, professionalId: string | null) {
-  await db.insert(conversations).values({ customerId, professionalId }).onConflictDoNothing()
-  const [row] = await db
-    .select({ id: conversations.id })
-    .from(conversations)
-    .where(
-      and(
-        eq(conversations.customerId, customerId),
-        professionalId ? eq(conversations.professionalId, professionalId) : isNull(conversations.professionalId),
-      ),
-    )
-    .limit(1)
-  return row.id
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`conversation:${customerId}:${professionalId ?? ""}`}))`)
+    const [existing] = await tx
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.customerId, customerId),
+          professionalId ? eq(conversations.professionalId, professionalId) : isNull(conversations.professionalId),
+        ),
+      )
+      // Earlier versions could create several threads: always continue the oldest one that has messages.
+      .orderBy(
+        sql`exists (select 1 from messages m where m.conversation_id = ${conversations.id}) desc`,
+        asc(conversations.id),
+      )
+      .limit(1)
+    if (existing) return existing.id
+    const [created] = await tx.insert(conversations).values({ customerId, professionalId }).returning({ id: conversations.id })
+    return created.id
+  })
 }
 
 /** Customers can always reach support, and a professional once they have a booking with them. */
 export async function openConversation(professionalId: string | null) {
   const v = await viewer()
-  if (v.role !== "customer") throw new Error("Forbidden")
+  if (v.role !== "customer" || (professionalId !== null && typeof professionalId !== "string")) throw new Error("Forbidden")
   if (professionalId) {
     const [booking] = await db
       .select({ id: bookings.id })
@@ -161,6 +174,7 @@ export async function openConversation(professionalId: string | null) {
 export async function openBookingConversation(bookingId: number) {
   const v = await viewer()
   if (v.role !== "professional") throw new Error("Forbidden")
+  if (!isBookingId(bookingId)) return null
   const [booking] = await db
     .select({ customerId: bookings.customerId })
     .from(bookings)
