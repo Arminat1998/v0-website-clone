@@ -3,7 +3,7 @@
 import { useBookGuard } from "@/hooks/use-book-guard"
 import { useRef, useState } from "react"
 import Link from "next/link"
-import { Camera, Loader2, MapPin, MessageCircle, Pencil, Star, Trash2 } from "lucide-react"
+import { Camera, Loader2, MapPin, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { ArtistShareButton } from "@/components/artist-share-button"
@@ -12,9 +12,9 @@ import { IMAGE_TYPES, mediaUrl, type ArtistPageContent } from "@/lib/artist-page
 import type { Artist } from "@/lib/smart-search"
 import {
   WebsiteProvider,
-  websiteCopy,
-  photoVideoCopy,
   bookingHref,
+  professionLabel,
+  profileCopy,
   type DialogKey,
   type TabKey,
   type WebsiteEditApi,
@@ -32,6 +32,7 @@ import {
 import { EquipmentSection } from "@/components/artist-website/equipment-section"
 import { AvailabilitySection } from "@/components/artist-website/availability-section"
 import { EditDialogs } from "@/components/artist-website/edit-dialogs"
+import { ProfileRating } from "@/components/artist-website/profile-rating"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
 
@@ -47,7 +48,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
   const bookGuard = useBookGuard()
   const { language } = useLanguage()
   const lang = language === "en" ? "en" : "nl"
-  const t = artist.kind === "photo-video" ? { ...websiteCopy[lang], ...photoVideoCopy[lang] } : websiteCopy[lang]
+  const t = profileCopy(artist, lang)
   const [tab, setTab] = useState<TabKey>("overview")
   const [dialog, setDialog] = useState<DialogKey | null>(null)
   const [photoIndex, setPhotoIndex] = useState<number | null>(null)
@@ -57,7 +58,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
 
   const bannerSrc = content.bannerPath ? mediaUrl(content.bannerPath) : artist.image
   const avatarSrc = content.avatarPath ? mediaUrl(content.avatarPath) : artist.image
-  const tagline = content.tagline || (edit ? "" : artist.specialty)
+  const tagline = content.tagline || (edit ? "" : professionLabel(artist.specialty, lang === "nl"))
   const activePhoto = photoIndex !== null ? content.gallery[photoIndex] : null
 
   return (
@@ -167,24 +168,13 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                 )}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="flex" aria-hidden="true">
-                    {Array.from({ length: 5 }, (_, index) => (
-                      <Star
-                        key={index}
-                        className={`size-4 ${index < Math.floor(artist.rating) ? "fill-yellow-400 text-yellow-400" : "fill-muted text-muted"}`}
-                      />
-                    ))}
+                <ProfileRating artist={artist} />
+                {artist.location && (
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="size-4" aria-hidden="true" />
+                    {artist.location}
                   </span>
-                  <span className="font-semibold text-foreground">{artist.rating}</span>
-                  <span>
-                    ({artist.reviews} {t.reviews})
-                  </span>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="size-4" aria-hidden="true" />
-                  {artist.location}
-                </span>
+                )}
               </div>
             </div>
           </div>
@@ -197,20 +187,12 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                   {t.editBasics}
                 </Link>
               </Button>
+            ) : isDemoProfessional(artist.id) ? (
+              <DemoBookButton className="h-11" />
             ) : (
-              <>
-                <Button type="button" variant="outline" className="bg-transparent">
-                  <MessageCircle className="size-4" aria-hidden="true" />
-                  {t.chat}
-                </Button>
-                {isDemoProfessional(artist.id) ? (
-                  <DemoBookButton />
-                ) : (
-                  <Button asChild className="bg-red-700 text-white hover:bg-red-600">
-                    <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
-                  </Button>
-                )}
-              </>
+              <Button asChild className="h-11 bg-red-700 text-white hover:bg-red-600">
+                <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
+              </Button>
             )}
           </div>
         </header>
@@ -222,10 +204,12 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
                 key={key}
                 type="button"
                 role="tab"
+                id={`profile-tab-${key}`}
                 aria-selected={tab === key}
+                aria-controls="profile-tabpanel"
                 onClick={() => setTab(key)}
                 className={`shrink-0 whitespace-nowrap border-b-[3px] px-3 py-3.5 text-sm font-semibold transition-colors sm:px-4 sm:py-4 ${
-                  tab === key ? "border-red-600 text-red-500" : "border-transparent text-muted-foreground hover:text-foreground"
+                  tab === key ? "border-red-600 text-red-700 dark:text-red-400" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t.tabs[key]}
@@ -234,7 +218,12 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
           </div>
         </nav>
 
-        <div className="mt-4 border-t border-border bg-muted/20 px-0 pt-4 sm:px-0">
+        <div
+          role="tabpanel"
+          id="profile-tabpanel"
+          aria-labelledby={`profile-tab-${tab}`}
+          className="mt-4 border-t border-border bg-muted/20 pt-4"
+        >
           {tab === "overview" && (
             <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
               <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
