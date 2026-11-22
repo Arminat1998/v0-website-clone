@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { Calendar, Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
+import { Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { uploadPresigned } from "@vercel/blob/client"
@@ -28,6 +28,10 @@ import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking
 
 const toIsoDate = (year: number, month: number, day: number) =>
   `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
+
+// The same limits as the server.
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+const isPhone = (value: string) => value.replace(/\D/g, "").length >= 6
 
 /** Empty, or an address that starts with http(s). */
 function isWebLink(value: string) {
@@ -365,8 +369,8 @@ export default function BookingPage() {
   const missingStep3 = [
     !firstName.trim() && tr("voornaam", "first name"),
     !lastName.trim() && tr("achternaam", "last name"),
-    !email.includes("@") && tr("geldig e-mailadres", "valid email address"),
-    !phone.trim() && tr("telefoonnummer", "phone number"),
+    !isEmail(email) && tr("geldig e-mailadres", "valid email address"),
+    !isPhone(phone) && tr("telefoonnummer (minimaal 6 cijfers)", "phone number (at least 6 digits)"),
     !billingStreet.trim() && tr("straat", "street"),
     !billingHouseNumber.trim() && tr("huisnummer", "house number"),
     !billingPostalCode.trim() && tr("postcode", "postal code"),
@@ -493,7 +497,10 @@ export default function BookingPage() {
           setDateNotice("booked")
           void reloadBlockedDates()
         }
-        setSubmitError(bookingErrorMessage(result.error, language === "nl"))
+        // An upload can be used for a day; after that the files have to be uploaded again.
+        const audioSent = Boolean(openingDanceUpload || lastSongUpload)
+        if (result.error === "INVALID_DETAILS") uploadedAudio.current.clear()
+        setSubmitError(bookingErrorMessage(result.error, language === "nl", { field: result.field, audioSent }))
       }
     } catch (error) {
       console.error("Booking submit failed:", error)
@@ -546,7 +553,7 @@ export default function BookingPage() {
             setDateNotice(null)
           }}
           aria-pressed={isSelected}
-          aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("al geboekt", "already booked")})` : ""}`}
+          aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("niet beschikbaar", "not available")})` : ""}`}
           disabled={unavailable || isPast}
           className={dayClasses}
         >
@@ -608,16 +615,6 @@ export default function BookingPage() {
   }
 
   const professionalImage = professional.image || `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(professional.name)}`
-
-  const upcomingEvents = professional.unavailableDates?.slice(0, 5).map((dateStr, idx) => {
-    const date = new Date(dateStr)
-    return {
-      id: idx + 1,
-      name: `${tr("Geboekt evenement", "Booked Event")} ${idx + 1}`,
-      date: date.toLocaleDateString(dateLocale, { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
-      location: professional.location,
-    }
-  }) || []
 
   // Booking requires an account: show a login prompt instead of the flow.
   if (!sessionData?.user) {
@@ -802,8 +799,8 @@ export default function BookingPage() {
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
                 <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{t.selectDateLocation}</h2>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Calendar */}
+                <div className="max-w-lg">
+                  {/* Calendar: booked and blocked days only show as not available, never as events */}
                   <div>
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <button
@@ -843,7 +840,7 @@ export default function BookingPage() {
                     <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={tr("Legenda", "Legend")}>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-200 dark:bg-zinc-700" aria-hidden />{tr("Beschikbaar", "Available")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" aria-hidden />{tr("Gekozen", "Selected")}</li>
-                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Al geboekt", "Already booked")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Niet beschikbaar", "Not available")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-500 dark:bg-zinc-800" aria-hidden />{tr("Voorbij", "Past")}</li>
                     </ul>
 
@@ -855,36 +852,13 @@ export default function BookingPage() {
                           {dateNotice === "past"
                             ? tr("De gekozen datum is al voorbij. Kies een andere datum.", "The chosen date has passed. Choose another date.")
                             : dateNotice === "booked"
-                              ? tr("De gekozen datum is al geboekt. Kies een andere datum.", "The chosen date is already booked. Choose another date.")
+                              ? tr("De gekozen datum is niet beschikbaar. Kies een andere datum.", "The chosen date is not available. Choose another date.")
                               : tr("De datum uit de link bestaat niet. Kies een datum in de kalender.", "The date in the link does not exist. Choose a date in the calendar.")}
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Upcoming Events */}
-                  <div>
-                    <h3 className="text-lg font-bold mb-3 text-foreground">{t.upcomingEvents}</h3>
-                    {upcomingEvents.length > 0 ? (
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                        {upcomingEvents.map((event) => (
-                          <div key={event.id} className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3">
-                            <h4 className="font-semibold text-foreground text-sm mb-1">{event.name}</h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>{event.date}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <MapPin className="w-3 h-3" />
-                              <span>{event.location}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t.noUpcomingEvents}</p>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -1477,7 +1451,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
               {missingHint(missingStep3)}
             </div>
           )}

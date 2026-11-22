@@ -12,20 +12,25 @@ export type BookingSubmitError =
 
 export type BookingSubmitResult =
   | { ok: true; id: number }
-  | { ok: false; error: BookingSubmitError; totalCents?: number }
+  | { ok: false; error: BookingSubmitError; totalCents?: number; field?: string }
 
 /**
  * Reads the answer of createBooking. The older form ({ id }, thrown errors) is understood as well, so the page
  * works with both; `{ ok: true, id } | { ok: false, error }` is the lasting one.
  */
 export function readBookingResult(answer: unknown): BookingSubmitResult {
-  const result = (answer ?? {}) as { ok?: boolean; id?: number; error?: BookingSubmitError; totalCents?: number }
+  const result = (answer ?? {}) as { ok?: boolean; id?: number; error?: BookingSubmitError; totalCents?: number; field?: string }
   if (result.ok !== false && typeof result.id === "number") return { ok: true, id: result.id }
-  return { ok: false, error: result.error ?? "RETRY", totalCents: result.totalCents }
+  return { ok: false, error: result.error ?? "RETRY", totalCents: result.totalCents, field: result.field }
 }
 
 /** The message for a refused request and the step where it can be solved. Price changes have their own block. */
-export function bookingErrorMessage(error: BookingSubmitError, nl: boolean): { text: string; step?: number } {
+export function bookingErrorMessage(
+  error: BookingSubmitError,
+  nl: boolean,
+  details: { field?: string; audioSent?: boolean } = {},
+): { text: string; step?: number } {
+  const { field = "" } = details
   switch (error) {
     case "UNAUTHORIZED":
       return {
@@ -61,6 +66,32 @@ export function bookingErrorMessage(error: BookingSubmitError, nl: boolean): { t
           : "This professional cannot be booked at the moment. Choose another professional.",
       }
     case "INVALID_DETAILS":
+      if (/FileName$/.test(field) || (!field && details.audioSent)) {
+        return {
+          text: nl
+            ? "Je muziekbestand kon niet worden gebruikt; een upload blijft maar een dag geldig. Verstuur je aanvraag opnieuw, dan uploaden we het bestand opnieuw. Lukt dat niet, kies dan in stap 2 een ander bestand of een link."
+            : "Your music file could not be used; an upload is only valid for a day. Send your request again and the file is uploaded again. If that fails, choose another file or a link in step 2.",
+          step: 2,
+        }
+      }
+      if (/Link$/.test(field)) {
+        return {
+          text: nl ? "Een van je muzieklinks is ongeldig. Pas die aan in stap 2." : "One of your music links is invalid. Change it in step 2.",
+          step: 2,
+        }
+      }
+      if (/^(firstName|lastName|email|phone|companyName|vatNumber|billing)/.test(field)) {
+        return {
+          text: nl ? "Je persoonlijke of factuurgegevens zijn niet compleet of ongeldig. Controleer stap 3." : "Your personal or billing details are incomplete or invalid. Check step 3.",
+          step: 3,
+        }
+      }
+      if (field === "eventDate") {
+        return {
+          text: nl ? "Deze datum kan niet worden geboekt. Kies in stap 1 een andere datum." : "This date cannot be booked. Choose another date in step 1.",
+          step: 1,
+        }
+      }
       return {
         text: nl
           ? "Niet alle gegevens konden worden verwerkt, bijvoorbeeld een te lange tekst of een ongeldige link. Controleer stap 2 en 3."
