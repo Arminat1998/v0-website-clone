@@ -35,6 +35,9 @@ export interface FavoriteItem {
   location: string;
   price: string;
   image: string | null;
+  /** Banner and profile photo of the professional's own page. */
+  banner?: string | null;
+  avatar?: string | null;
   href: string;
   available: boolean;
 }

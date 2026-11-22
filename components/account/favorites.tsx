@@ -33,20 +33,29 @@ export function AccountFavorites({ favorites }: { favorites: FavoriteItem[] }) {
           {favorites.map((favorite) => (
             <Card
               key={`${favorite.professionalType}:${favorite.professionalId}`}
-              className="overflow-hidden"
+              className="overflow-hidden pt-0"
             >
-              {favorite.image ? (
-                <img
-                  src={favorite.image}
-                  alt={favorite.name}
-                  className="aspect-[16/10] w-full object-cover"
-                />
-              ) : (
-                <div className="flex aspect-[16/10] items-center justify-center bg-accent text-muted-foreground">
-                  <UserRound className="size-12" />
-                </div>
-              )}
-              <CardHeader>
+              <div className="relative">
+                {favorite.banner || favorite.image ? (
+                  <img
+                    src={favorite.banner || favorite.image || ""}
+                    alt=""
+                    className="aspect-[16/10] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[16/10] items-center justify-center bg-accent text-muted-foreground">
+                    <UserRound className="size-12" aria-hidden />
+                  </div>
+                )}
+                {(favorite.avatar || favorite.image) && (
+                  <img
+                    src={favorite.avatar || favorite.image || ""}
+                    alt={favorite.name}
+                    className="absolute -bottom-8 left-6 size-20 rounded-full border-4 border-card bg-card object-cover shadow-lg"
+                  />
+                )}
+              </div>
+              <CardHeader className={favorite.avatar || favorite.image ? "pt-6" : undefined}>
                 <CardTitle>
                   <h2>{favorite.available
                     ? favorite.name

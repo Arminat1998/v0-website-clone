@@ -1,9 +1,10 @@
 import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { professionalProfiles, user } from "@/lib/db/schema";
+import { artistPages, professionalProfiles, user } from "@/lib/db/schema";
 import { artists, photographers } from "@/lib/smart-search";
 import { getArtistPath } from "@/lib/artist-slug";
+import { mediaUrl } from "@/lib/artist-page-types";
 import { getRestriction } from "@/lib/moderation";
 import { getProfessionalArtistPath } from "@/lib/professional-artist";
 import { isPhotoVideo } from "@/lib/profile-options";
@@ -40,6 +41,8 @@ export async function resolveCustomerProfessionals(
           id: user.id,
           name: user.name,
           image: user.image,
+          bannerPath: artistPages.bannerPath,
+          avatarPath: artistPages.avatarPath,
           category: user.category,
           status: user.status,
           statusReason: user.statusReason,
@@ -51,6 +54,7 @@ export async function resolveCustomerProfessionals(
         })
         .from(user)
         .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, user.id))
+        .leftJoin(artistPages, eq(artistPages.professionalId, user.id))
         .where(
           and(
             inArray(user.id, ids),
@@ -74,6 +78,8 @@ export async function resolveCustomerProfessionals(
       location: row.city,
       price: `€${row.rate}`,
       image: row.image,
+      banner: row.bannerPath ? mediaUrl(row.bannerPath) : null,
+      avatar: row.avatarPath ? mediaUrl(row.avatarPath) : null,
       available: true,
       href: getProfessionalArtistPath({ id, name: row.stageName || row.name, category: row.category }),
     };

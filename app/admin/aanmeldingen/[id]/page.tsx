@@ -53,10 +53,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       <div className="bg-card border border-border rounded-xl overflow-hidden mb-6">
         <div className="relative h-40 sm:h-48 w-full bg-accent">
           <Image
-            src={submission.photo || "/placeholder.svg"}
+            src={submission.banner || submission.photo || "/placeholder.svg"}
             alt=""
             fill
-            className="object-cover opacity-40"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
         </div>
