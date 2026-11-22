@@ -64,8 +64,6 @@ export interface Translations {
   aiMatchingActive: string
   noPerfectMatch: string
   tryOtherSearchTermsAI: string
-  invalidFile: string
-  uploadAudioFile: string
   locationNotFound: string
   distanceCalculationError: string
   artistsFound: string
@@ -178,13 +176,6 @@ export interface Translations {
   allQuestionsAnswered: string
   viewResultsBelow: string
   smartFilterAdjustments: string
-  uploadMp3: string
-  analyzeSong: string
-  findDJByMusic: string
-  uploadYourMusic: string
-  analyzingMusic: string
-  uploadMp3Tooltip: string
-  analyzeSongTooltip: string
 
   // Conversational AI Questions
   aiWelcomeDefault: string
@@ -388,8 +379,6 @@ export const translations: Record<Language, Translations> = {
     aiMatchingActive: "AI-matching actief",
     noPerfectMatch: "Geen perfecte match gevonden",
     tryOtherSearchTermsAI: "Probeer andere woorden of beschrijf je evenement anders.",
-    invalidFile: "Ongeldig bestand",
-    uploadAudioFile: "Upload een audiobestand (MP3, WAV, M4A, enz.).",
     locationNotFound: "Een of beide locaties zijn niet gevonden. Controleer de spelling.",
     distanceCalculationError: "De afstand kon niet worden berekend. Probeer het opnieuw.",
     artistsFound: "professionals gevonden voor",
@@ -503,13 +492,6 @@ export const translations: Record<Language, Translations> = {
     allQuestionsAnswered: "Alle vragen beantwoord! Bekijk je resultaten hieronder.",
     viewResultsBelow: "Bekijk je resultaten",
     smartFilterAdjustments: "Slimme filter aanpassingen:",
-    uploadMp3: "Upload MP3",
-    analyzeSong: "Analyseer Nummer",
-    findDJByMusic: "Vind DJ op basis van muziek",
-    uploadYourMusic: "Upload je muziek bestand",
-    analyzingMusic: "Muziek analyseren...",
-    uploadMp3Tooltip: "Upload een MP3 bestand om DJs te vinden die bij jouw muziekkeuze passen",
-    analyzeSongTooltip: "Analyseer een nummer om de perfecte DJ match te vinden",
 
     // Conversational AI Questions
     aiWelcomeDefault: "Ik help je graag met het vinden van de perfecte artiest! Laten we beginnen met een paar vragen.",
@@ -713,8 +695,6 @@ export const translations: Record<Language, Translations> = {
     aiMatchingActive: "AI matching active",
     noPerfectMatch: "No perfect match found",
     tryOtherSearchTermsAI: "Try other words or describe your event differently.",
-    invalidFile: "Invalid file",
-    uploadAudioFile: "Upload an audio file (MP3, WAV, M4A, etc.).",
     locationNotFound: "One or both locations could not be found. Check the spelling.",
     distanceCalculationError: "The distance could not be calculated. Please try again.",
     artistsFound: "professionals found for",
@@ -828,13 +808,6 @@ export const translations: Record<Language, Translations> = {
     allQuestionsAnswered: "All questions answered! View your results below.",
     viewResultsBelow: "View results",
     smartFilterAdjustments: "Smart filter adjustments:",
-    uploadMp3: "Upload MP3",
-    analyzeSong: "Analyze Song",
-    findDJByMusic: "Find DJ by music taste",
-    uploadYourMusic: "Upload your music file",
-    analyzingMusic: "Analyzing music...",
-    uploadMp3Tooltip: "Upload an MP3 file to find DJs matching your music taste",
-    analyzeSongTooltip: "Analyze a song to find the perfect DJ match",
 
     // Conversational AI Questions
     aiWelcomeDefault: "I'm happy to help you find the perfect vendor! Let's start with a few questions.",
