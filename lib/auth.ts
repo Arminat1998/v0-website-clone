@@ -15,6 +15,15 @@ const PROFESSIONAL_CATEGORIES = ["artist", "photo-video"] as const
 // (server actions and admin tools), never through /api/auth/update-user.
 const SIGNUP_ONLY_FIELDS = ["role", "category", "phone", "status", "statusReason", "suspendedUntil"] as const
 
+/**
+ * Connection point for the email provider. Until one is connected nothing is sent: the link holds a login token,
+ * so it is only written to the log during local development.
+ */
+async function deliverResetLink(_to: string, url: string) {
+  if (process.env.NODE_ENV === "development") console.log(`[auth] Wachtwoord-resetlink: ${url}`)
+  else console.warn("[auth] Wachtwoord-reset aangevraagd, maar er is nog geen e-mailprovider gekoppeld.")
+}
+
 export const auth = betterAuth({
   database: pool,
   baseURL:
@@ -31,12 +40,9 @@ export const auth = betterAuth({
     autoSignIn: true,
     minPasswordLength: 8,
     resetPasswordTokenExpiresIn: 60 * 60,
-    // No email provider is connected yet. The reset link holds a login token, so it is only written to the
-    // log during local development; in production it must go out by email once a provider is connected.
-    sendResetPassword: async ({ url }) => {
-      if (process.env.NODE_ENV === "development") console.log(`[auth] Wachtwoord-resetlink: ${url}`)
-      else console.warn("[auth] Wachtwoord-reset aangevraagd, maar er is nog geen e-mailprovider gekoppeld.")
-    },
+    // Whoever still has a session elsewhere, for example after a stolen password, is signed out by a reset.
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => deliverResetLink(user.email, url),
   },
   user: {
     additionalFields: {
