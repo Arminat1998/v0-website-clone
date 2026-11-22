@@ -122,14 +122,15 @@ const orNull = (value: string) => value || null
 
 /**
  * The distance the server charges for: calculated again from the professional's city to the event location.
- * When the geocoder is unavailable, the distance from the browser is used. Beyond the professional's travel
- * range the booking is refused.
+ * When the geocoder is unavailable, the distance from the browser is used. A place that does not exist or lies
+ * beyond the professional's travel range is refused.
  */
 async function resolveDistance(professionalId: string, eventLocation: string, clientKm: number, options: BookingOptions) {
   const from = await loadProfessionalCity(professionalId)
   const place = eventLocation.slice(0, 120)
-  const serverKm = from && place ? await distanceBetween(from, place) : null
-  const km = serverKm ?? Math.round(clientKm)
+  const serverKm = from && place ? await distanceBetween(from, place) : "unavailable"
+  if (serverKm === null) throw new BookingError("INVALID", "eventLocation")
+  const km = serverKm === "unavailable" ? Math.round(clientKm) : serverKm
   if (km > options.rangeKm) throw new BookingError("OUTSIDE_RANGE")
   return km
 }
@@ -154,7 +155,7 @@ export async function calculateBookingDistance(professionalId: string, eventLoca
   const place = String(eventLocation ?? "").trim().slice(0, 120)
   if (!options || !from || !place) return { ok: false, error: "NOT_FOUND" }
   const distanceKm = await distanceBetween(from, place)
-  if (distanceKm === null) return { ok: false, error: "NOT_FOUND" }
+  if (typeof distanceKm !== "number") return { ok: false, error: "NOT_FOUND" }
   if (distanceKm > options.rangeKm) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
   return { ok: true, distanceKm, rangeKm: options.rangeKm }
 }
