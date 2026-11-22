@@ -92,7 +92,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
                 <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 <span className="truncate">
                   {artist.location}
-                  {distanceKm ? ` · ${distanceKm} km` : ""}
+                  {distanceKm ? ` · ± ${distanceKm} km` : ""}
                 </span>
               </div>
             </div>

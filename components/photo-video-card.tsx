@@ -89,7 +89,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
               <span>
                 {professional.location}
-                {distanceKm ? ` · ${distanceKm} km` : ""}
+                {distanceKm ? ` · ± ${distanceKm} km` : ""}
               </span>
             </div>
           </div>
