@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { artistPages, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { mediaUrl } from "@/lib/artist-page-types"
 import { slugify } from "@/lib/artist-slug"
+import { loadUnavailableDates } from "@/lib/bookings/availability"
 import { getRestriction } from "@/lib/moderation"
 import { digitsOnlyPrice } from "@/lib/professional-profile-types"
 import { canonicalEventType, genreLabel, isPhotoVideo } from "@/lib/profile-options"
@@ -49,7 +50,11 @@ function packagePrice(items: EquipmentDetail[]) {
   return `€${Number.isInteger(total) ? total : total.toFixed(2).replace(".", ",")}`
 }
 
-export function buildProfessionalArtist(account: ProfessionalAccount, profile?: ProfessionalProfileSummary | null): Artist {
+export function buildProfessionalArtist(
+  account: ProfessionalAccount,
+  profile?: ProfessionalProfileSummary | null,
+  unavailableDates: string[] = [],
+): Artist {
   return {
     // Real accounts use string ids; the website only interpolates the id into URLs.
     id: account.id as unknown as number,
@@ -68,11 +73,22 @@ export function buildProfessionalArtist(account: ProfessionalAccount, profile?: 
     reviews: 0,
     price: profile?.hourlyRate ? `€${profile.hourlyRate}` : "€0",
     available: true,
+    unavailableDates,
     category: account.category ?? undefined,
     image: account.image ?? undefined,
     banner: account.bannerPath ? mediaUrl(account.bannerPath) : undefined,
     avatar: account.avatarPath ? mediaUrl(account.avatarPath) : undefined,
     kind: isPhotoVideo(account.category) ? "photo-video" : "artist",
+  }
+}
+
+/** Booked and blocked dates of all these accounts in one query; the lists stay up when it fails. */
+async function unavailableDatesOf(accounts: { id: string }[]) {
+  try {
+    return await loadUnavailableDates(accounts.map((account) => account.id))
+  } catch (error) {
+    console.error("Failed to load unavailable dates:", error)
+    return new Map<string, string[]>()
   }
 }
 
@@ -172,15 +188,14 @@ async function listLiveAccounts() {
 /** Approved artists. Photographers and videographers have their own list. */
 export async function listLiveProfessionalArtists(): Promise<Artist[]> {
   try {
-    const rows = await listLiveAccounts()
-    return rows
-      .filter((account) => !isPhotoVideo(account.category))
-      .map((account) => {
-        const { profile } = account
-        const artist = buildProfessionalArtist(account, profile)
-        // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
-        return profile.artistType ? { ...artist, category: profile.artistType } : artist
-      })
+    const rows = (await listLiveAccounts()).filter((account) => !isPhotoVideo(account.category))
+    const unavailable = await unavailableDatesOf(rows)
+    return rows.map((account) => {
+      const { profile } = account
+      const artist = buildProfessionalArtist(account, profile, unavailable.get(account.id))
+      // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
+      return profile.artistType ? { ...artist, category: profile.artistType } : artist
+    })
   } catch (error) {
     console.error("Failed to list live professionals:", error)
     return []
@@ -190,35 +205,35 @@ export async function listLiveProfessionalArtists(): Promise<Artist[]> {
 /** Approved photographers and videographers, in the shape of the photo & video page. */
 export async function listLivePhotographers(): Promise<Photographer[]> {
   try {
-    const rows = await listLiveAccounts()
-    return rows
-      .filter((account) => isPhotoVideo(account.category))
-      .map((account) => {
-        const { profile } = account
-        const artist = buildProfessionalArtist(account, profile)
-        const type = profile.artistType || "Photographer"
-        return {
-          id: artist.id,
-          name: artist.name,
-          specialty: type,
-          location: artist.location,
-          rating: 0,
-          reviews: 0,
-          price: artist.price,
-          available: true,
-          description: artist.description,
-          eventTypes: artist.eventTypes,
-          serviceTypes: artist.musicStyles,
-          experience: artist.experience,
-          // The page filters on "Photographer", "Videographer" or both.
-          category: type,
-          image: artist.image,
-          banner: artist.banner,
-          avatar: artist.avatar,
-          href: getProfessionalArtistPath(account),
-          equipmentDetails: artist.equipmentDetails,
-        }
-      })
+    const rows = (await listLiveAccounts()).filter((account) => isPhotoVideo(account.category))
+    const unavailable = await unavailableDatesOf(rows)
+    return rows.map((account) => {
+      const { profile } = account
+      const artist = buildProfessionalArtist(account, profile, unavailable.get(account.id))
+      const type = profile.artistType || "Photographer"
+      return {
+        id: artist.id,
+        name: artist.name,
+        specialty: type,
+        location: artist.location,
+        rating: 0,
+        reviews: 0,
+        price: artist.price,
+        available: true,
+        unavailableDates: artist.unavailableDates,
+        description: artist.description,
+        eventTypes: artist.eventTypes,
+        serviceTypes: artist.musicStyles,
+        experience: artist.experience,
+        // The page filters on "Photographer", "Videographer" or both.
+        category: type,
+        image: artist.image,
+        banner: artist.banner,
+        avatar: artist.avatar,
+        href: getProfessionalArtistPath(account),
+        equipmentDetails: artist.equipmentDetails,
+      }
+    })
   } catch (error) {
     console.error("Failed to list live photographers:", error)
     return []
@@ -280,7 +295,8 @@ export async function getProfessionalArtistBySlug(
       .where(eq(professionalProfiles.professionalId, account.id))
       .limit(1)
     if (review?.status !== "goedgekeurd") return null
-    return buildProfessionalArtist(account, await getProfessionalProfileSummary(account.id))
+    const [profile, unavailable] = await Promise.all([getProfessionalProfileSummary(account.id), unavailableDatesOf([account])])
+    return buildProfessionalArtist(account, profile, unavailable.get(account.id))
   } catch (error) {
     console.error("Failed to load professional account:", error)
     return null
