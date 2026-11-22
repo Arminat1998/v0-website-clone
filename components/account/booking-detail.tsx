@@ -24,14 +24,6 @@ import { canonicalEventType, eventTypeLabel, genreLabel } from "@/lib/profile-op
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
 
-/** The client's own music. Optional: shown as soon as the server includes these fields in the booking. */
-type BookingMusic = {
-  openingDanceLink?: string | null;
-  openingDanceFileName?: string | null;
-  lastSongLink?: string | null;
-  lastSongFileName?: string | null;
-};
-
 export function AccountBookingDetail({
   booking: b,
   invoice,
@@ -39,7 +31,7 @@ export function AccountBookingDetail({
   reviewToken,
   reviewDone,
 }: {
-  booking: CustomerBookingDetail & BookingMusic;
+  booking: CustomerBookingDetail;
   invoice: CustomerInvoice | null;
   bank: BankDetails | null;
   reviewToken?: string | null;
