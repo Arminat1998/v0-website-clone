@@ -1,4 +1,7 @@
-// Smart search utility for semantic matching of artists
+// The sample professionals, and the text search of the lists.
+import { parseSearch } from "@/lib/adaptive-filters"
+import { normalizeText, type ProfessionalKind } from "@/lib/list-filters"
+
 export interface Artist {
   id: number
   name: string
@@ -34,16 +37,6 @@ export interface EquipmentDetail {
   description: string
   price: string
   image?: string
-}
-
-// Added interface for extracted filters
-export interface ExtractedFilters {
-  artistTypes: string[]
-  genres: string[]
-  eventTypes: string[]
-  date?: string
-  mood?: string[]
-  location?: string
 }
 
 export interface Photographer {
@@ -183,155 +176,6 @@ function getEquipmentForCategory(category: string): string[] {
   }
 
   return equipmentMap[category] || []
-}
-
-export function extractFiltersFromQuery(query: string): ExtractedFilters {
-  const normalizedQuery = query.toLowerCase().trim()
-  const filters: ExtractedFilters = {
-    artistTypes: [],
-    genres: [],
-    eventTypes: [],
-    mood: [],
-  }
-
-  // Extract artist types
-  const artistTypePatterns = [
-    { pattern: /\b(dj|deejay|disc jockey)\b/i, type: "DJ" },
-    { pattern: /\b(saxophonist|sax player)\b/i, type: "Saxophonist" },
-    { pattern: /\b(band|live band|music band)\b/i, type: "Band" },
-    { pattern: /\b(singer|vocalist|zanger)\b/i, type: "Singer" },
-    { pattern: /\b(pianist|piano player)\b/i, type: "Pianist" },
-    { pattern: /\b(guitarist|guitar player)\b/i, type: "Guitarist" },
-    { pattern: /\b(violinist|violin player)\b/i, type: "Violinist" },
-    { pattern: /\b(live music|live muziek)\b/i, type: "Live Music" },
-    // Photographer types
-    { pattern: /\b(photographer|photo|photographie)\b/i, type: "Photographer" },
-    { pattern: /\b(videographer|video|cinematographer)\b/i, type: "Videographer" },
-    { pattern: /\b(photographer & videographer)\b/i, type: "Photographer & Videographer" },
-    { pattern: /\b(drone services|aerial photography|aerial videography)\b/i, type: "Drone Services" },
-    { pattern: /\b(live streaming|broadcasting)\b/i, type: "Live Streaming" },
-  ]
-
-  artistTypePatterns.forEach(({ pattern, type }) => {
-    if (pattern.test(normalizedQuery)) {
-      filters.artistTypes.push(type)
-    }
-  })
-
-  // Extract music genres
-  const genrePatterns = [
-    { pattern: /\b(techno)\b/i, genre: "Techno" },
-    { pattern: /\b(house|house music)\b/i, genre: "House" },
-    { pattern: /\b(pop|pop music)\b/i, genre: "Pop" },
-    { pattern: /\b(hip-hop|hip hop|hiphop|rap)\b/i, genre: "Hip-Hop" },
-    { pattern: /\b(electronic|edm)\b/i, genre: "Electronic" },
-    { pattern: /\b(jazz)\b/i, genre: "Jazz" },
-    { pattern: /\b(rock)\b/i, genre: "Rock" },
-    { pattern: /\b(classical|klassiek)\b/i, genre: "Classical" },
-    { pattern: /\b(disco)\b/i, genre: "Disco" },
-    { pattern: /\b(funk)\b/i, genre: "Funk" },
-    { pattern: /\b(ambient)\b/i, genre: "Ambient" },
-    { pattern: /\b(r&b|rnb)\b/i, genre: "R&B" },
-  ]
-
-  genrePatterns.forEach(({ pattern, genre }) => {
-    if (pattern.test(normalizedQuery)) {
-      filters.genres.push(genre)
-    }
-  })
-
-  // Extract event types
-  const eventTypePatterns = [
-    { pattern: /\b(wedding|bruiloft|trouwen)\b/i, type: "Wedding" },
-    { pattern: /\b(birthday|verjaardag|verjaardagsfeest)\b/i, type: "Birthday" },
-    { pattern: /\b(corporate|zakelijk|bedrijfsfeest)\b/i, type: "Corporate" },
-    { pattern: /\b(club|club night|clubavond)\b/i, type: "Club" },
-    { pattern: /\b(festival)\b/i, type: "Festival" },
-    { pattern: /\b(private party|privé feest|prive feest)\b/i, type: "Private Party" },
-    { pattern: /\b(kids party|kinderfeest)\b/i, type: "Kids Party" },
-    { pattern: /\b(anniversary|jubileum)\b/i, type: "Anniversary" },
-    { pattern: /\b(cocktail party|borrel)\b/i, type: "Cocktail Party" },
-    { pattern: /\b(business event|zakelijk evenement)\b/i, type: "Business Event" },
-    // Photographer event types
-    { pattern: /\b(wedding photography|wedding photos)\b/i, type: "Wedding" },
-    { pattern: /\b(corporate photography|corporate event coverage)\b/i, type: "Corporate Event" },
-    { pattern: /\b(portrait session|family photos)\b/i, type: "Portrait Session" },
-    { pattern: /\b(concert photography|live music coverage)\b/i, type: "Concert" },
-    { pattern: /\b(outdoor event)\b/i, type: "Outdoor Event" },
-    { pattern: /\b(product launch)\b/i, type: "Product Launch" },
-    { pattern: /\b(conference)\b/i, type: "Conference" },
-    { pattern: /\b(music video)\b/i, type: "Music Video" },
-    { pattern: /\b(documentary)\b/i, type: "Documentary" },
-  ]
-
-  eventTypePatterns.forEach(({ pattern, type }) => {
-    if (pattern.test(normalizedQuery)) {
-      filters.eventTypes.push(type)
-    }
-  })
-
-  // Extract mood/atmosphere
-  const moodPatterns = [
-    { pattern: /\b(energetic|energiek|energieke)\b/i, mood: "energetic" },
-    { pattern: /\b(romantic|romantisch|romantische)\b/i, mood: "romantic" },
-    { pattern: /\b(chill|relaxed|rustig)\b/i, mood: "chill" },
-    { pattern: /\b(party|feest)\b/i, mood: "party" },
-    { pattern: /\b(elegant|sophisticated|verfijnd)\b/i, mood: "elegant" },
-  ]
-
-  moodPatterns.forEach(({ pattern, mood }) => {
-    if (pattern.test(normalizedQuery)) {
-      filters.mood?.push(mood)
-    }
-  })
-
-  // Extract date (simple patterns)
-  const datePatterns = [
-    /\b(\d{1,2})\s+(januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\b/i,
-    /\b(januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\s+(\d{1,2})\b/i,
-    /\b(\d{1,2})[-/](\d{1,2})[-/](\d{4}|\d{2})\b/,
-  ]
-
-  datePatterns.forEach((pattern) => {
-    const match = normalizedQuery.match(pattern)
-    if (match) {
-      filters.date = match[0]
-    }
-  })
-
-  // Extract location/city
-  const locationPatterns = [
-    /\b(amsterdam)\b/i,
-    /\b(rotterdam)\b/i,
-    /\b(den haag|the hague)\b/i,
-    /\b(utrecht)\b/i,
-    /\b(eindhoven)\b/i,
-    /\b(groningen)\b/i,
-    /\b(tilburg)\b/i,
-    /\b(almere)\b/i,
-    /\b(breda)\b/i,
-    /\b(maastricht)\b/i,
-    /\b(nijmegen)\b/i,
-    /\b(apeldoorn)\b/i,
-    /\b(enschede)\b/i,
-    /\b(zwolle)\b/i,
-    /\b(amersfoort)\b/i,
-    /\b(dordrecht)\b/i,
-    /\b(leeuwarden)\b/i,
-    /\b(venlo)\b/i,
-    /\b(haarlem)\b/i,
-    /\b(leiden)\b/i,
-    // Add more locations as needed
-  ]
-
-  locationPatterns.forEach((pattern) => {
-    const match = normalizedQuery.match(pattern)
-    if (match) {
-      filters.location = match[0]
-    }
-  })
-
-  return filters
 }
 
 // Enhanced artist data with semantic information
@@ -1791,415 +1635,105 @@ export const enhancedPhotographers: Photographer[] = [
   },
 ]
 
-// Smart search function that understands context and intent
-export function smartSearch(query: string, artists: Artist[]): Artist[] {
-  if (!query.trim()) return artists
-
-  const normalizedQuery = query.toLowerCase().trim()
-  const queryWords = normalizedQuery.split(/\s+/)
-
-  // Extract filters from the query
-  const filters = extractFiltersFromQuery(normalizedQuery)
-
-  // Combine artist and photographer data for searching
-  const allSearchableItems = [
-    ...artists.map((artist) => ({ ...artist, type: "artist" })),
-    ...enhancedPhotographers.map((photographer) => ({ ...photographer, type: "photographer" })),
-  ]
-
-  // Score each item based on semantic relevance and filters
-  const scoredItems = allSearchableItems.map((entry) => {
-    // Artists and photographers share most fields; the rest are optional on either side.
-    const item = entry as typeof entry & Partial<Artist> & Partial<Photographer>
-    let score = 0
-    const searchableText = [
-      item.name,
-      item.specialty,
-      item.location,
-      item.description || "",
-      ...(item.eventTypes || []),
-      ...(item.musicStyles || item.serviceTypes || []), // Include serviceTypes for photographers
-      ...(item.mood || []),
-      item.experience || "",
-      item.category || "",
-      ...(item.equipment || []), // Include equipment in searchable text
-    ]
-      .join(" ")
-      .toLowerCase()
-
-    // Direct matches get highest score
-    queryWords.forEach((word) => {
-      if (searchableText.includes(word)) {
-        score += 10
-      }
-    })
-
-    // Synonym matches get medium score
-    queryWords.forEach((queryWord) => {
-      Object.entries(synonyms).forEach(([key, values]) => {
-        if (values.includes(queryWord) || key === queryWord) {
-          const synonymsToCheck = [key, ...values]
-          synonymsToCheck.forEach((synonym) => {
-            if (searchableText.includes(synonym)) {
-              score += 7
-            }
-          })
-        }
-      })
-    })
-
-    // Partial matches get lower score
-    queryWords.forEach((word) => {
-      if (word.length > 3) {
-        const regex = new RegExp(word, "i")
-        if (regex.test(searchableText)) {
-          score += 3
-        }
-      }
-    })
-
-    // Context-aware scoring
-    if (isEventTypeQuery(normalizedQuery)) {
-      score += scoreEventTypeMatch(normalizedQuery, item)
-    }
-
-    if (isMoodQuery(normalizedQuery)) {
-      score += scoreMoodMatch(normalizedQuery, item)
-    }
-
-    if (isMusicStyleQuery(normalizedQuery)) {
-      score += scoreMusicStyleMatch(normalizedQuery, item)
-    }
-
-    // Score based on equipment if the query contains equipment-related terms
-    if (isEquipmentQuery(normalizedQuery) && item.equipment) {
-      score += scoreEquipmentMatch(normalizedQuery, item.equipment)
-    }
-
-    // Apply filters
-    let filterMatch = true
-    if (filters.artistTypes.length > 0 && !filters.artistTypes.includes(item.category || "")) {
-      filterMatch = false
-      score = 0 // Zero out score if filter doesn't match
-    }
-    if (filters.genres.length > 0 && !(item.musicStyles || []).some((style: string) => filters.genres.includes(style))) {
-      filterMatch = false
-      score = 0
-    }
-    if (filters.eventTypes.length > 0 && !(item.eventTypes || []).some((type) => filters.eventTypes.includes(type))) {
-      filterMatch = false
-      score = 0
-    }
-    const moodFilter = filters.mood ?? []
-    if (moodFilter.length > 0 && !(item.mood || []).some((mood: string) => moodFilter.includes(mood))) {
-      filterMatch = false
-      score = 0
-    }
-    if (filters.location && item.location.toLowerCase() !== filters.location.toLowerCase()) {
-      filterMatch = false
-      score = 0
-    }
-    // Date filtering would require more complex date parsing and comparison
-
-    return { item, score }
-  })
-
-  // Filter and sort by relevance
-  const results = scoredItems
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(({ item }) => item)
-
-  // Separate results into artists and photographers
-  const finalArtists = results.filter((item) => item.type === "artist").map((artist) => artist as Artist)
-  const finalPhotographers = results
-    .filter((item) => item.type === "photographer")
-    .map((photographer) => photographer as Photographer)
-
-  // Return combined results, prioritizing artists if the query is generic
-  // You might want to refine this logic based on how you want to present combined results
-  // For now, let's return both lists concatenated, or adjust if query implies one over the other
-  return [...finalArtists, ...finalPhotographers] as Artist[]
+/** Dutch search words for what profiles describe in English. */
+const WORD_TRANSLATIONS: Record<string, string[]> = {
+  energiek: ["energetic"], energieke: ["energetic"], romantisch: ["romantic"], romantische: ["romantic"], rustig: ["relaxed", "chill"], rustige: ["relaxed", "chill"],
+  gezellig: ["fun", "warm"], gezellige: ["fun", "warm"], elegant: ["elegant"], elegante: ["elegant"], sfeervol: ["atmospheric"], sfeervolle: ["atmospheric"],
+  nostalgisch: ["nostalgic"], nostalgische: ["nostalgic"], dansbaar: ["dance"], dansbare: ["dance"], akoestisch: ["acoustic"], akoestische: ["acoustic"],
+  elektronisch: ["electronic"], elektronische: ["electronic"], kinderen: ["kids"], kinderfeest: ["kids"], kinderfeestje: ["kids"], familiefeest: ["family"], familie: ["family"],
+  achtergrondmuziek: ["background", "lounge"], meezingers: ["sing-along"], ceremonie: ["ceremony"], receptie: ["reception"], portret: ["portrait"], portretten: ["portrait"],
+  muziekvideo: ["music video"], luchtopnames: ["aerial"],
 }
 
-// Helper functions for context-aware scoring
-function isEventTypeQuery(query: string): boolean {
-  const eventKeywords = [
-    "wedding",
-    "bruiloft",
-    "birthday",
-    "verjaardag",
-    "corporate",
-    "zakelijk",
-    "party",
-    "feest",
-    "club",
-    "festival",
-    "photography", // Added for photographer event types
-    "videography", // Added for photographer event types
-    "event",
-    "shoot",
-    "coverage",
-    "portrait",
-    "aerial",
-    "drone",
-    "streaming",
-    "live",
-    "conference",
-    "product launch",
-    "music video",
-    "documentary",
+function searchableText(item: Artist | Photographer) {
+  const artist = item as Artist & Photographer
+  return [
+    item.name,
+    item.specialty,
+    item.location,
+    item.description,
+    item.experience,
+    item.category,
+    ...(item.eventTypes ?? []),
+    ...(artist.musicStyles ?? []),
+    ...(artist.serviceTypes ?? []),
+    ...(artist.mood ?? []),
+    ...(artist.equipment ?? []),
   ]
-  return eventKeywords.some((keyword) => query.includes(keyword))
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
 }
 
-function isMoodQuery(query: string): boolean {
-  const moodKeywords = [
-    "energetic",
-    "energiek",
-    "romantic",
-    "romantisch",
-    "chill",
-    "relaxed",
-    "party",
-    "sophisticated",
-    "elegant",
-  ]
-  return moodKeywords.some((keyword) => query.includes(keyword))
-}
-
-function isMusicStyleQuery(query: string): boolean {
-  const styleKeywords = [
-    "house",
-    "techno",
-    "pop",
-    "hip-hop",
-    "electronic",
-    "classic",
-    "jazz",
-    "rock",
-    "ambient",
-    "acoustic",
-    "classical",
-    "flamenco",
-    "indie",
-    "alternative",
-    "underground",
-    "experimental",
-    "family",
-    "vintage",
-    "retro",
-    "psychedelic",
-    "uplifting",
-    "journey",
-    "spiritual",
-    "tropical",
-    "spanish",
-    "latin",
-    "cultural",
-    "virtuoso",
-    "swing",
-    "blues",
-    "r&b",
-    "soul",
-    "disco",
-    "funk",
-    "dance",
-    "live", // Consider if "live" should be a music style
-  ]
-  return styleKeywords.some((keyword) => query.includes(keyword))
-}
-
-// Helper function to check if query relates to equipment
-function isEquipmentQuery(query: string): boolean {
-  const equipmentKeywords = [
-    "equipment",
-    "gear",
-    "setup",
-    "needs",
-    "requires",
-    "sound system",
-    "microphone",
-    "camera",
-    "lighting",
-  ]
-  return equipmentKeywords.some((keyword) => query.includes(keyword))
-}
-
-// Helper function to score equipment matches
-function scoreEquipmentMatch(query: string, equipment: string[]): number {
+function textScore(item: Artist | Photographer, words: string[]) {
+  const text = searchableText(item)
+  const name = normalizeText(item.name)
   let score = 0
-  const normalizedQuery = query.toLowerCase()
-  equipment.forEach((item) => {
-    if (normalizedQuery.includes(item.toLowerCase())) {
-      score += 15 // Higher score for exact equipment matches
-    } else {
-      const itemParts = item.toLowerCase().split(" ")
-      itemParts.forEach((part) => {
-        if (normalizedQuery.includes(part) && part.length > 2) {
-          score += 5 // Lower score for partial equipment matches
-        }
-      })
+  for (const word of words) {
+    if (name.includes(word)) score += 20
+    if (text.includes(word)) score += 10
+    for (const translation of WORD_TRANSLATIONS[word] ?? []) if (text.includes(translation)) score += 10
+    for (const [key, values] of Object.entries(synonyms)) {
+      if (key === word || values.includes(word)) {
+        for (const synonym of [key, ...values]) if (text.includes(synonym)) score += 3
+      }
     }
-  })
-  return score
-}
-
-// Modified to handle both Artist and Photographer event types/serviceTypes
-function scoreEventTypeMatch(query: string, item: Artist | Photographer): number {
-  let score = 0
-  const relevantTypes = item.eventTypes || []
-
-  // Add serviceTypes for photographers if they exist
-  if ("serviceTypes" in item && item.serviceTypes) {
-    relevantTypes.push(...item.serviceTypes)
   }
-
-  relevantTypes.forEach((eventType) => {
-    if (query.includes(eventType.toLowerCase())) {
-      score += 15
-    }
-  })
   return score
 }
 
-function scoreMoodMatch(query: string, item: Artist | Photographer): number {
-  const moods = "mood" in item ? item.mood : undefined
-  if (!moods) return 0
-
-  let score = 0
-  moods.forEach((mood) => {
-    if (query.includes(mood.toLowerCase())) {
-      score += 12
-    }
+/**
+ * Orders professionals by the words of a search that did not become a filter (parseSearch takes those out, and the
+ * filter panel applies them). The words only leave professionals out when they are a name, or when they are all the
+ * search consists of; then an empty result means that nothing matched.
+ */
+export function smartSearch<T extends Artist | Photographer>(query: string, list: T[], kind: ProfessionalKind): T[] {
+  const { filters, words } = parseSearch(query, kind)
+  if (words.length === 0) return list
+  const named = list.filter((item) => {
+    const name = normalizeText(item.name)
+    return words.every((word) => name.includes(word))
   })
-  return score
+  if (named.length > 0) return named
+  const scored = list.map((item) => ({ item, score: textScore(item, words) })).sort((a, b) => b.score - a.score)
+  const onlyWords = Object.keys(filters).length === 0
+  return (onlyWords ? scored.filter(({ score }) => score > 0) : scored).map(({ item }) => item)
 }
 
-// Modified to handle both Artist musicStyles and Photographer serviceTypes if they align semantically
-function scoreMusicStyleMatch(query: string, item: Artist | Photographer): number {
-  let score = 0
-  const musicStyles = ("musicStyles" in item && item.musicStyles) || []
-  const serviceTypes = "serviceTypes" in item && item.serviceTypes ? item.serviceTypes : []
-  const combinedStyles = [...musicStyles, ...serviceTypes]
-
-  combinedStyles.forEach((style) => {
-    if (query.includes(style.toLowerCase())) {
-      score += 10
-    }
-  })
-  return score
+const SUGGESTIONS: Record<ProfessionalKind, Record<"nl" | "en", string[]>> = {
+  artist: {
+    nl: [
+      "DJ voor een bruiloft", "DJ voor een verjaardag", "Band voor een bedrijfsfeest", "Band voor een bruiloft", "DJ voor een festival", "Clubavond met een DJ",
+      "Zanger voor een diner", "Saxofonist voor een borrel", "Pianist voor een bruiloft", "Violist voor een ceremonie", "Gitarist voor een diner",
+      "House DJ", "Techno DJ", "Hiphop DJ", "Latin DJ", "Jazz band", "Rock band", "Funk band", "Soul zangeres", "Disco muziek", "Klassieke muziek", "Achtergrondmuziek", "Kinderfeest",
+    ],
+    en: [
+      "DJ for a wedding", "DJ for a birthday", "Band for a corporate event", "Band for a wedding", "DJ for a festival", "Club night with a DJ",
+      "Singer for a dinner", "Saxophonist for a reception", "Pianist for a wedding", "Violinist for a ceremony", "Guitarist for a dinner",
+      "House DJ", "Techno DJ", "Hip hop DJ", "Latin DJ", "Jazz band", "Rock band", "Funk band", "Soul singer", "Disco music", "Classical music", "Background music", "Kids party",
+    ],
+  },
+  "photo-video": {
+    nl: [
+      "Fotograaf voor een bruiloft", "Videograaf voor een bruiloft", "Fotograaf voor een bedrijfsfeest", "Videograaf voor een bedrijfsfeest", "Fotograaf voor een verjaardag",
+      "Videograaf voor een concert", "Fotograaf voor een congres", "Productlancering", "Drone", "Live streaming", "Portret", "Foto en video",
+    ],
+    en: [
+      "Photographer for a wedding", "Videographer for a wedding", "Photographer for a corporate event", "Videographer for a corporate event", "Photographer for a birthday",
+      "Videographer for a concert", "Photographer for a conference", "Product launch", "Drone", "Live streaming", "Portrait", "Photo and video",
+    ],
+  },
 }
 
-// Generate search suggestions based on common queries
-export function generateSearchSuggestions(query: string): string[] {
-  const suggestions = [
-    // Event types
-    "bruiloft DJ",
-    "verjaardag feest",
-    "corporate evenement",
-    "club night",
-    "festival artiest",
-    "romantische avond",
-    "kinderfeest",
-    "familiefeest",
-    // Photographer specific suggestions
-    "wedding photography",
-    "event videography",
-    "portrait session",
-    "corporate coverage",
-    "drone services",
-    "film production",
-    "party photographer",
-    "live streaming",
-    "concert videography",
-    "product launch photography",
-    "conference coverage",
-    "drone photography",
-
-    // Music styles
-    "house music",
-    "techno DJ",
-    "pop hits",
-    "hip-hop artiest",
-    "electronic dance",
-    "klassieke hits",
-    "jazz lounge",
-    "rock party",
-    "acoustic performance",
-    "classical concert",
-    "flamenco ensemble",
-    "indie event",
-    "alternative celebration",
-    "underground music",
-    "experimental sound",
-    "family-friendly DJ",
-    "vintage music",
-    "retro DJ",
-    "psychedelic night",
-    "uplifting vibes",
-    "journey music",
-    "spiritual performance",
-    "tropical band",
-    "spanish music",
-    "latin DJ",
-    "cultural ensemble",
-    "virtuoso violin",
-    "pop piano",
-    "rock guitar",
-    "classical saxophone",
-    "jazz quartet",
-    "funk band",
-    "soul singer",
-    "disco music",
-    "blues guitarist",
-
-    // Moods and atmospheres
-    "energieke DJ",
-    "romantische muziek",
-    "chill vibes",
-    "party stemming",
-    "elegante muziek",
-    "nostalgische hits",
-    "dansbare muziek",
-    "achtergrondmuziek",
-    "cinematic videography",
-    "sophisticated event",
-
-    // Specific needs
-    "ervaren DJ",
-    "goedkope artiest",
-    "lokale DJ",
-    "beschikbare artiest",
-    "hoge beoordeling",
-    "populaire DJ",
-    "professionele service",
-    // Equipment suggestions
-    "DJ equipment",
-    "band PA system",
-    "singer microphone",
-    "pianist keyboard",
-    "guitar amplifier",
-    "violin pickup",
-    "camera gear",
-    "lighting equipment",
-    "drone",
-    "streaming setup",
-  ]
-
-  if (!query.trim()) return suggestions.slice(0, 10) // Show more initial suggestions
-
-  // Filter suggestions based on current query
-  const filtered = suggestions.filter(
-    (suggestion) =>
-      suggestion.toLowerCase().includes(query.toLowerCase()) ||
-      query
-        .toLowerCase()
-        .split(" ")
-        .some((word) => suggestion.toLowerCase().includes(word) && word.length > 2),
-  )
-
-  return filtered.slice(0, 8) // Show up to 8 suggestions
+/** Suggestions while typing, for the list the search box belongs to. */
+export function generateSearchSuggestions(query: string, kind: ProfessionalKind, language: "nl" | "en"): string[] {
+  const all = SUGGESTIONS[kind][language]
+  const words = normalizeText(query).split(" ").filter((word) => word.length > 1)
+  if (words.length === 0) return all
+  const matches = (suggestion: string, word: string) => ` ${normalizeText(suggestion)}`.includes(` ${word}`)
+  const every = all.filter((suggestion) => words.every((word) => matches(suggestion, word)))
+  if (every.length > 0) return every
+  return all.filter((suggestion) => words.some((word) => word.length > 2 && matches(suggestion, word)))
 }
 
 // Export aliases for backwards compatibility

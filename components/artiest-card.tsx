@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Artist } from "@/lib/smart-search"
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
 import { isDemoProfessional } from "@/lib/demo-professionals"
@@ -25,11 +26,14 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
   const { t, language } = useLanguage()
   const typeLabels = getArtistTypeLabels(artist.artistTypes, artist.category, language)
 
-  const displayedGenres = artist.musicStyles?.slice(0, 2) || []
-  const remainingGenres = (artist.musicStyles?.length || 0) - 2
+  const nl = language === "nl"
+  const genres = tagLabels(artist.musicStyles, styleLabel, nl)
+  const displayedGenres = genres.slice(0, 2)
+  const remainingGenres = genres.length - 2
 
-  const displayedEvents = artist.eventTypes?.slice(0, 2) || []
-  const remainingEvents = (artist.eventTypes?.length || 0) - 2
+  const events = tagLabels(artist.eventTypes, eventLabel, nl)
+  const displayedEvents = events.slice(0, 2)
+  const remainingEvents = events.length - 2
 
   return (
     <Card
@@ -87,7 +91,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
               </div>
             </div>
             {typeLabels.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5" aria-label="Artiesttypes">
+              <ul className="flex flex-wrap gap-1.5" aria-label={nl ? "Artiesttypes" : "Artist types"}>
                 {typeLabels.map(({ key, label, icon: Icon }) => (
                   <li
                     key={key}
@@ -132,7 +136,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
                   </dd>
                 ) : (
                   <dd className="text-right text-sm text-muted-foreground">
-                    {language === "nl" ? "Niet opgegeven" : "Not specified"}
+                    {nl ? "Niet opgegeven" : "Not specified"}
                   </dd>
                 )}
               </div>
@@ -145,7 +149,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
                 <Badge
                   key={genre}
                   variant="secondary"
-                  className="text-xs capitalize px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  className="text-xs px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
                   {genre}
                 </Badge>
@@ -165,7 +169,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
                 <Badge
                   key={event}
                   variant="secondary"
-                  className="text-xs capitalize px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  className="text-xs px-2.5 py-0.5 bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 >
                   {event}
                 </Badge>

@@ -1,5 +1,19 @@
-import type { Language } from "./i18n"
-import { translations } from "./i18n"
+// The search assistant: which questions it asks, and what it makes of the answers.
+
+import {
+  cityFromAnswer,
+  dateIn,
+  durationIn,
+  eventTypesIn,
+  genresIn,
+  priceFilters,
+  priceIn,
+  typesIn,
+} from "@/lib/adaptive-filters"
+import { todayIso } from "@/lib/bookings/format"
+import type { Language } from "@/lib/i18n"
+import { eventLabel, filterLabel, isFilterSet, typeLabel, type FilterKey, type ListFilters, type ProfessionalKind } from "@/lib/list-filters"
+import { ARTIST_TYPES, PHOTO_VIDEO_TYPES } from "@/lib/profile-options"
 
 export interface ConversationMessage {
   role: "assistant" | "user"
@@ -7,319 +21,163 @@ export interface ConversationMessage {
   timestamp: Date
 }
 
-export interface FilterState {
-  categories: string[]
-  genres: string[]
-  eventTypes: string[]
-  selectedDate: string
-  city: string
-  duration: string
-  priceRange: [number, number]
+export type QuestionKey = Exclude<FilterKey, "budget">
+
+/** The questions for a list. The duration does not filter, so it is only asked to make sense of a total budget. */
+export function questionsFor(kind: ProfessionalKind, filters: ListFilters): QuestionKey[] {
+  const keys: QuestionKey[] = ["categories", "eventTypes", "selectedDate", "city", "priceRange"]
+  if (filters.budget > 0) keys.push("duration")
+  if (kind === "artist") keys.push("genres")
+  return keys
 }
 
-export interface MissingFilters {
-  categories: boolean
-  selectedDate: boolean
-  eventTypes: boolean
-  genres: boolean
-  city: boolean
-  duration: boolean
-  priceRange: boolean
+/** A question is answered by its filter; a total budget answers the price question too. */
+export function isAnswered(key: QuestionKey, filters: ListFilters) {
+  return isFilterSet(filters, key) || (key === "priceRange" && isFilterSet(filters, "budget"))
 }
 
-export function identifyMissingFilters(filters: Partial<FilterState>): MissingFilters {
-  return {
-    categories: !filters.categories || filters.categories.length === 0,
-    selectedDate: !filters.selectedDate || filters.selectedDate.trim() === "",
-    eventTypes: !filters.eventTypes || filters.eventTypes.length === 0,
-    genres: !filters.genres || filters.genres.length === 0,
-    city: !filters.city || filters.city.trim() === "",
-    duration: !filters.duration || filters.duration.trim() === "",
-    priceRange: !filters.priceRange || (filters.priceRange[0] === 100 && filters.priceRange[1] === 5000),
+export function nextQuestion(kind: ProfessionalKind, filters: ListFilters, skipped: Set<QuestionKey>): QuestionKey | null {
+  return questionsFor(kind, filters).find((key) => !skipped.has(key) && !isAnswered(key, filters)) ?? null
+}
+
+/** An example day that is always in the future: 15 May of next year. */
+function exampleDate(nl: boolean) {
+  const year = Number(todayIso().slice(0, 4)) + 1
+  return nl ? `15 mei ${year}` : `15 May ${year}`
+}
+
+export function questionText(key: QuestionKey, kind: ProfessionalKind, language: Language): string {
+  const nl = language === "nl"
+  const artist = kind === "artist"
+  switch (key) {
+    case "categories":
+      return artist
+        ? nl ? "Welk type artiest zoek je? (bijv. DJ, band of zanger)" : "What type of artist are you looking for? (e.g. DJ, band or singer)"
+        : nl ? "Zoek je een fotograaf, een videograaf of iemand die allebei doet?" : "Are you looking for a photographer, a videographer or someone who does both?"
+    case "eventTypes":
+      return nl ? "Voor wat voor evenement is dit? (bijv. bruiloft, bedrijfsfeest of verjaardag)" : "What type of event is this? (e.g. wedding, corporate event or birthday)"
+    case "selectedDate":
+      return nl ? `Op welke datum is het? (bijv. ${exampleDate(true)})` : `On what date is it? (e.g. ${exampleDate(false)})`
+    case "city":
+      return artist
+        ? nl ? "In welke stad zoek je een artiest? (bijv. Utrecht)" : "In which city are you looking for an artist? (e.g. Utrecht)"
+        : nl ? "In welke stad zoek je iemand? (bijv. Utrecht)" : "In which city are you looking for someone? (e.g. Utrecht)"
+    case "priceRange":
+      return nl ? "Wat wil je maximaal per uur uitgeven, excl. btw? (bijv. max. € 150)" : "What do you want to spend per hour at most, excl. VAT? (e.g. max. €150)"
+    case "duration":
+      return nl ? "Hoe lang duurt het? (bijv. 4 uur, of van 20:00 tot 00:00)" : "How long will it take? (e.g. 4 hours, or from 8 PM to midnight)"
+    case "genres":
+      return nl ? "Welke muziekstijl heb je in gedachten? (bijv. house, pop of jazz)" : "Which music style do you have in mind? (e.g. house, pop or jazz)"
   }
 }
 
-export function getNextQuestion(missingFilters: MissingFilters, language: Language = "nl"): string | null {
-  const t = translations[language]
-
-  if (missingFilters.categories) {
-    return language === "nl"
-      ? "Welk type artiest zoek je? (bijv: DJ, Band, Zanger)"
-      : "What type of artist are you looking for? (e.g.: DJ, Band, Singer)"
+/** Tap-to-answer options; each is phrased so that extractAnswer understands it. */
+export function quickReplies(key: QuestionKey, kind: ProfessionalKind, language: Language): string[] {
+  const nl = language === "nl"
+  switch (key) {
+    case "categories": {
+      const types = kind === "artist" ? ARTIST_TYPES.slice(0, 5) : PHOTO_VIDEO_TYPES
+      return types.map((type) => (nl ? type.nl : type.en))
+    }
+    case "eventTypes":
+      return ["Wedding", "Corporate Event", "Birthday", "Festival"].map((value) => eventLabel(value, nl))
+    case "city":
+      return ["Amsterdam", "Rotterdam", "Utrecht", nl ? "Den Haag" : "The Hague", "Eindhoven"]
+    case "priceRange":
+      return (kind === "artist" ? [100, 150, 200] : [150, 200, 300]).map((value) => (nl ? `Max. € ${value} per uur` : `Max. €${value} per hour`))
+    case "duration":
+      return nl ? ["2 uur", "3 uur", "4 uur", "5 uur"] : ["2 hours", "3 hours", "4 hours", "5 hours"]
+    case "genres":
+      return ["House", "Techno", "Pop", "Hip Hop", "Jazz"]
+    case "selectedDate":
+      return []
   }
-  if (missingFilters.selectedDate) {
-    return language === "nl"
-      ? "Op welke datum wil je de artiest boeken? (bijv: 15 september 2026)"
-      : "On what date do you want to book the artist? (e.g.: September 15, 2026)"
-  }
-  if (missingFilters.city) {
-    return t.aiCityQuestion
-  }
-  if (missingFilters.duration) {
-    return t.aiDurationQuestion
-  }
-  if (missingFilters.priceRange) {
-    return t.aiPriceQuestion
-  }
-  if (missingFilters.genres) {
-    return t.aiGenresQuestion
-  }
-  if (missingFilters.eventTypes) {
-    return t.aiEventTypeQuestion
-  }
-  return null
 }
 
-export function extractAnswerToFilter(
-  question: string,
-  answer: string,
-  language: Language = "nl",
-): Partial<FilterState> {
-  const answerLower = answer.toLowerCase()
-  const questionLower = question.toLowerCase()
-
-  const isCategoryQuestion =
-    questionLower.includes("type artiest") ||
-    questionLower.includes("type of artist") ||
-    questionLower.includes("welk type")
-
-  if (isCategoryQuestion) {
-    const categories: string[] = []
-    const categoryMap: Record<string, string> = {
-      dj: "DJ",
-      band: "Band",
-      zanger: "Singer",
-      singer: "Singer",
-      saxofonist: "Saxophonist",
-      saxophonist: "Saxophonist",
-      pianist: "Pianist",
-    }
-
-    for (const [key, value] of Object.entries(categoryMap)) {
-      if (answerLower.includes(key)) {
-        categories.push(value)
-      }
-    }
-
-
-    if (categories.length === 0) {
-      // Use the raw answer if no match
-      return { categories: [answer.trim()] }
-    }
-
-    return { categories }
-  }
-
-  const isDateQuestion =
-    questionLower.includes("welke datum") ||
-    questionLower.includes("what date") ||
-    questionLower.includes("wanneer") ||
-    questionLower.includes("when")
-
-  if (isDateQuestion) {
-    // Return the date as-is, it will be parsed later
-    return { selectedDate: answer.trim() }
-  }
-
-  // Music genre extraction
-  const isGenreQuestion =
-    questionLower.includes("muziekstijl") || questionLower.includes("music style") || questionLower.includes("genre")
-
-  if (isGenreQuestion) {
-    const genres: string[] = []
-    const genreMap: Record<string, string> = {
-      house: "House",
-      techno: "Techno",
-      jazz: "Jazz",
-      pop: "Pop",
-      rock: "Rock",
-      classical: "Classical",
-      edm: "EDM",
-      "wedding mix": "Wedding Mix",
-      acoustic: "Acoustic",
-      electronic: "Electronic",
-      disco: "Disco",
-      funk: "Funk",
-      soul: "Soul",
-      hiphop: "Hip-Hop",
-      "hip-hop": "Hip-Hop",
-      rnb: "R&B",
-      "r&b": "R&B",
-    }
-
-    for (const [key, value] of Object.entries(genreMap)) {
-      if (answerLower.includes(key)) {
-        genres.push(value)
-      }
-    }
-
-
-    if (genres.length === 0) {
-      const parts = answer.split(/,|en|and|\s/).filter((p) => p.trim().length > 0)
-      return { genres: parts.map((p) => p.trim().charAt(0).toUpperCase() + p.trim().slice(1).toLowerCase()) }
-    }
-
-    return { genres }
-  }
-
-  // Event type extraction
-  const isEventQuestion =
-    questionLower.includes("soort evenement") ||
-    questionLower.includes("type of event") ||
-    questionLower.includes("event type")
-
-  if (isEventQuestion) {
-    const eventTypes: string[] = []
-    const eventMap: Record<string, string> = {
-      bruiloft: "Wedding",
-      wedding: "Wedding",
-      bedrijfsfeest: "Corporate",
-      corporate: "Corporate",
-      verjaardag: "Birthday",
-      birthday: "Birthday",
-      festival: "Festival",
-      club: "Club",
-      party: "Party",
-      feest: "Party",
-    }
-
-    for (const [key, value] of Object.entries(eventMap)) {
-      if (answerLower.includes(key)) {
-        eventTypes.push(value)
-      }
-    }
-
-
-    if (eventTypes.length === 0) {
-      return { eventTypes: [answer.trim()] }
-    }
-
-    return { eventTypes }
-  }
-
-  // City extraction
-  const isCityQuestion =
-    questionLower.includes("stad") || questionLower.includes("city") || questionLower.includes("location")
-
-  if (isCityQuestion) {
-    const cityMatch = answerLower.match(/(?:in |uit |)([a-z]+(?:\s+[a-z]+)?)/)
-    if (cityMatch) {
-      return { city: cityMatch[1].trim() }
-    }
-    return { city: answer.trim() }
-  }
-
-  // Duration extraction
-  const isDurationQuestion =
-    questionLower.includes("laat begint") ||
-    questionLower.includes("hoe lang") ||
-    questionLower.includes("duur") ||
-    questionLower.includes("tijd") ||
-    questionLower.includes("time does") ||
-    questionLower.includes("start and end") ||
-    questionLower.includes("how long") ||
-    questionLower.includes("duration") ||
-    questionLower.includes("hours")
-
-  if (isDurationQuestion) {
-    const timeRangeMatch = answerLower.match(/(\d{1,2}):?(\d{2})?\s*(?:tot|to|[-–])\s*(\d{1,2}):?(\d{2})?/)
-
-    if (timeRangeMatch) {
-      const startHour = Number.parseInt(timeRangeMatch[1])
-      const endHour = Number.parseInt(timeRangeMatch[3])
-
-      let duration: number
-      if (endHour < startHour) {
-        duration = 24 - startHour + endHour
-      } else {
-        duration = endHour - startHour
-      }
-
-      duration = Math.max(1, Math.min(8, duration))
-
-      return { duration: duration.toString() }
-    }
-
-    const hourMatch = answerLower.match(/(\d+)\s*(?:uur|hour|uren|hours)/)
-    if (hourMatch) {
-      let duration = Number.parseInt(hourMatch[1])
-      duration = Math.max(1, Math.min(8, duration))
-      return { duration: duration.toString() }
-    }
-
-    const numberRangeMatch = answerLower.match(/\b(\d+)\s*[-–]\s*(\d+)\b/)
-    if (numberRangeMatch) {
-      const start = Number.parseInt(numberRangeMatch[1])
-      const end = Number.parseInt(numberRangeMatch[2])
-      let duration = end - start
-      duration = Math.max(1, Math.min(8, duration))
-      return { duration: duration.toString() }
-    }
-
-    return { duration: "" }
-  }
-
-  // Budget/price extraction
-  const isBudgetQuestion =
-    questionLower.includes("budget") || questionLower.includes("price") || questionLower.includes("cost")
-
-  if (isBudgetQuestion) {
-    const rangeMatch = answerLower.match(
-      /(?:tussen\s+|between\s+)?[€$]?\s*(\d+)\s*(?:tot|to|[-–]|en|and)\s*[€$]?\s*(\d+)/,
-    )
-
-    if (rangeMatch) {
-      const min = Number.parseInt(rangeMatch[1])
-      const max = Number.parseInt(rangeMatch[2])
-      return { priceRange: [min, max] }
-    }
-
-    const maxMatch = answerLower.match(/(?:max|maximaal|maximum|tot|up to)\s*[€$]?\s*(\d+)/)
-
-    if (maxMatch) {
-      const max = Number.parseInt(maxMatch[1])
-      return { priceRange: [0, max] }
-    }
-
-    const exactMatch = answerLower.match(/[€$]?\s*(\d+)/)
-
-    if (exactMatch) {
-      const amount = Number.parseInt(exactMatch[1])
-      return { priceRange: [0, amount] }
-    }
-  }
-
-  return {}
+/** "Weet ik niet", "maakt niet uit", "no preference": skips the question. */
+export function isNoPreference(answer: string) {
+  return /^(?:nee|neen|no|nope|geen(?: (?:idee|voorkeur|voorkeuren|budget))?|(?:dat )?(?:weet ik|weten we)(?: (?:nog|het|dat|echt))* niet|(?:dat )?maakt (?:me |mij |ons )?(?:echt )?niet(?:s)? uit|niet bekend|nog niet bekend|nog onbekend|alles|van alles|iets|anything|any|whatever|no (?:idea|preference|budget)|(?:i )?(?:don'?t|do not) (?:know|care|mind)(?: yet)?|(?:i'?m )?not sure(?: yet)?|n\.?v\.?t\.?|sla over|overslaan|skip(?: this)?)[.!]*$/i.test(
+    answer.trim().replace(/’/g, "'"),
+  )
 }
 
-export function generateWelcomeMessage(extractedFilters: Partial<FilterState>, language: Language = "nl"): string {
-  const t = translations[language]
+export type AnswerResult = { ok: true; filters: Partial<ListFilters> } | { ok: false; reason: "unknown" | "past" }
 
-  const hasSomeFilters =
-    (extractedFilters.categories && extractedFilters.categories.length > 0) ||
-    (extractedFilters.eventTypes && extractedFilters.eventTypes.length > 0) ||
-    extractedFilters.selectedDate
-
-  if (!hasSomeFilters) {
-    return t.aiWelcomeDefault
+/** The filter an answer stands for. Nothing changes when the answer is not understood. */
+export function extractAnswer(key: QuestionKey, answer: string, kind: ProfessionalKind, today?: string): AnswerResult {
+  const unknown: AnswerResult = { ok: false, reason: "unknown" }
+  const list = (name: "categories" | "eventTypes" | "genres", values: string[]): AnswerResult =>
+    values.length > 0 ? { ok: true, filters: { [name]: values } } : unknown
+  switch (key) {
+    case "categories": {
+      if (kind === "photo-video" && /\b(allebei|beide|both)\b/i.test(answer)) return list("categories", ["Photographer & Videographer"])
+      return list("categories", typesIn(answer, kind))
+    }
+    case "eventTypes":
+      return list("eventTypes", eventTypesIn(answer))
+    case "genres":
+      return list("genres", genresIn(answer))
+    case "selectedDate": {
+      const date = dateIn(answer, { answer: true, today })
+      if (!date) return unknown
+      return date.past ? { ok: false, reason: "past" } : { ok: true, filters: { selectedDate: date.iso } }
+    }
+    case "city": {
+      const city = cityFromAnswer(answer)
+      return city ? { ok: true, filters: { city } } : unknown
+    }
+    case "duration": {
+      const duration = durationIn(answer, { answer: true })
+      return duration ? { ok: true, filters: { duration: duration.hours } } : unknown
+    }
+    case "priceRange": {
+      const price = priceIn(answer, { answer: true })
+      return price ? { ok: true, filters: priceFilters(price, true) } : unknown
+    }
   }
+}
 
-  const parts: string[] = []
-
-  if (extractedFilters.categories && extractedFilters.categories.length > 0) {
-    parts.push(extractedFilters.categories.join(language === "nl" ? " of " : " or "))
+/** Says that an answer was not understood, and how to answer. */
+export function notUnderstood(key: QuestionKey, kind: ProfessionalKind, language: Language, reason: "unknown" | "past"): string {
+  const nl = language === "nl"
+  if (reason === "past") {
+    return nl
+      ? `Die datum is al voorbij. Kies een datum in de toekomst, bijvoorbeeld ${exampleDate(true)}.`
+      : `That date has passed. Choose a date in the future, for example ${exampleDate(false)}.`
   }
+  const example =
+    key === "selectedDate" ? exampleDate(nl)
+      : key === "city" ? "Utrecht"
+        : quickReplies(key, kind, language).slice(0, 2).join(nl ? " of " : " or ")
+  return nl
+    ? `Dat begreep ik niet, dus er is niets veranderd. Probeer bijvoorbeeld: ${example}. Je kunt de vraag ook overslaan.`
+    : `I did not understand that, so nothing has changed. Try for example: ${example}. You can also skip the question.`
+}
 
-  if (extractedFilters.eventTypes && extractedFilters.eventTypes.length > 0) {
-    const eventTypeText = extractedFilters.eventTypes.join(language === "nl" ? " of " : " or ")
-    parts.push(`${language === "nl" ? "voor je" : "for your"} ${eventTypeText}`)
+/** Event types inside a sentence: "bruiloft", but "King's Day" keeps its capitals. */
+function inSentence(label: string) {
+  return /'|\d|^Koningsdag/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1)
+}
+
+export function welcomeMessage(filters: Partial<ListFilters>, kind: ProfessionalKind, language: Language): string {
+  const nl = language === "nl"
+  const or = nl ? " of " : " or "
+  const types = (filters.categories ?? []).map((value) => {
+    const label = typeLabel(value, nl)
+    return `${nl ? "een" : "a"} ${label === "DJ" ? label : label.toLowerCase()}`
+  })
+  const events = (filters.eventTypes ?? []).map((value) => inSentence(eventLabel(value, nl)))
+  const known = types.length > 0 || events.length > 0 || filters.selectedDate || filters.city
+  if (!known) {
+    return kind === "artist"
+      ? nl ? "Ik help je graag met het vinden van de perfecte artiest! Laten we beginnen met een paar vragen." : "I'm happy to help you find the perfect artist! Let's start with a few questions."
+      : nl ? "Ik help je graag met het vinden van de perfecte fotograaf of videograaf! Laten we beginnen met een paar vragen." : "I'm happy to help you find the perfect photographer or videographer! Let's start with a few questions."
   }
-
-  if (extractedFilters.selectedDate) {
-    parts.push(`${language === "nl" ? "op" : "on"} ${extractedFilters.selectedDate}`)
-  }
-
-  const detailsText = parts.join(" ")
-
-  return `${language === "nl" ? "Ik zie dat je zoekt naar" : "I see you're looking for"} ${detailsText}. ${language === "nl" ? "Laat me je helpen met een paar extra vragen om de beste match te vinden!" : "Let me help you with a few extra questions to find the best match!"}`
+  const subject = types.length > 0 ? types.join(or) : kind === "artist" ? (nl ? "een artiest" : "an artist") : nl ? "een fotograaf of videograaf" : "a photographer or videographer"
+  const parts = [nl ? `Ik zie dat je zoekt naar ${subject}` : `I see you're looking for ${subject}`]
+  if (events.length > 0) parts.push(`${nl ? "voor je" : "for your"} ${events.join(or)}`)
+  const all = filters as ListFilters
+  if (filters.selectedDate) parts.push(`${nl ? "op" : "on"} ${filterLabel(all, "selectedDate", language)}`)
+  if (filters.city) parts.push(`in ${filters.city}`)
+  return `${parts.join(" ")}. ${nl ? "Ik stel nog een paar vragen om de beste match te vinden." : "I have a few more questions to find the best match."}`
 }

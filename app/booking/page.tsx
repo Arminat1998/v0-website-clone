@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
+import { Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { uploadPresigned } from "@vercel/blob/client"
+import { ComboSelect, comboGroups } from "@/components/combo-select"
+import { LiveListError } from "@/components/list-status"
 import { AudioUpload } from "@/components/booking/audio-upload"
 import { audioContentType, newAudioPath } from "@/lib/bookings/audio"
 import { artists, photographers } from "@/lib/smart-search"
@@ -14,11 +16,39 @@ import { isDemoProfessional } from "@/lib/demo-professionals"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
-import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions } from "@/app/actions/bookings"
+import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
+import { useLiveProfessionals } from "@/hooks/use-live-professionals"
+import { bookingErrorMessage, readBookingResult } from "./submit-result"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
+import { formatEventDate, todayIso } from "@/lib/bookings/format"
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
 import { getCustomerProfile } from "@/app/actions/customer"
-import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking } from "@/lib/bookings/pricing"
+import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking, travelCents } from "@/lib/bookings/pricing"
+
+const toIsoDate = (year: number, month: number, day: number) =>
+  `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
+
+// The same limits as the server.
+const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+const isPhone = (value: string) => value.replace(/\D/g, "").length >= 6
+
+/** Empty, or an address that starts with http(s). */
+function isWebLink(value: string) {
+  if (!value.trim()) return true
+  try {
+    return /^https?:$/.test(new URL(value.trim()).protocol)
+  } catch {
+    return false
+  }
+}
+
+/** A place name or a postal code. */
+const placeChars = (value: string) => value.replace(/[^\p{L}\p{M}\d '’.-]/gu, "")
+
+/** Every half hour of the day, as "HH:MM". */
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`)
 
 export default function BookingPage() {
   const searchParams = useSearchParams()
@@ -41,16 +71,27 @@ export default function BookingPage() {
   ]
   
   const [currentStep, setCurrentStep] = useState(1)
+  // After a step change the heading of the new step comes into view and gets the focus.
+  const stepHeading = useRef<HTMLHeadingElement>(null)
+  const shownStep = useRef(1)
+  useEffect(() => {
+    if (shownStep.current === currentStep) return
+    shownStep.current = currentStep
+    stepHeading.current?.focus({ preventScroll: true })
+    stepHeading.current?.scrollIntoView({ block: "start" })
+  }, [currentStep])
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [selectedDate, setSelectedDate] = useState<number | null>(null)
   const [eventLocation, setEventLocation] = useState("")
   const [distance, setDistance] = useState<number | null>(null)
   const [calculating, setCalculating] = useState(false)
   
   // Step 2 - Event Details
   const [eventName, setEventName] = useState("")
+  // The chosen date as YYYY-MM-DD. It is chosen in step 1 only; every other step shows this value.
   const [eventDate, setEventDate] = useState("")
+  // Why a date (from the link, or one that was booked meanwhile) was not chosen.
+  const [dateNotice, setDateNotice] = useState<"invalid" | "past" | "booked" | null>(null)
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>([])
@@ -58,7 +99,6 @@ export default function BookingPage() {
   const [capacity, setCapacity] = useState("")
   const [description, setDescription] = useState("")
   const [specialRequests, setSpecialRequests] = useState("")
-  const [linkOption, setLinkOption] = useState<"playlist" | "individual">("playlist")
   const [playlistLink, setPlaylistLink] = useState("")
   const [openingDanceOption, setOpeningDanceOption] = useState<"upload" | "link">("upload")
   const [openingDanceFile, setOpeningDanceFile] = useState<File | null>(null)
@@ -89,9 +129,10 @@ export default function BookingPage() {
   const [billingCity, setBillingCity] = useState("")
   const [billingCountry, setBillingCountry] = useState("Nederland")
   const [vatNumber, setVatNumber] = useState("")
-  const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<{ text: string; step?: number } | null>(null)
+  // The total the server calculated when it differs from the one shown; sending again confirms it.
+  const [changedTotal, setChangedTotal] = useState<number | null>(null)
   const [uploadPercent, setUploadPercent] = useState<number | null>(null)
   // Files that are already stored, so a second attempt does not upload them again.
   const uploadedAudio = useRef(new Map<File, string>())
@@ -131,72 +172,85 @@ export default function BookingPage() {
   }, [savedProfile, profileApplied, currentStep, sessionData?.user.name, sessionData?.user.phone])
 
   const professionalKey = artistId ?? professionalId
-  const { data: blockedDates = [] } = useSWR(
+  const { data: blockedDates = [], mutate: reloadBlockedDates } = useSWR(
     professionalKey ? ["blocked-dates", professionalKey] : null,
     ([, id]) => getBlockedDates(id),
   )
   
-  const eventTypes = ["Birthday", "Anniversary", "Wedding", "Corporate", "Festival", "Club Night"]
-  const eventTypeLabels: Record<string, string> = {
-    Birthday: "Verjaardag",
-    Anniversary: "Jubileum",
-    Wedding: "Bruiloft",
-    Corporate: "Zakelijk",
-    Festival: "Festival",
-    "Club Night": "Clubavond",
-  }
-  const musicGenres = ["Trance", "House", "Techno", "Punk", "Hip-Hop", "Pop", "Rock", "EDM"]
-
   // Get artist or photographer data
   const staticArtist = artistId ? artists.find(a => a.id === Number(artistId)) : null
   const needsLiveLookup = Boolean(artistId) && !staticArtist
-  const { data: liveData, isLoading: liveLoading } = useSWR<{ artists: typeof artists }>(
-    needsLiveLookup ? "/api/artists/live" : null,
-    (url: string) => fetch(url).then((response) => response.json()),
-  )
-  const liveArtist = needsLiveLookup
-    ? liveData?.artists.find((a) => String(a.id) === artistId)
-    : null
+  const liveArtists = useLiveProfessionals("artist", needsLiveLookup)
+  const liveArtist = needsLiveLookup ? liveArtists.professionals.find((a) => String(a.id) === artistId) : null
   const artist = staticArtist || liveArtist || null
   const staticPhotographer = professionalId ? photographers.find(p => p.id === Number(professionalId)) : null
   const needsPhotographerLookup = Boolean(professionalId) && !staticPhotographer
-  const { data: livePhotographerData, isLoading: livePhotographerLoading } = useSWR<{ photographers: typeof photographers }>(
-    needsPhotographerLookup ? "/api/photographers/live" : null,
-    (url: string) => fetch(url).then((response) => response.json()),
-  )
-  const livePhotographer = needsPhotographerLookup
-    ? livePhotographerData?.photographers.find((p) => String(p.id) === professionalId)
-    : null
+  const livePhotographers = useLiveProfessionals("photo-video", needsPhotographerLookup)
+  const livePhotographer = needsPhotographerLookup ? livePhotographers.professionals.find((p) => String(p.id) === professionalId) : null
   const photographer = staticPhotographer || livePhotographer || null
   const professional = artist || photographer
 
   // Rates, hours, travel range, the professional's own equipment and the VAT come from the server.
   const optionsKey = professional && !isDemoProfessional(professional.id) ? ["booking-options", String(professional.id)] : null
-  const { data: bookingOptions, isLoading: optionsLoading } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
+  const { data: bookingOptions, isLoading: optionsLoading, mutate: reloadOptions } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
   useEffect(() => {
     // Artists start with their own equipment package selected; photographers have none.
     if (bookingOptions?.package && artist) setSelectedEquipment((prev) => (prev.length ? prev : [PACKAGE_OPTION_ID]))
   }, [bookingOptions, artist])
 
   useEffect(() => {
-    if (initialDate) {
-      const [day, month, year] = initialDate.split("-").map(Number)
-      setSelectedDate(day)
-      setCurrentMonth(month - 1)
-      setCurrentYear(year)
+    if (!initialDate) return
+    // Links carry the date as day-month-year; an impossible day such as 31-2 is not a date.
+    const [day, month, year] = initialDate.split("-").map(Number)
+    const date = new Date(year, month - 1, day)
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      setDateNotice("invalid")
+      return
     }
+    const iso = toIsoDate(year, month - 1, day)
+    if (iso < todayIso()) {
+      setDateNotice("past")
+      return
+    }
+    setEventDate(iso)
+    setCurrentMonth(month - 1)
+    setCurrentYear(year)
   }, [initialDate])
 
+  const isBooked = (iso: string) => Boolean(professional?.unavailableDates?.includes(iso)) || blockedDates.includes(iso)
+  const chosenDateIsBooked = Boolean(eventDate) && isBooked(eventDate)
   useEffect(() => {
-    const artistLookupDone = !liveLoading && (!needsLiveLookup || liveData)
-    const photographerLookupDone = !livePhotographerLoading && (!needsPhotographerLookup || livePhotographerData)
-    if (!professional && artistLookupDone && photographerLookupDone) {
-      router.push("/")
-    }
-  }, [professional, router, liveLoading, needsLiveLookup, liveData, livePhotographerLoading, needsPhotographerLookup, livePhotographerData])
+    if (!chosenDateIsBooked) return
+    setEventDate("")
+    setDateNotice("booked")
+  }, [chosenDateIsBooked])
+
+  // Not in the list: the professional does not exist (any more). A failed lookup says nothing about that.
+  const lookupFailed = liveArtists.failed || livePhotographers.failed
+  const notFound = !professional && !lookupFailed && !liveArtists.isLoading && !livePhotographers.isLoading
+  useEffect(() => {
+    if (notFound) router.push("/")
+  }, [notFound, router])
 
   if (!professional) {
-    return null
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="mx-auto max-w-xl px-4 py-16">
+          {lookupFailed ? (
+            <LiveListError
+              onRetry={() => (liveArtists.failed ? liveArtists : livePhotographers).retry()}
+              retrying={liveArtists.isRetrying || livePhotographers.isRetrying}
+            />
+          ) : (
+            <div className="flex justify-center" role="status">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden />
+              <span className="sr-only">{tr("Laden...", "Loading...")}</span>
+            </div>
+          )}
+        </main>
+      </div>
+    )
   }
 
   // Sample profiles cannot be booked: nobody would receive the request.
@@ -244,19 +298,11 @@ export default function BookingPage() {
     return day === 0 ? 6 : day - 1
   }
 
-  const toIsoDate = (year: number, month: number, day: number) =>
-    `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
-
-  const isDateUnavailable = (day: number) => {
-    const dateStr = toIsoDate(currentYear, currentMonth, day)
-    return professional.unavailableDates?.includes(dateStr) || blockedDates.includes(dateStr)
-  }
-
-  const selectedIsoDate = selectedDate ? toIsoDate(currentYear, currentMonth, selectedDate) : ""
-  const effectiveEventDate = eventDate || selectedIsoDate
-
+  // An end time before the start time is after midnight; the same time twice is not a duration (the server refuses it too).
+  const sameTime = Boolean(startTime) && startTime === endTime
+  const endsNextDay = Boolean(startTime && endTime) && endTime < startTime
   const bookedHours = startTime && endTime ? hoursBetween(startTime, endTime) : 0
-  const hoursIssue = bookingOptions && startTime && endTime ? hoursProblem(bookingOptions, bookedHours) : null
+  const hoursIssue = bookingOptions && startTime && endTime && !sameTime ? hoursProblem(bookingOptions, bookedHours) : null
   const pricing = bookingOptions
     ? priceBooking(bookingOptions, {
         startTime: startTime || "20:00",
@@ -266,21 +312,69 @@ export default function BookingPage() {
       })
     : null
 
+  const linkError = (value: string, id: string) =>
+    isWebLink(value) ? null : (
+      <p id={id} role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
+        {tr("Vul een volledige link in, die begint met https://", "Enter a full link that starts with https://")}
+      </p>
+    )
+  // Only the links that will be sent.
+  const linksOk =
+    !artist ||
+    (isWebLink(playlistLink) &&
+      (openingDanceOption === "upload" || isWebLink(openingDanceLink)) &&
+      (lastSongOption === "upload" || isWebLink(lastSongLink)))
+
+  const required = <span aria-hidden className="text-red-600 dark:text-red-400"> *</span>
+  const requiredNote = <p className="mb-4 text-xs text-muted-foreground">{tr("Velden met * zijn verplicht.", "Fields marked * are required.")}</p>
+  const shownTotal = changedTotal ?? pricing?.totalCents ?? 0
+
+  // The place of step 1 decides the travel costs, so the address of step 2 takes it over. It may be a postal code too.
+  const locationIsPostcode = /\d/.test(eventLocation)
+  const eventPostalCode = locationIsPostcode ? eventLocation.trim().toUpperCase() : postalCode
+  const eventCity = locationIsPostcode ? city.trim() || eventLocation.trim() : eventLocation.trim()
+  const copyEventAddress = () => {
+    setBillingStreet(streetName)
+    setBillingHouseNumber(`${houseNumber}${houseNumberExt}`)
+    setBillingPostalCode(eventPostalCode)
+    setBillingCity(eventCity)
+    const place = country.trim().toLowerCase()
+    if (place) {
+      setBillingCountry(
+        /^(nederland|netherlands|the netherlands|nl)$/.test(place) ? "Nederland"
+          : /^(belgi[eë]|belgium|be)$/.test(place) ? "België"
+            : /^(duitsland|germany|de)$/.test(place) ? "Duitsland"
+              : "Anders",
+      )
+    }
+  }
+
+  const sideGenres = tagLabels(artist?.musicStyles, styleLabel, language === "nl")
+  const sideEvents = tagLabels(professional.eventTypes, eventLabel, language === "nl")
+
+  const goToStep = (step: number) => {
+    setCurrentStep(step)
+    setSubmitError(null)
+    setChangedTotal(null)
+  }
+
   // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
   const missingStep1 = [
-    !selectedDate && tr("een datum in de kalender", "a date in the calendar"),
+    !eventDate && tr("een datum in de kalender", "a date in the calendar"),
     !eventLocation.trim() && tr("de plaats van je evenement", "the place of your event"),
     eventLocation.trim() && distance === null && tr("de afstand (klik op de knop naast de plaats)", "the distance (click the button next to the place)"),
   ].filter(Boolean) as string[]
   const missingStep2 = [
+    !eventDate && tr("een datum (stap 1)", "a date (step 1)"),
     (!eventName || eventName.length < 3) && tr("een naam voor je evenement (minimaal 3 tekens)", "a name for your event (at least 3 characters)"),
     (!startTime || !endTime) && tr("een start- en eindtijd", "a start and end time"),
+    !linksOk && tr("een geldige muzieklink", "a valid music link"),
   ].filter(Boolean) as string[]
   const missingStep3 = [
     !firstName.trim() && tr("voornaam", "first name"),
     !lastName.trim() && tr("achternaam", "last name"),
-    !email.includes("@") && tr("geldig e-mailadres", "valid email address"),
-    !phone.trim() && tr("telefoonnummer", "phone number"),
+    !isEmail(email) && tr("geldig e-mailadres", "valid email address"),
+    !isPhone(phone) && tr("telefoonnummer (minimaal 6 cijfers)", "phone number (at least 6 digits)"),
     !billingStreet.trim() && tr("straat", "street"),
     !billingHouseNumber.trim() && tr("huisnummer", "house number"),
     !billingPostalCode.trim() && tr("postcode", "postal code"),
@@ -288,6 +382,16 @@ export default function BookingPage() {
     customerType === "business" && !companyName.trim() && tr("bedrijfsnaam", "company name"),
     customerType === "business" && !vatNumber.trim() && tr("btw-nummer", "VAT number"),
   ].filter(Boolean) as string[]
+  const changeInStep1 = (label: string) => (
+    <button
+      type="button"
+      onClick={() => goToStep(1)}
+      aria-label={label}
+      className="shrink-0 rounded text-sm font-medium text-red-600 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-red-600 dark:text-red-400"
+    >
+      {tr("Wijzig", "Change")}
+    </button>
+  )
   const missingHint = (items: string[]) =>
     items.length > 0 ? (
       <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
@@ -311,8 +415,9 @@ export default function BookingPage() {
   }
 
   const handleSubmitBooking = async () => {
+    if (!pricing) return
     if (!sessionData?.user) {
-      setSubmitError("Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.")
+      setSubmitError(bookingErrorMessage("UNAUTHORIZED", language === "nl"))
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
@@ -325,34 +430,36 @@ export default function BookingPage() {
       if (lastSongOption === "upload") lastSongUpload = await uploadAudio(lastSongFile, sessionData.user.id)
     } catch (error) {
       console.error("Booking audio upload failed:", error)
-      setSubmitError(
-        tr(
+      setSubmitError({
+        text: tr(
           "Het uploaden van je muziek is niet gelukt, dus je aanvraag is nog niet verstuurd. Probeer het opnieuw, kies een ander bestand of gebruik een link.",
           "Uploading your music failed, so your request has not been sent yet. Try again, choose another file or use a link.",
         ),
-      )
+        step: 2,
+      })
       setSubmitting(false)
       return
     } finally {
       setUploadPercent(null)
     }
     try {
-      const result = await createBooking({
+      const input: CreateBookingInput & { expectedTotalCents: number } = {
         professionalId: String(professional.id),
         professionalName: professional.name,
         professionalType: artist ? "artist" : "photographer",
         professionalPrice: professional.price,
         eventName,
-        eventDate: effectiveEventDate,
+        eventDate,
         startTime: startTime || "20:00",
         endTime: endTime || "00:00",
         eventTypes: selectedEventTypes,
-        musicGenres: selectedMusicGenres,
+        // Bookings store genres by their English name, which is also how the dashboards show them.
+        musicGenres: selectedMusicGenres.map((value) => genreLabel(value, false)),
         capacity,
         description,
         specialRequests,
         dressCode,
-        playlistLink: linkOption === "playlist" ? playlistLink : "",
+        playlistLink,
         openingDanceLink: openingDanceOption === "link" ? openingDanceLink : "",
         openingDanceFileName: openingDanceUpload,
         lastSongLink: lastSongOption === "link" ? lastSongLink : "",
@@ -360,8 +467,8 @@ export default function BookingPage() {
         street: streetName,
         houseNumber,
         houseNumberExt,
-        postalCode,
-        city: city || eventLocation,
+        postalCode: eventPostalCode,
+        city: eventCity,
         country,
         distanceKm: distance ?? 0,
         eventLocation,
@@ -379,25 +486,29 @@ export default function BookingPage() {
         billingCountry,
         vatNumber,
         paymentMethod: "invoice",
-      })
-      if (!result.ok) {
-        setSubmitError(
-          result.error === "OUT_OF_RANGE"
-            ? tr("Deze locatie ligt buiten het werkgebied van deze professional.", "This location is outside the professional's travel range.")
-            : result.error === "INVALID_HOURS"
-              ? tr("De gekozen tijden passen niet bij de minimale of maximale speelduur van deze professional.", "The chosen times do not fit the professional's minimum or maximum hours.")
-              : result.error === "DATE_TAKEN"
-                ? tr("Deze datum is net bezet geraakt. Kies in stap 1 een andere datum.", "This date was just taken. Choose another date in step 1.")
-                : tr("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.", "Sending failed. Check your details and try again."),
-        )
-        return
+        expectedTotalCents: changedTotal ?? pricing.totalCents,
       }
-      setBookingId(result.id)
-      setSubmitted(true)
-      setCurrentStep(5)
+      const result = readBookingResult(await createBooking(input))
+      if (result.ok) {
+        setBookingId(result.id)
+        goToStep(5)
+      } else if (result.error === "PRICE_CHANGED" && result.totalCents !== undefined) {
+        setChangedTotal(result.totalCents)
+        void reloadOptions()
+      } else {
+        if (result.error === "DATE_TAKEN") {
+          setEventDate("")
+          setDateNotice("booked")
+          void reloadBlockedDates()
+        }
+        // An upload can be used for a day; after that the files have to be uploaded again.
+        const audioSent = Boolean(openingDanceUpload || lastSongUpload)
+        if (result.error === "INVALID_DETAILS") uploadedAudio.current.clear()
+        setSubmitError(bookingErrorMessage(result.error, language === "nl", { field: result.field, audioSent }))
+      }
     } catch (error) {
       console.error("Booking submit failed:", error)
-      setSubmitError(tr("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.", "Sending failed. Check your details and try again."))
+      setSubmitError(bookingErrorMessage("RETRY", language === "nl"))
     } finally {
       setSubmitting(false)
     }
@@ -420,8 +531,9 @@ export default function BookingPage() {
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const unavailable = isDateUnavailable(day)
-      const isSelected = selectedDate === day
+      const iso = toIsoDate(currentYear, currentMonth, day)
+      const unavailable = isBooked(iso)
+      const isSelected = eventDate === iso
       const isPast = isDateInPast(day)
 
       let dayClasses = "aspect-square w-full text-sm rounded-md flex items-center justify-center transition-colors "
@@ -440,9 +552,12 @@ export default function BookingPage() {
         <button
           key={day}
           type="button"
-          onClick={() => !unavailable && !isPast && setSelectedDate(isSelected ? null : day)}
+          onClick={() => {
+            setEventDate(isSelected ? "" : iso)
+            setDateNotice(null)
+          }}
           aria-pressed={isSelected}
-          aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("al geboekt", "already booked")})` : ""}`}
+          aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("niet beschikbaar", "not available")})` : ""}`}
           disabled={unavailable || isPast}
           className={dayClasses}
         >
@@ -500,27 +615,10 @@ export default function BookingPage() {
   }
 
   const formatSelectedDate = () => {
-    if (!selectedDate) return language === "nl" ? "Niet gekozen" : "Not selected"
-    const date = new Date(currentYear, currentMonth, selectedDate)
-    return date.toLocaleDateString(dateLocale, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+    return eventDate ? formatEventDate(eventDate, dateLocale) : tr("Niet gekozen", "Not selected")
   }
 
   const professionalImage = professional.image || `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(professional.name)}`
-
-  const upcomingEvents = professional.unavailableDates?.slice(0, 5).map((dateStr, idx) => {
-    const date = new Date(dateStr)
-    return {
-      id: idx + 1,
-      name: `${tr("Geboekt evenement", "Booked Event")} ${idx + 1}`,
-      date: date.toLocaleDateString(dateLocale, { weekday: "long", month: "long", day: "numeric", year: "numeric" }),
-      location: professional.location,
-    }
-  }) || []
 
   // Booking requires an account: show a login prompt instead of the flow.
   if (!sessionData?.user) {
@@ -561,32 +659,41 @@ export default function BookingPage() {
     <div className="min-h-screen bg-background transition-colors">
       <Header />
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
-        {/* Progress Steps */}
-        <div className="mb-4 sm:mb-8 bg-card rounded-lg p-3 sm:p-6 shadow border border-border">
-          <div className="flex items-center justify-between max-w-4xl mx-auto overflow-x-auto">
-            {steps.map((step, index) => (
-              <div key={step.number} className="flex items-center flex-shrink-0">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base font-bold transition-colors ${
-                      currentStep === step.number
-                        ? "bg-red-600 text-white"
-                        : currentStep > step.number
-                          ? "bg-green-600 text-white"
-                          : "bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white"
-                    }`}
-                  >
-                    {step.number}
-                  </div>
-                  <span className="text-[10px] sm:text-xs mt-1 sm:mt-2 text-foreground font-medium text-center max-w-[60px] sm:max-w-none leading-tight">{step.label}</span>
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-4 sm:w-8 md:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0 ${currentStep > step.number ? "bg-green-600" : "bg-border"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Progress Steps: finished steps lead back, the current one is marked for screen readers too */}
+        <nav aria-label={tr("Stappen", "Steps")} className="mb-4 sm:mb-8 bg-card rounded-lg p-3 sm:p-6 shadow border border-border">
+          <ol className="flex items-center justify-between max-w-4xl mx-auto overflow-x-auto p-1">
+            {steps.map((step, index) => {
+              const current = currentStep === step.number
+              const done = currentStep > step.number
+              // Nothing can be changed any more once the request has been sent.
+              const canReturn = done && currentStep < 5 && !submitting
+              const circle = `w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base font-bold transition-colors ${
+                current ? "bg-red-600 text-white" : done ? "bg-green-700 text-white" : "bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white"
+              }`
+              const content = (
+                <>
+                  <span className={circle}>{done ? <Check className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden /> : step.number}</span>
+                  <span className={`text-[10px] sm:text-xs mt-1 sm:mt-2 text-foreground text-center max-w-[60px] sm:max-w-none leading-tight ${current ? "font-bold" : "font-medium"}`}>{step.label}</span>
+                  {done && <span className="sr-only">({tr("afgerond", "completed")})</span>}
+                </>
+              )
+              return (
+                <li key={step.number} aria-current={current ? "step" : undefined} className="flex items-center flex-shrink-0">
+                  {canReturn ? (
+                    <button type="button" onClick={() => goToStep(step.number)} className="flex flex-col items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+                      {content}
+                    </button>
+                  ) : (
+                    <div className="flex flex-col items-center">{content}</div>
+                  )}
+                  {index < steps.length - 1 && (
+                    <div aria-hidden className={`w-4 sm:w-8 md:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0 ${done ? "bg-green-700" : "bg-border"}`} />
+                  )}
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-4 sm:gap-6">
           {/* Left Column - Professional Card */}
@@ -645,21 +752,21 @@ export default function BookingPage() {
               </div>
 
               {/* Music Genres */}
-              {artist?.musicStyles && artist?.musicStyles.length > 0 && (
+              {sideGenres.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-medium text-muted-foreground mb-2">{t.musicGenresLabel}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {artist?.musicStyles.slice(0, 2).map((genre: string) => (
+                    {sideGenres.slice(0, 2).map((genre) => (
                       <span
                         key={genre}
-                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md capitalize"
+                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md"
                       >
                         {genre}
                       </span>
                     ))}
-                    {artist?.musicStyles.length > 2 && (
+                    {sideGenres.length > 2 && (
                       <span className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md">
-                        +{artist?.musicStyles.length - 2}
+                        +{sideGenres.length - 2}
                       </span>
                     )}
                   </div>
@@ -667,21 +774,21 @@ export default function BookingPage() {
               )}
 
               {/* Event Types */}
-              {professional.eventTypes && professional.eventTypes.length > 0 && (
+              {sideEvents.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">{t.eventTypesLabel}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {professional.eventTypes.slice(0, 2).map((event: string) => (
+                    {sideEvents.slice(0, 2).map((event) => (
                       <span
                         key={event}
-                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md capitalize"
+                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md"
                       >
                         {event}
                       </span>
                     ))}
-                    {professional.eventTypes.length > 2 && (
+                    {sideEvents.length > 2 && (
                       <span className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md">
-                        +{professional.eventTypes.length - 2}
+                        +{sideEvents.length - 2}
                       </span>
                     )}
                   </div>
@@ -694,10 +801,10 @@ export default function BookingPage() {
           {currentStep === 1 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{t.selectDateLocation}</h2>
+                <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{t.selectDateLocation}</h2>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                  {/* Calendar */}
+                <div className="max-w-lg">
+                  {/* Calendar: booked and blocked days only show as not available, never as events */}
                   <div>
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <button
@@ -722,7 +829,7 @@ export default function BookingPage() {
                     </div>
 
                     <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
-                      {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
+                      {(language === "nl" ? ["M", "D", "W", "D", "V", "Z", "Z"] : ["M", "T", "W", "T", "F", "S", "S"]).map((day, index) => (
                         <div
                           key={index}
                           className="text-center text-[10px] sm:text-xs font-semibold text-muted-foreground h-6 sm:h-8 flex items-center justify-center"
@@ -737,39 +844,25 @@ export default function BookingPage() {
                     <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={tr("Legenda", "Legend")}>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-200 dark:bg-zinc-700" aria-hidden />{tr("Beschikbaar", "Available")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" aria-hidden />{tr("Gekozen", "Selected")}</li>
-                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Al geboekt", "Already booked")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Niet beschikbaar", "Not available")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-500 dark:bg-zinc-800" aria-hidden />{tr("Voorbij", "Past")}</li>
                     </ul>
 
                     <div className="mt-4 p-3 bg-muted rounded-lg">
                       <p className="text-sm font-medium text-muted-foreground">{t.selectedDateLabel}</p>
                       <p className="text-sm text-foreground font-semibold">{formatSelectedDate()}</p>
+                      {dateNotice && !eventDate && (
+                        <p role="alert" className="mt-1 text-sm text-red-600 dark:text-red-400">
+                          {dateNotice === "past"
+                            ? tr("De gekozen datum is al voorbij. Kies een andere datum.", "The chosen date has passed. Choose another date.")
+                            : dateNotice === "booked"
+                              ? tr("De gekozen datum is niet beschikbaar. Kies een andere datum.", "The chosen date is not available. Choose another date.")
+                              : tr("De datum uit de link bestaat niet. Kies een datum in de kalender.", "The date in the link does not exist. Choose a date in the calendar.")}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Upcoming Events */}
-                  <div>
-                    <h3 className="text-lg font-bold mb-3 text-foreground">{t.upcomingEvents}</h3>
-                    {upcomingEvents.length > 0 ? (
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                        {upcomingEvents.map((event) => (
-                          <div key={event.id} className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3">
-                            <h4 className="font-semibold text-foreground text-sm mb-1">{event.name}</h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>{event.date}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <MapPin className="w-3 h-3" />
-                              <span>{event.location}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{t.noUpcomingEvents}</p>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -781,7 +874,12 @@ export default function BookingPage() {
                   <input
                     type="text"
                     value={eventLocation}
-                    onChange={(e) => setEventLocation(lettersOnly(e.target.value))}
+                    onChange={(e) => {
+                      setEventLocation(placeChars(e.target.value))
+                      // The distance belongs to the previous place.
+                      setDistance(null)
+                      setDistanceError(null)
+                    }}
                     onKeyDown={(e) => {
                       // Enter does the same as the "Check distance" button.
                       if (e.key !== "Enter") return
@@ -791,6 +889,7 @@ export default function BookingPage() {
                     enterKeyHint="search"
                     aria-label={t.eventLocationLabel}
                     autoComplete="address-level2"
+                    maxLength={120}
                     placeholder={t.enterCityName}
                     className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
@@ -813,7 +912,7 @@ export default function BookingPage() {
                     </p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
-                      {t.estimatedTravelCost} {formatEuro(distance * 2 * 25)} {tr("excl. btw", "excl. VAT")} ({tr("retour", "round trip")}: {distance * 2} km)
+                      {t.estimatedTravelCost} {formatEuro(travelCents(distance))} {tr("excl. btw", "excl. VAT")} ({tr("retour", "round trip")}: {distance * 2} km)
                     </p>
                   </div>
                 )}
@@ -822,11 +921,8 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => {
-                    if (!eventDate && selectedIsoDate) setEventDate(selectedIsoDate)
-                    setCurrentStep(2)
-                  }}
-                  disabled={!selectedDate || !eventLocation.trim() || distance === null}
+                  onClick={() => goToStep(2)}
+                  disabled={!eventDate || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
@@ -840,12 +936,16 @@ export default function BookingPage() {
           {currentStep === 2 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{tr("Evenementdetails", "Event Details")}</h2>
+                <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{tr("Evenementdetails", "Event Details")}</h2>
                 
+                {requiredNote}
                 {/* Event Name */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Naam van het evenement", "Event Name")}</label>
+                  <label htmlFor="booking-event-name" className="block text-sm font-medium text-foreground mb-2">{tr("Naam van het evenement", "Event Name")}{required}</label>
                   <input
+                    id="booking-event-name"
+                      aria-required="true"
+                    maxLength={300}
                     type="text"
                     value={eventName}
                     onChange={(e) => setEventName(e.target.value)}
@@ -853,89 +953,90 @@ export default function BookingPage() {
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
                   {eventName.length < 3 && eventName.length > 0 && (
-                    <p className="text-xs text-red-500 mt-1">Event name must be at least 3 characters.</p>
+                    <p className="text-xs text-red-500 mt-1">{tr("De naam moet minimaal 3 tekens hebben.", "The name must be at least 3 characters.")}</p>
                   )}
                 </div>
                 
                 {/* Date and Times */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</label>
-                    <input
-                      type="date"
-                      value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                    />
+                    <span className="block text-sm font-medium text-foreground mb-2">{tr("Datum", "Event Date")}</span>
+                    <div className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground">
+                      <span>{eventDate ? formatEventDate(eventDate, dateLocale, "short") : tr("Niet gekozen", "Not selected")}</span>
+                      {changeInStep1(tr("Datum wijzigen", "Change date"))}
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}</label>
+                    <label htmlFor="booking-start" className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}{required}</label>
                     <select
+                      id="booking-start"
+                      aria-required="true"
                       value={startTime}
                       onChange={(e) => setStartTime(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
                       <option value="">{tr("Kies", "Select")}</option>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                          {`${i.toString().padStart(2, '0')}:00`}
-                        </option>
+                      {TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>{time}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Eindtijd", "End Time")}</label>
+                    <label htmlFor="booking-end" className="block text-sm font-medium text-foreground mb-2">{tr("Eindtijd", "End Time")}{required}</label>
                     <select
+                      id="booking-end"
+                      aria-required="true"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
                       <option value="">{tr("Kies", "Select")}</option>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={`${i.toString().padStart(2, '0')}:30`}>
-                          {`${i.toString().padStart(2, '0')}:30`}
-                        </option>
+                      {TIME_OPTIONS.map((time) => (
+                        <option key={time} value={time}>{time}</option>
                       ))}
                     </select>
                   </div>
                 </div>
                 
+                {startTime && endTime && !sameTime && (
+                  <p className="-mt-2 mb-4 text-sm text-muted-foreground" aria-live="polite">
+                    {tr("Duur", "Duration")}: {bookedHours.toLocaleString(dateLocale)} {tr("uur", bookedHours === 1 ? "hour" : "hours")}
+                    {endsNextDay && tr(" (eindigt na middernacht)", " (ends after midnight)")}
+                  </p>
+                )}
+                {sameTime && (
+                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
+                    {tr("De start- en eindtijd zijn gelijk. Kies een andere eindtijd.", "The start and end time are the same. Choose another end time.")}
+                  </p>
+                )}
                 {hoursIssue && bookingOptions && (
                   <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
                     {hoursIssue === "min"
-                      ? tr(`${professional.name} speelt minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} plays at least ${bookingOptions.minHours} ${bookingOptions.minHours === 1 ? "hour" : "hours"}. Choose a later end time.`)
-                      : tr(`${professional.name} speelt maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} plays at most ${bookingOptions.maxHours} ${bookingOptions.maxHours === 1 ? "hour" : "hours"}. Choose an earlier end time.`)}
+                      ? tr(`${professional.name} ${artist ? "speelt" : "werkt"} minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} ${artist ? "plays" : "works"} at least ${bookingOptions.minHours} ${bookingOptions.minHours === 1 ? "hour" : "hours"}. Choose a later end time.`)
+                      : tr(`${professional.name} ${artist ? "speelt" : "werkt"} maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} ${artist ? "plays" : "works"} at most ${bookingOptions.maxHours} ${bookingOptions.maxHours === 1 ? "hour" : "hours"}. Choose an earlier end time.`)}
                   </p>
                 )}
 
                 {/* Event Types and Music Genres */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Type evenement", "Event Types")}</label>
-                    <div className="flex flex-wrap gap-2">
-                      {eventTypes.map((type) => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => {
-                            setSelectedEventTypes(prev =>
-                              prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                            )
-                          }}
-                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-colors ${
-                            selectedEventTypes.includes(type)
-                              ? 'bg-red-600 text-white'
-                              : 'bg-accent text-foreground hover:bg-muted'
-                          }`}
-                        >
-                          {language === "nl" ? eventTypeLabels[type] ?? type : type}
-                        </button>
-                      ))}
-                    </div>
+                    <span id="booking-event-types-label" className="block text-sm font-medium text-foreground mb-2">{tr("Type evenement", "Event type")}</span>
+                    <ComboSelect
+                      id="booking-event-types"
+                      labelledBy="booking-event-types-label"
+                      multiple
+                      nl={language === "nl"}
+                      value={selectedEventTypes}
+                      onChange={setSelectedEventTypes}
+                      placeholder={tr("Kies een type evenement", "Choose an event type")}
+                      searchPlaceholder={tr("Zoek een type evenement...", "Search an event type...")}
+                      groups={comboGroups(EVENT_TYPE_GROUPS, language === "nl")}
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
+                    <label htmlFor="booking-guests" className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
                     <input
+                      id="booking-guests"
                       type="text"
                       inputMode="numeric"
                       maxLength={6}
@@ -947,35 +1048,29 @@ export default function BookingPage() {
                   </div>
                 </div>
                 
-                {/* Music Genres */}
+                {/* Music Genres: artists only */}
+                {artist && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziekgenres", "Music Genres")}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {musicGenres.map((genre) => (
-                      <button
-                        key={genre}
-                        type="button"
-                        onClick={() => {
-                          setSelectedMusicGenres(prev =>
-                            prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
-                          )
-                        }}
-                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-colors ${
-                          selectedMusicGenres.includes(genre)
-                            ? 'bg-red-600 text-white'
-                            : 'bg-accent text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {genre}
-                      </button>
-                    ))}
-                  </div>
+                  <span id="booking-genres-label" className="block text-sm font-medium text-foreground mb-2">{tr("Muziekgenres", "Music genres")}</span>
+                  <ComboSelect
+                    id="booking-genres"
+                    labelledBy="booking-genres-label"
+                    multiple
+                    nl={language === "nl"}
+                    value={selectedMusicGenres}
+                    onChange={setSelectedMusicGenres}
+                    placeholder={tr("Kies muziekgenres", "Choose music genres")}
+                    searchPlaceholder={tr("Zoek een genre...", "Search a genre...")}
+                    groups={comboGroups(GENRE_GROUPS, language === "nl")}
+                  />
                 </div>
-                
+                )}
+
                 {/* Description */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Omschrijving", "Description")}</label>
+                  <label htmlFor="booking-description" className="block text-sm font-medium text-foreground mb-2">{tr("Omschrijving", "Description")}</label>
                   <textarea
+                    id="booking-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder={tr("Beschrijf je evenement...", "Describe your event...")}
@@ -983,70 +1078,55 @@ export default function BookingPage() {
                     maxLength={5000}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">{description.length}/5000 characters</p>
+                  <p className="text-xs text-muted-foreground mt-1">{description.length}/5000 {tr("tekens", "characters")}</p>
                 </div>
                 
                 {/* Special Requests */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Speciale wensen", "Special Requests")}</label>
+                  <label htmlFor="booking-requests" className="block text-sm font-medium text-foreground mb-2">{tr("Speciale wensen", "Special Requests")}</label>
                   <textarea
+                    id="booking-requests"
+                    maxLength={5000}
                     value={specialRequests}
                     onChange={(e) => setSpecialRequests(e.target.value)}
                     placeholder={tr("Speciale wensen of eisen...", "Any special requests or requirements...")}
                     rows={3}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground resize-none"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">{specialRequests.length}/5000 {tr("tekens", "characters")}</p>
                 </div>
                 
-                {/* Link Option */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Soort link", "Link Option")}</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={linkOption === "playlist"}
-                        onChange={() => setLinkOption("playlist")}
-                        className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
-                      />
-                      <span className="text-sm text-foreground">{tr("Link naar favoriete playlist", "Favorite Playlist Link")}</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={linkOption === "individual"}
-                        onChange={() => setLinkOption("individual")}
-                        className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
-                      />
-                      <span className="text-sm text-foreground">{tr("Link per nummer", "Links for Each Song")}</span>
-                    </label>
-                  </div>
-                </div>
-                
+                {/* Music and dress code: artists only */}
+                {artist && (
+                <>
                 {/* Playlist Link */}
-                {linkOption === "playlist" && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Playlistlink", "Playlist Link")}</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="url"
-                        value={playlistLink}
-                        onChange={(e) => setPlaylistLink(e.target.value)}
-                        placeholder="https://..."
-                        className="flex-1 px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                      />
-                      <Button className="bg-accent text-foreground hover:bg-muted px-4">{tr("Link toevoegen", "Add Link")}</Button>
-                    </div>
-                  </div>
-                )}
-                
+                <div className="mb-4">
+                  <label htmlFor="booking-playlist" className="block text-sm font-medium text-foreground mb-2">{tr("Link naar playlist of nummer (optioneel)", "Link to a playlist or song (optional)")}</label>
+                  <input
+                    id="booking-playlist"
+                    type="url"
+                    maxLength={300}
+                    value={playlistLink}
+                    onChange={(e) => setPlaylistLink(e.target.value)}
+                    placeholder="https://..."
+                    aria-invalid={!isWebLink(playlistLink)}
+                    aria-describedby="booking-playlist-error booking-playlist-hint"
+                    className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
+                  />
+                  {linkError(playlistLink, "booking-playlist-error")}
+                  <p id="booking-playlist-hint" className="mt-1 text-xs text-muted-foreground">
+                    {tr("Losse nummers? Zet ze bij speciale wensen.", "Separate songs? List them under special requests.")}
+                  </p>
+                </div>
+
                 {/* Opening Dance Music */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor de openingsdans", "Opening Dance Music")}</label>
-                  <div className="flex gap-4 mb-2">
+                  <span id="booking-opening-label" className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor de openingsdans", "Opening Dance Music")}</span>
+                  <div role="radiogroup" aria-labelledby="booking-opening-label" className="flex flex-wrap gap-x-4 gap-y-2 mb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-opening-option"
                         checked={openingDanceOption === "upload"}
                         onChange={() => setOpeningDanceOption("upload")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1056,6 +1136,7 @@ export default function BookingPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-opening-option"
                         checked={openingDanceOption === "link"}
                         onChange={() => setOpeningDanceOption("link")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1066,23 +1147,31 @@ export default function BookingPage() {
                   {openingDanceOption === "upload" ? (
                     <AudioUpload label={tr("Muziek voor de openingsdans", "Opening Dance Music")} file={openingDanceFile} onChange={setOpeningDanceFile} />
                   ) : (
+                    <>
                     <input
                       type="url"
+                      maxLength={300}
+                      aria-labelledby="booking-opening-label"
+                      aria-invalid={!isWebLink(openingDanceLink)}
+                      aria-describedby="booking-opening-error"
                       value={openingDanceLink}
                       onChange={(e) => setOpeningDanceLink(e.target.value)}
                       placeholder="https://..."
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
+                    {linkError(openingDanceLink, "booking-opening-error")}
+                    </>
                   )}
                 </div>
                 
                 {/* Last Song Music */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor het laatste nummer", "Last Song Music")}</label>
-                  <div className="flex gap-4 mb-2">
+                  <span id="booking-last-song-label" className="block text-sm font-medium text-foreground mb-2">{tr("Muziek voor het laatste nummer", "Last Song Music")}</span>
+                  <div role="radiogroup" aria-labelledby="booking-last-song-label" className="flex flex-wrap gap-x-4 gap-y-2 mb-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-last-song-option"
                         checked={lastSongOption === "upload"}
                         onChange={() => setLastSongOption("upload")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1092,6 +1181,7 @@ export default function BookingPage() {
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="radio"
+                        name="booking-last-song-option"
                         checked={lastSongOption === "link"}
                         onChange={() => setLastSongOption("link")}
                         className="w-4 h-4 text-red-600 focus:ring-2 focus:ring-red-600"
@@ -1102,20 +1192,29 @@ export default function BookingPage() {
                   {lastSongOption === "upload" ? (
                     <AudioUpload label={tr("Muziek voor het laatste nummer", "Last Song Music")} file={lastSongFile} onChange={setLastSongFile} />
                   ) : (
+                    <>
                     <input
                       type="url"
+                      maxLength={300}
+                      aria-labelledby="booking-last-song-label"
+                      aria-invalid={!isWebLink(lastSongLink)}
+                      aria-describedby="booking-last-song-error"
                       value={lastSongLink}
                       onChange={(e) => setLastSongLink(e.target.value)}
                       placeholder="https://..."
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
+                    {linkError(lastSongLink, "booking-last-song-error")}
+                    </>
                   )}
                 </div>
                 
-                {/* DJ Dress Code Preference */}
+                {/* Dress code preference */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode voor de DJ (bijv. formeel of thema)", "DJ Dress Code Preference (e.g. Formal or theme)")}</label>
+                  <label htmlFor="booking-dresscode" className="block text-sm font-medium text-foreground mb-2">{tr("Gewenste dresscode (bijv. formeel of thema)", "Dress code preference (e.g. formal or theme)")}</label>
                   <input
+                    id="booking-dresscode"
+                    maxLength={300}
                     type="text"
                     value={dressCode}
                     onChange={(e) => setDressCode(e.target.value)}
@@ -1124,14 +1223,19 @@ export default function BookingPage() {
                   />
                 </div>
                 
+                </>
+                )}
+
                 {/* Event Venue Address */}
                 <div className="border-t border-border pt-4">
                   <h3 className="text-lg font-semibold text-foreground mb-3">{tr("Adres van de locatie", "Event Venue Address")}</h3>
                   
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">{tr("Straat", "Street Name")}</label>
+                      <label htmlFor="booking-street" className="block text-sm font-medium text-foreground mb-2">{tr("Straat", "Street Name")}</label>
                       <input
+                        id="booking-street"
+                        maxLength={300}
                         type="text"
                         value={streetName}
                         onChange={(e) => setStreetName(e.target.value)}
@@ -1141,8 +1245,10 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Huisnummer", "House Number")}</label>
+                        <label htmlFor="booking-house-number" className="block text-sm font-medium text-foreground mb-2">{tr("Huisnummer", "House Number")}</label>
                         <input
+                          id="booking-house-number"
+                          maxLength={20}
                           type="text"
                           value={houseNumber}
                           onChange={(e) => setHouseNumber(digitsOnly(e.target.value))}
@@ -1150,8 +1256,10 @@ export default function BookingPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Toevoeging", "House Number Extension")}</label>
+                        <label htmlFor="booking-house-ext" className="block text-sm font-medium text-foreground mb-2">{tr("Toevoeging", "House Number Extension")}</label>
                         <input
+                          id="booking-house-ext"
+                          maxLength={20}
                           type="text"
                           value={houseNumberExt}
                           onChange={(e) => setHouseNumberExt(e.target.value)}
@@ -1162,28 +1270,53 @@ export default function BookingPage() {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
-                        <input
-                          type="text"
-                          value={postalCode}
-                          onChange={(e) => setPostalCode(postalCodeChars(e.target.value))}
-                          className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                        />
+                        <label htmlFor={locationIsPostcode ? undefined : "booking-postal"} className="block text-sm font-medium text-foreground mb-2">{tr("Postcode", "Postal Code")}</label>
+                        {locationIsPostcode ? (
+                          <div id="booking-postal" className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm sm:text-base text-foreground">
+                            <span>{eventLocation.trim().toUpperCase()}</span>
+                            {changeInStep1(tr("Postcode wijzigen", "Change postal code"))}
+                          </div>
+                        ) : (
+                          <input
+                            id="booking-postal"
+                            maxLength={20}
+                            type="text"
+                            value={postalCode}
+                            onChange={(e) => setPostalCode(postalCodeChars(e.target.value))}
+                            className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
+                          />
+                        )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
-                        <input
-                          type="text"
-                          value={city}
-                          onChange={(e) => setCity(lettersOnly(e.target.value))}
-                          className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
-                        />
+                        {locationIsPostcode ? (
+                          <>
+                            <label htmlFor="booking-city" className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</label>
+                            <input
+                              id="booking-city"
+                              maxLength={120}
+                              type="text"
+                              value={city}
+                              onChange={(e) => setCity(lettersOnly(e.target.value))}
+                              className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <span className="block text-sm font-medium text-foreground mb-2">{tr("Plaats", "City")}</span>
+                            <div className="flex min-h-11 items-center justify-between gap-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm sm:text-base text-foreground">
+                              <span className="min-w-0 break-words">{eventLocation.trim()}</span>
+                              {changeInStep1(tr("Plaats wijzigen", "Change place"))}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">{tr("Land", "Country")}</label>
+                      <label htmlFor="booking-country" className="block text-sm font-medium text-foreground mb-2">{tr("Land", "Country")}</label>
                       <input
+                        id="booking-country"
+                        maxLength={120}
                         type="text"
                         value={country}
                         onChange={(e) => setCountry(lettersOnly(e.target.value))}
@@ -1259,18 +1392,24 @@ export default function BookingPage() {
                 </div>
               )}
               {optionsLoading && <p className="text-sm text-muted-foreground">{tr("Prijzen laden...", "Loading prices...")}</p>}
+              {!optionsLoading && !bookingOptions && (
+                <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-foreground">
+                  <span>{tr("De prijzen van deze professional konden niet worden geladen.", "This professional's prices could not be loaded.")}</span>
+                  <Button type="button" variant="outline" className="h-11" onClick={() => void reloadOptions()}>{tr("Opnieuw proberen", "Try again")}</Button>
+                </div>
+              )}
 
               {/* Navigation Buttons */}
               <div className="flex gap-3">
                 <Button
-                  onClick={() => setCurrentStep(1)}
+                  onClick={() => goToStep(1)}
                   className="px-6 py-3 bg-accent text-foreground hover:bg-muted"
                 >
                   {tr("Terug", "Back")}
                 </Button>
                 <Button
-                  onClick={() => setCurrentStep(3)}
-                  disabled={!eventName || eventName.length < 3 || !startTime || !endTime || Boolean(hoursIssue) || !bookingOptions}
+                  onClick={() => goToStep(3)}
+                  disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
@@ -1284,33 +1423,39 @@ export default function BookingPage() {
           {currentStep === 3 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-2 text-foreground">{tr("Persoonlijke gegevens", "Personal details")}</h2>
-                <p className="text-sm text-muted-foreground mb-6">{tr("Vul je gegevens in zodat de professional contact met je kan opnemen.", "Fill in your details so the professional can contact you.")}</p>
+                <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-2 text-foreground">{tr("Persoonlijke gegevens", "Personal details")}</h2>
+                <p className="text-sm text-muted-foreground mb-2">{tr("Vul je gegevens in zodat de professional contact met je kan opnemen.", "Fill in your details so the professional can contact you.")}</p>
+                {requiredNote}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}<input required value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}<input required value={lastName} autoComplete="family-name" onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}<input required autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}<input required autoComplete="tel" type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}{required}<input required value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}{required}<input required value={lastName} autoComplete="family-name" onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}{required}<input required autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}{required}<input required autoComplete="tel" type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
                 </div>
                 <div className="mt-6 border-t border-border pt-5">
                   <h3 className="font-semibold text-foreground">{tr("Factuurgegevens", "Billing details")}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{tr("Deze gegevens gebruiken we om de factuur op te stellen.", "We use these details to prepare the invoice.")}</p>
+                  {streetName.trim() && (
+                    <Button type="button" variant="outline" className="mt-3 h-11" onClick={copyEventAddress}>
+                      {tr("Zelfde als evenementadres", "Same as event address")}
+                    </Button>
+                  )}
                   <div className="mt-4 flex gap-2" role="radiogroup" aria-label={tr("Type klant", "Customer type")}>
-                    <button type="button" onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Particulier", "Private")}</button>
-                    <button type="button" onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
+                    <button type="button" role="radio" aria-checked={customerType === "private"} onClick={() => setCustomerType("private")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "private" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Particulier", "Private")}</button>
+                    <button type="button" role="radio" aria-checked={customerType === "business"} onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
                   </div>
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}<input required autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}<input required autoComplete="address-line1" value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}<input required autoComplete="postal-code" value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}<input required autoComplete="address-level2" value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}{required}<input required autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}{required}<input required autoComplete="address-line1" value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}{required}<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}{required}<input required autoComplete="postal-code" value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}{required}<input required autoComplete="address-level2" value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
                     <label className="space-y-2 text-sm font-medium text-foreground">{tr("Land", "Country")}<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option value="Nederland">{tr("Nederland", "Netherlands")}</option><option value="België">{tr("België", "Belgium")}</option><option value="Duitsland">{tr("Duitsland", "Germany")}</option><option value="Anders">{tr("Anders", "Other")}</option></select></label>
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">{tr("Btw-nummer", "VAT number")}<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">{tr("Btw-nummer", "VAT number")}{required}<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => setCurrentStep(4)} disabled={!firstName.trim() || !lastName.trim() || !email.includes("@") || !phone.trim() || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
               {missingHint(missingStep3)}
             </div>
           )}
@@ -1319,7 +1464,7 @@ export default function BookingPage() {
           {currentStep === 4 && (
             <div className="space-y-4 sm:space-y-6">
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-5 text-foreground">{tr("Overzicht", "Overview")}</h2>
+                <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-5 text-foreground">{tr("Overzicht", "Overview")}</h2>
                 <div className="space-y-3 text-sm border-b border-border pb-4">
                   <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Datum", "Date")}</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
@@ -1327,12 +1472,12 @@ export default function BookingPage() {
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Factuuradres", "Billing address")}</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw-nummer", "VAT number")}</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   {pricing && <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Optreden", "Performance")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Optreden", "Performance") : tr("Inzet", "Service")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
                   {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Apparatuur en extra's", "Equipment and extras") : tr("Extra's", "Extras")} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
                   <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw", "VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
-                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-500">{formatEuro(pricing.totalCents)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-500">{formatEuro(shownTotal)}</span></div>
                   </>}
                   <p className="text-xs text-muted-foreground">{tr("De professional bevestigt dit bedrag als je aanvraag wordt geaccepteerd. Je betaalt pas daarna.", "The professional confirms this amount when your request is accepted. You only pay after that.")}</p>
                 </div>
@@ -1341,8 +1486,8 @@ export default function BookingPage() {
                   <ol className="space-y-3 text-sm">
                     {[
                       [tr("Nu", "Now"), tr("Je verstuurt je aanvraag en betaalt nog niets.", "You send your request and pay nothing yet.")],
-                      [`${tr("Na goedkeuring", "After approval")}: ${formatEuro(depositCents(pricing?.totalCents ?? 0))}`, tr(`Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`, `You receive a quote and pay a ${DEPOSIT_PERCENT}% deposit. That makes your booking final.`)],
-                      [`${tr("Na het evenement", "After the event")}: ${formatEuro((pricing?.totalCents ?? 0) - depositCents(pricing?.totalCents ?? 0))}`, tr("Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op.", "You pay the rest with the final invoice. Extra costs, such as an extra hour or parking, are listed there separately.")],
+                      [`${tr("Na goedkeuring", "After approval")}: ${formatEuro(depositCents(shownTotal))}`, tr(`Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`, `You receive a quote and pay a ${DEPOSIT_PERCENT}% deposit. That makes your booking final.`)],
+                      [`${tr("Na het evenement", "After the event")}: ${formatEuro(shownTotal - depositCents(shownTotal))}`, tr("Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op.", "You pay the rest with the final invoice. Extra costs, such as an extra hour or parking, are listed there separately.")],
                     ].map(([title, text], index) => (
                       <li key={title} className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground" aria-hidden="true">{index + 1}</span>
@@ -1355,18 +1500,36 @@ export default function BookingPage() {
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />{tr("Je gegevens worden veilig verwerkt.", "Your details are processed securely.")}</div>
               </div>
               {submitError && (
-                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                  <span>{submitError}</span>
+                  <div className="space-y-2">
+                    <p>{submitError.text}</p>
+                    {submitError.step && (
+                      <button type="button" onClick={() => goToStep(submitError.step!)} className="min-h-9 font-medium underline underline-offset-4">
+                        {tr(`Naar stap ${submitError.step}`, `Go to step ${submitError.step}`)}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              {changedTotal !== null && !submitError && (
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-foreground">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                  <p>
+                    {tr(
+                      `Het totaal is veranderd: het is nu ${formatEuro(changedTotal)} incl. btw. Je aanvraag is nog niet verstuurd. Klopt dit bedrag? Verstuur je aanvraag dan opnieuw.`,
+                      `The total has changed: it is now ${formatEuro(changedTotal)} incl. VAT. Your request has not been sent yet. If you agree with this amount, send your request again.`,
+                    )}
+                  </p>
+                </div>
+              )}
+              <div className="flex gap-3"><Button onClick={() => goToStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : changedTotal !== null ? tr(`Akkoord met ${formatEuro(changedTotal)}, verstuur`, `Agree to ${formatEuro(changedTotal)}, send`) : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 className="mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
+            <div className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
           )}
         </div>
       </div>
