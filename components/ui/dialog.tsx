@@ -69,7 +69,9 @@ function DialogContent({
         )}
         {...props}
         onOpenAutoFocus={(event) => {
-          openedFrom.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+          const focused = document.activeElement
+          const inside = event.currentTarget instanceof Node && event.currentTarget.contains(focused)
+          if (!inside) openedFrom.current = focused instanceof HTMLElement ? focused : null
           props.onOpenAutoFocus?.(event)
         }}
         onCloseAutoFocus={(event) => {
