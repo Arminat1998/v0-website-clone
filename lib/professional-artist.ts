@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, eq } from "drizzle-orm"
+import { and, asc, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { artistPages, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { mediaUrl } from "@/lib/artist-page-types"
@@ -144,6 +144,8 @@ async function listLiveAccounts() {
     .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
     .leftJoin(artistPages, eq(artistPages.professionalId, userTable.id))
     .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
+    // Fixed order, oldest account first.
+    .orderBy(asc(userTable.createdAt), asc(userTable.id))
   return rows.filter((account) => !getRestriction(account))
 }
 
