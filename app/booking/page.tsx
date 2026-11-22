@@ -7,6 +7,7 @@ import { Calendar, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { uploadPresigned } from "@vercel/blob/client"
+import { ComboSelect, comboGroups } from "@/components/combo-select"
 import { AudioUpload } from "@/components/booking/audio-upload"
 import { audioContentType, newAudioPath } from "@/lib/bookings/audio"
 import { artists, photographers } from "@/lib/smart-search"
@@ -18,6 +19,7 @@ import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOpt
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
 import { getCustomerProfile } from "@/app/actions/customer"
 import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking } from "@/lib/bookings/pricing"
 
@@ -144,17 +146,6 @@ export default function BookingPage() {
     ([, id]) => getBlockedDates(id),
   )
   
-  const eventTypes = ["Birthday", "Anniversary", "Wedding", "Corporate", "Festival", "Club Night"]
-  const eventTypeLabels: Record<string, string> = {
-    Birthday: "Verjaardag",
-    Anniversary: "Jubileum",
-    Wedding: "Bruiloft",
-    Corporate: "Zakelijk",
-    Festival: "Festival",
-    "Club Night": "Clubavond",
-  }
-  const musicGenres = ["Trance", "House", "Techno", "Punk", "Hip-Hop", "Pop", "Rock", "EDM"]
-
   // Get artist or photographer data
   const staticArtist = artistId ? artists.find(a => a.id === Number(artistId)) : null
   const needsLiveLookup = Boolean(artistId) && !staticArtist
@@ -358,7 +349,8 @@ export default function BookingPage() {
         startTime: startTime || "20:00",
         endTime: endTime || "00:00",
         eventTypes: selectedEventTypes,
-        musicGenres: selectedMusicGenres,
+        // Bookings store genres by their English name, which is also how the dashboards show them.
+        musicGenres: selectedMusicGenres.map((value) => genreLabel(value, false)),
         capacity,
         description,
         specialRequests,
@@ -947,27 +939,18 @@ export default function BookingPage() {
                 {/* Event Types and Music Genres */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">{tr("Type evenement", "Event Types")}</label>
-                    <div className="flex flex-wrap gap-2">
-                      {eventTypes.map((type) => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => {
-                            setSelectedEventTypes(prev =>
-                              prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-                            )
-                          }}
-                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-colors ${
-                            selectedEventTypes.includes(type)
-                              ? 'bg-red-600 text-white'
-                              : 'bg-accent text-foreground hover:bg-muted'
-                          }`}
-                        >
-                          {language === "nl" ? eventTypeLabels[type] ?? type : type}
-                        </button>
-                      ))}
-                    </div>
+                    <span id="booking-event-types-label" className="block text-sm font-medium text-foreground mb-2">{tr("Type evenement", "Event type")}</span>
+                    <ComboSelect
+                      id="booking-event-types"
+                      labelledBy="booking-event-types-label"
+                      multiple
+                      nl={language === "nl"}
+                      value={selectedEventTypes}
+                      onChange={setSelectedEventTypes}
+                      placeholder={tr("Kies een type evenement", "Choose an event type")}
+                      searchPlaceholder={tr("Zoek een type evenement...", "Search an event type...")}
+                      groups={comboGroups(EVENT_TYPE_GROUPS, language === "nl")}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">{tr("Aantal gasten", "Capacity")}</label>
@@ -986,27 +969,18 @@ export default function BookingPage() {
                 {/* Music Genres: artists only */}
                 {artist && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-foreground mb-2">{tr("Muziekgenres", "Music Genres")}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {musicGenres.map((genre) => (
-                      <button
-                        key={genre}
-                        type="button"
-                        onClick={() => {
-                          setSelectedMusicGenres(prev =>
-                            prev.includes(genre) ? prev.filter(g => g !== genre) : [...prev, genre]
-                          )
-                        }}
-                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-full font-medium transition-colors ${
-                          selectedMusicGenres.includes(genre)
-                            ? 'bg-red-600 text-white'
-                            : 'bg-accent text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        {genre}
-                      </button>
-                    ))}
-                  </div>
+                  <span id="booking-genres-label" className="block text-sm font-medium text-foreground mb-2">{tr("Muziekgenres", "Music genres")}</span>
+                  <ComboSelect
+                    id="booking-genres"
+                    labelledBy="booking-genres-label"
+                    multiple
+                    nl={language === "nl"}
+                    value={selectedMusicGenres}
+                    onChange={setSelectedMusicGenres}
+                    placeholder={tr("Kies muziekgenres", "Choose music genres")}
+                    searchPlaceholder={tr("Zoek een genre...", "Search a genre...")}
+                    groups={comboGroups(GENRE_GROUPS, language === "nl")}
+                  />
                 </div>
                 )}
 
