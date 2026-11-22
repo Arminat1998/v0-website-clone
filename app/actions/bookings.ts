@@ -10,6 +10,7 @@ import { distanceBetween } from "@/lib/bookings/distance"
 import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
 import { BookingError, isBookingId, optionalText, parseBookingInput, type CreateBookingResult } from "@/lib/bookings/booking-input"
 import { todayIso } from "@/lib/bookings/format"
+import { audioFileExists, lockAudio } from "@/lib/bookings/audio-storage"
 import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
@@ -235,6 +236,15 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
     // same moment cannot slip through.
     await lockDate(tx, input.professionalId, input.eventDate)
     if (await dateProblem(tx, input.professionalId, input.eventDate, hasTable)) throw new BookingError("DATE_TAKEN")
+
+    const audio = [input.openingDanceFileName, input.lastSongFileName].filter(Boolean)
+    if (audio.length) {
+      // From here on the file belongs to a booking; the cleanup of loose files waits for this transaction.
+      await lockAudio(tx, customerId)
+      const found = await Promise.all(audio.map(audioFileExists))
+      const missing = audio.find((_, index) => !found[index])
+      if (missing) throw new BookingError("INVALID_DETAILS", missing === input.openingDanceFileName ? "openingDanceFileName" : "lastSongFileName")
+    }
 
     const [inserted] = await tx
       .insert(bookings)

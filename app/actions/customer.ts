@@ -12,6 +12,7 @@ import {
   invoices,
 } from "@/lib/db/schema";
 import type { CustomerInvoice } from "@/lib/bookings/payments";
+import { isBookingId } from "@/lib/bookings/booking-input";
 import { getSession } from "@/lib/session";
 import {
   customerProfileSchema,
@@ -72,7 +73,7 @@ export async function saveCustomerProfile(input: CustomerProfileInput) {
 
 export async function getCustomerBooking(id: number) {
   const account = await customerUser();
-  if (!Number.isSafeInteger(id) || id < 1) return null;
+  if (!isBookingId(id)) return null;
   const [row] = await db
     .select({
       id: bookings.id,
@@ -90,6 +91,12 @@ export async function getCustomerBooking(id: number) {
       description: bookings.description,
       specialRequests: bookings.specialRequests,
       dressCode: bookings.dressCode,
+      // Files play through audioUrl(id, kind) from lib/bookings/audio; hasAudioFile tells if there is a file.
+      playlistLink: bookings.playlistLink,
+      openingDanceLink: bookings.openingDanceLink,
+      openingDanceFileName: bookings.openingDanceFileName,
+      lastSongLink: bookings.lastSongLink,
+      lastSongFileName: bookings.lastSongFileName,
       equipment: bookings.equipment,
       street: bookings.street,
       houseNumber: bookings.houseNumber,
@@ -136,7 +143,7 @@ export async function getCustomerInvoice(
   bookingId: number,
 ): Promise<CustomerInvoice | null> {
   const account = await customerUser();
-  if (!Number.isSafeInteger(bookingId) || bookingId < 1) return null;
+  if (!isBookingId(bookingId)) return null;
   const [row] = await db
     .select({
       invoiceNumber: invoices.invoiceNumber,
@@ -289,7 +296,7 @@ export async function getCustomerUnreadCount() {
 
 export async function markCustomerNotificationsRead(id?: number) {
   const account = await customerUser();
-  if (id !== undefined && (!Number.isSafeInteger(id) || id < 1))
+  if (id !== undefined && !isBookingId(id))
     throw new Error("Invalid notification");
   await db
     .update(customerNotifications)
