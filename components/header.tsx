@@ -127,7 +127,16 @@ export function Header() {
   const pathname = usePathname()
   useEffect(() => {
     const title = PAGE_TITLES[pathname ?? ""]
-    if (title) document.title = nl ? title.nl : title.en
+    if (!title) return
+    const [wanted, other] = nl ? [title.nl, title.en] : [title.en, title.nl]
+    // The page's own title can arrive after this component, so swap it whenever it is the one in the other language.
+    const apply = () => {
+      if (document.title === other) document.title = wanted
+    }
+    apply()
+    const observer = new MutationObserver(apply)
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true })
+    return () => observer.disconnect()
   }, [pathname, nl])
   const [menuOpen, setMenuOpen] = useState(false)
   const themeLabel = nl ? "Licht of donker thema" : "Light or dark theme"

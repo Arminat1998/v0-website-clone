@@ -971,7 +971,7 @@ export default function BookingPage() {
                 {distance !== null && (
                   <div className="mt-4 p-4 bg-muted border border-border rounded-lg">
                     <p className="text-sm font-medium text-foreground">
-                      {t.distanceFromTo} {professional.location} {t.city.toLowerCase()} {eventLocation}:
+                      {t.distanceFromTo} {professional.location} {tr("naar", "to")} {eventLocation}:
                     </p>
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
