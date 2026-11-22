@@ -17,8 +17,12 @@ import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
 import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions } from "@/app/actions/bookings"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
+import { formatEventDate, todayIso } from "@/lib/bookings/format"
 import { getCustomerProfile } from "@/app/actions/customer"
 import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking } from "@/lib/bookings/pricing"
+
+const toIsoDate = (year: number, month: number, day: number) =>
+  `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
 
 /** Every half hour of the day, as "HH:MM". */
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`)
@@ -46,13 +50,13 @@ export default function BookingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
-  const [selectedDate, setSelectedDate] = useState<number | null>(null)
   const [eventLocation, setEventLocation] = useState("")
   const [distance, setDistance] = useState<number | null>(null)
   const [calculating, setCalculating] = useState(false)
   
   // Step 2 - Event Details
   const [eventName, setEventName] = useState("")
+  // The chosen date as YYYY-MM-DD: the calendar of step 1 and the date field of step 2 show the same value.
   const [eventDate, setEventDate] = useState("")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
@@ -184,7 +188,7 @@ export default function BookingPage() {
   useEffect(() => {
     if (initialDate) {
       const [day, month, year] = initialDate.split("-").map(Number)
-      setSelectedDate(day)
+      setEventDate(toIsoDate(year, month - 1, day))
       setCurrentMonth(month - 1)
       setCurrentYear(year)
     }
@@ -247,16 +251,9 @@ export default function BookingPage() {
     return day === 0 ? 6 : day - 1
   }
 
-  const toIsoDate = (year: number, month: number, day: number) =>
-    `${year}-${(month + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`
-
-  const isDateUnavailable = (day: number) => {
-    const dateStr = toIsoDate(currentYear, currentMonth, day)
-    return professional.unavailableDates?.includes(dateStr) || blockedDates.includes(dateStr)
-  }
-
-  const selectedIsoDate = selectedDate ? toIsoDate(currentYear, currentMonth, selectedDate) : ""
-  const effectiveEventDate = eventDate || selectedIsoDate
+  const isBooked = (iso: string) => Boolean(professional.unavailableDates?.includes(iso)) || blockedDates.includes(iso)
+  // The date field of step 2 also accepts typed dates, so past and booked dates are checked again here.
+  const dateProblem = !eventDate ? null : eventDate < todayIso() ? "past" : isBooked(eventDate) ? "booked" : null
 
   // An end time before the start time is after midnight; the same time twice is not a duration (the server refuses it too).
   const sameTime = Boolean(startTime) && startTime === endTime
@@ -274,11 +271,12 @@ export default function BookingPage() {
 
   // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
   const missingStep1 = [
-    !selectedDate && tr("een datum in de kalender", "a date in the calendar"),
+    (!eventDate || dateProblem) && tr("een datum in de kalender", "a date in the calendar"),
     !eventLocation.trim() && tr("de plaats van je evenement", "the place of your event"),
     eventLocation.trim() && distance === null && tr("de afstand (klik op de knop naast de plaats)", "the distance (click the button next to the place)"),
   ].filter(Boolean) as string[]
   const missingStep2 = [
+    (!eventDate || dateProblem) && tr("een beschikbare datum", "an available date"),
     (!eventName || eventName.length < 3) && tr("een naam voor je evenement (minimaal 3 tekens)", "a name for your event (at least 3 characters)"),
     (!startTime || !endTime) && tr("een start- en eindtijd", "a start and end time"),
   ].filter(Boolean) as string[]
@@ -349,7 +347,7 @@ export default function BookingPage() {
         professionalType: artist ? "artist" : "photographer",
         professionalPrice: professional.price,
         eventName,
-        eventDate: effectiveEventDate,
+        eventDate,
         startTime: startTime || "20:00",
         endTime: endTime || "00:00",
         eventTypes: selectedEventTypes,
@@ -421,8 +419,9 @@ export default function BookingPage() {
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const unavailable = isDateUnavailable(day)
-      const isSelected = selectedDate === day
+      const iso = toIsoDate(currentYear, currentMonth, day)
+      const unavailable = isBooked(iso)
+      const isSelected = eventDate === iso
       const isPast = isDateInPast(day)
 
       let dayClasses = "aspect-square w-full text-sm rounded-md flex items-center justify-center transition-colors "
@@ -441,7 +440,7 @@ export default function BookingPage() {
         <button
           key={day}
           type="button"
-          onClick={() => !unavailable && !isPast && setSelectedDate(isSelected ? null : day)}
+          onClick={() => !unavailable && !isPast && setEventDate(isSelected ? "" : iso)}
           aria-pressed={isSelected}
           aria-label={`${new Date(currentYear, currentMonth, day).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}${isPast ? ` (${tr("voorbij", "past")})` : unavailable ? ` (${tr("al geboekt", "already booked")})` : ""}`}
           disabled={unavailable || isPast}
@@ -501,14 +500,7 @@ export default function BookingPage() {
   }
 
   const formatSelectedDate = () => {
-    if (!selectedDate) return language === "nl" ? "Niet gekozen" : "Not selected"
-    const date = new Date(currentYear, currentMonth, selectedDate)
-    return date.toLocaleDateString(dateLocale, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+    return eventDate ? formatEventDate(eventDate, dateLocale) : tr("Niet gekozen", "Not selected")
   }
 
   const professionalImage = professional.image || `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(professional.name)}`
@@ -823,11 +815,8 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => {
-                    if (!eventDate && selectedIsoDate) setEventDate(selectedIsoDate)
-                    setCurrentStep(2)
-                  }}
-                  disabled={!selectedDate || !eventLocation.trim() || distance === null}
+                  onClick={() => setCurrentStep(2)}
+                  disabled={!eventDate || Boolean(dateProblem) || !eventLocation.trim() || distance === null}
                   className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
@@ -865,9 +854,26 @@ export default function BookingPage() {
                     <input
                       type="date"
                       value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
+                      min={todayIso()}
+                      onChange={(e) => {
+                        setEventDate(e.target.value)
+                        const [year, month] = e.target.value.split("-").map(Number)
+                        if (year && month) {
+                          setCurrentYear(year)
+                          setCurrentMonth(month - 1)
+                        }
+                      }}
+                      aria-invalid={Boolean(dateProblem)}
+                      aria-describedby={dateProblem ? "booking-date-error" : undefined}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     />
+                    {dateProblem && (
+                      <p id="booking-date-error" role="alert" className="mt-1 text-xs text-red-500">
+                        {dateProblem === "past"
+                          ? tr("Deze datum is al voorbij.", "This date has passed.")
+                          : tr("Op deze datum is de professional al geboekt.", "The professional is already booked on this date.")}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">{tr("Starttijd", "Start Time")}</label>
@@ -1278,7 +1284,7 @@ export default function BookingPage() {
                 </Button>
                 <Button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !bookingOptions}
+                  disabled={!eventDate || Boolean(dateProblem) || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !bookingOptions}
                   className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
@@ -1368,7 +1374,7 @@ export default function BookingPage() {
                   <span>{submitError}</span>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !effectiveEventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => setCurrentStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || Boolean(dateProblem) || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
