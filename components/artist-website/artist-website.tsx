@@ -73,7 +73,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
         openPhoto: setPhotoIndex,
       }}
     >
-      <article className="w-full">
+      <article className="touch-targets w-full">
         <div className="relative h-56 overflow-hidden rounded-xl bg-muted sm:h-80 lg:h-[26rem]">
           {bannerSrc && <img src={bannerSrc || "/placeholder.svg"} alt="" className="size-full object-cover" />}
           {!edit && <ArtistShareButton />}

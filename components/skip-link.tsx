@@ -12,7 +12,9 @@ export function SkipLink() {
     const header = document.querySelector("header")
     const main = document.querySelector("main")
     // Some pages have no main element (or wrap the header in it): then the part after the header is the content.
-    const target = main && !(header && main.contains(header)) ? main : (header?.nextElementSibling ?? main)
+    let target: Element | null = main && !(header && main.contains(header)) ? main : (header?.nextElementSibling ?? main)
+    // Skip what is hidden at this screen size, such as the mobile filter bar.
+    while (target instanceof HTMLElement && target.offsetHeight === 0 && target.nextElementSibling) target = target.nextElementSibling
     if (!(target instanceof HTMLElement)) return
     target.tabIndex = -1
     target.focus()

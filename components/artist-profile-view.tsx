@@ -94,7 +94,8 @@ export function ArtistProfileView({
         openPhoto: () => {},
       }}
     >
-      <div className="bg-background">
+      {/* min-w-0: the dialog is a grid, so without it the row of tabs would make the whole modal wider than the screen. */}
+      <div className="min-w-0 bg-background">
         <div className="relative">
           {/* Hero Image */}
           <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
@@ -158,7 +159,7 @@ export function ArtistProfileView({
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4 h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-1 sm:mb-6">
+            <TabsList className="mb-4 h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0 sm:mb-6">
               <TabsTrigger value="about" className={tabClass}>
                 {nl ? "Over" : "About"}
               </TabsTrigger>
