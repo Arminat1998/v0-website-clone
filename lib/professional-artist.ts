@@ -34,6 +34,9 @@ export interface ProfessionalProfileSummary {
   city: string
   hourlyRate: number
   yearsExperience: number
+  minHours: number
+  maxHours: number
+  rangeKm: number
   artistType: string
   genres: string[]
   eventTypes: string[]
@@ -74,6 +77,9 @@ export function buildProfessionalArtist(
     price: profile?.hourlyRate ? `€${profile.hourlyRate}` : "€0",
     available: true,
     unavailableDates,
+    minHours: profile?.minHours,
+    maxHours: profile?.maxHours,
+    rangeKm: profile?.rangeKm,
     category: account.category ?? undefined,
     image: account.image ?? undefined,
     banner: account.bannerPath ? mediaUrl(account.bannerPath) : undefined,
@@ -105,6 +111,9 @@ const summaryColumns = {
   city: professionalProfiles.city,
   hourlyRate: professionalProfiles.hourlyRate,
   yearsExperience: professionalProfiles.yearsExperience,
+  minHours: professionalProfiles.minHours,
+  maxHours: professionalProfiles.maxHours,
+  rangeKm: professionalProfiles.rangeKm,
   artistType: professionalProfiles.artistType,
   genres: professionalProfiles.genres,
   eventTypes: professionalProfiles.eventTypes,
@@ -135,6 +144,9 @@ function toProfileSummary(row: SummaryRow): ProfessionalProfileSummary {
     city: row.city,
     hourlyRate: Number(row.hourlyRate),
     yearsExperience: row.yearsExperience,
+    minHours: row.minHours,
+    maxHours: Math.max(row.minHours, row.maxHours),
+    rangeKm: row.rangeKm,
     artistType: row.artistType,
     genres: row.genres ?? [],
     eventTypes: row.eventTypes ?? [],
@@ -215,6 +227,9 @@ export async function listLivePhotographers(): Promise<Photographer[]> {
       price: artist.price,
       available: true,
       unavailableDates: artist.unavailableDates,
+      minHours: artist.minHours,
+      maxHours: artist.maxHours,
+      rangeKm: artist.rangeKm,
       description: artist.description,
       eventTypes: artist.eventTypes,
       serviceTypes: artist.musicStyles,

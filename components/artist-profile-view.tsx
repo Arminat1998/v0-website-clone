@@ -4,7 +4,8 @@ import { useBookGuard } from "@/hooks/use-book-guard";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Clock, MapPin, Target } from "lucide-react";
+import { Car, Clock, MapPin, Target } from "lucide-react";
+import { hoursLabel, rangeLabel } from "@/lib/artist-facts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Artist } from "@/lib/smart-search";
@@ -76,10 +77,12 @@ export function ArtistProfileView({
     router.push(href);
   };
 
+  const travel = rangeLabel(artist, nl);
   const facts = [
-    { icon: Clock, label: t.duration, value: t.durationValue },
+    { icon: Clock, label: t.duration, value: hoursLabel(artist, nl) },
     { icon: Target, label: t.experience, value: experienceLabel(artist.experience, nl) ?? notProvided },
     { icon: MapPin, label: t.city, value: artist.location || notProvided },
+    ...(travel ? [{ icon: Car, label: t.travel, value: travel }] : []),
   ];
 
   return (

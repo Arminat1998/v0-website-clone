@@ -17,7 +17,7 @@ export function BookingAudio({ bookingId, kind, stored }: { bookingId: number; k
       {hasAudioFile(stored) ? (
         <>
           <audio controls preload="none" src={audioUrl(bookingId, kind)} aria-label={name} className="h-10 w-full max-w-sm" />
-          <a href={audioUrl(bookingId, kind, true)} className="inline-flex items-center gap-1.5 self-start text-sm text-red-500 hover:underline">
+          <a href={audioUrl(bookingId, kind, true)} className="inline-flex items-center gap-1.5 self-start text-sm text-red-700 hover:underline dark:text-red-400">
             <Download className="size-4" aria-hidden />
             {nl ? "Downloaden" : "Download"}
           </a>

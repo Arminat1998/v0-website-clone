@@ -25,6 +25,10 @@ export interface Artist {
   /** Real professionals only: the banner and profile photo of their own page. */
   banner?: string
   avatar?: string
+  /** Real professionals only: bookable hours and travel range from their profile. */
+  minHours?: number
+  maxHours?: number
+  rangeKm?: number
   equipment?: string[]
   /** Real professionals only: the equipment they entered during sign-up. */
   equipmentDetails?: { packageItems: EquipmentDetail[]; extraItems: EquipmentDetail[] }
@@ -59,6 +63,10 @@ export interface Photographer {
   /** Real professionals only: the banner and profile photo of their own page. */
   banner?: string
   avatar?: string
+  /** Real professionals only: bookable hours and travel range from their profile. */
+  minHours?: number
+  maxHours?: number
+  rangeKm?: number
   /** Real professionals only: their public profile page. */
   href?: string
   /** Real professionals only: the extras they listed (photographers have no package). */

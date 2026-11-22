@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Artist } from "@/lib/smart-search"
 import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
+import { hoursLabel } from "@/lib/artist-facts"
 import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
 import { isDemoProfessional } from "@/lib/demo-professionals"
@@ -110,7 +111,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5" aria-hidden="true" />
             <span>
-              {t.playDuration}: <span className="font-medium text-foreground">{t.hoursRange}</span>
+              {t.playDuration}: <span className="font-medium text-foreground">{hoursLabel(artist, nl)}</span>
             </span>
           </div>
 
@@ -186,7 +187,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 text-blue-600 border-blue-600 bg-transparent hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-950/20 dark:hover:text-white font-medium h-10"
+            className="flex-1 text-blue-600 border-blue-600 bg-transparent hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-950/20 dark:hover:text-white font-medium h-11"
             onClick={(e) => {
               e.stopPropagation()
               onClick()
@@ -195,10 +196,10 @@ export function ArtiestCard({ artist, onClick, isVisited = false }: ArtiestCardP
             {t.viewProfile}
           </Button>
           {isDemoProfessional(artist.id) ? (
-            <DemoBookButton className="flex-1 h-10 whitespace-normal text-xs leading-tight" />
+            <DemoBookButton className="flex-1 h-11 whitespace-normal text-xs leading-tight" />
           ) : (
             <Button
-              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
+              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-11"
               onClick={(e) => {
                 e.stopPropagation()
                 const href = `/booking?artistId=${artist.id}&type=artist`

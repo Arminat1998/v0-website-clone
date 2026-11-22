@@ -156,7 +156,7 @@ export function notUnderstood(key: QuestionKey, kind: ProfessionalKind, language
 
 /** Event types inside a sentence: "bruiloft", but "King's Day" keeps its capitals. */
 function inSentence(label: string) {
-  return /'|\d|^Koningsdag/.test(label) ? label : label.charAt(0).toLowerCase() + label.slice(1)
+  return /'|\d|^Koningsdag/.test(label) ? label : label.toLowerCase()
 }
 
 export function welcomeMessage(filters: Partial<ListFilters>, kind: ProfessionalKind, language: Language): string {

@@ -3,11 +3,12 @@
 import { useBookGuard } from "@/hooks/use-book-guard"
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { Clock, MapPin, Pencil, Plus, Target, Wallet, Music2 } from "lucide-react"
+import { Car, Clock, MapPin, Pencil, Plus, Target, Wallet, Music2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SOCIAL_META } from "@/components/artist-portfolio"
 import { SOCIAL_KEYS, getVideoEmbed, mediaUrl } from "@/lib/artist-page-types"
 import { bookingHref, eventTagLabel, experienceLabel, genreTagLabel, professionLabel, useWebsite } from "@/components/artist-website/website-context"
+import { hoursLabel, rangeLabel } from "@/lib/artist-facts"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
 
@@ -80,6 +81,7 @@ export function DetailsCard() {
   const { artist, edit, t } = useWebsite()
   const nl = t.locale.startsWith("nl")
   const experience = experienceLabel(artist.experience, nl)
+  const travel = rangeLabel(artist, nl)
   const rows = [
     {
       icon: Wallet,
@@ -90,7 +92,8 @@ export function DetailsCard() {
     ...(artist.location ? [{ icon: MapPin, label: t.city, value: artist.location }] : []),
     ...(experience ? [{ icon: Target, label: t.experience, value: experience }] : []),
     { icon: Music2, label: t.type, value: professionLabel(artist.specialty, nl) },
-    { icon: Clock, label: t.duration, value: t.durationValue },
+    { icon: Clock, label: t.duration, value: hoursLabel(artist, nl) },
+    ...(travel ? [{ icon: Car, label: t.travel, value: travel }] : []),
   ]
 
   return (
