@@ -17,8 +17,20 @@ import { Separator } from "@/components/ui/separator";
 import { AccountHeading, BookingBadge, eventDate } from "./account-common";
 import { BookingPayment } from "./booking-payment";
 import { FavoriteButton } from "./favorite-button";
+import { BookingAudio } from "@/components/booking/booking-audio";
+import { audioDisplayName, hasAudioFile, type AudioKind } from "@/lib/bookings/audio";
+import { equipmentLabel } from "@/lib/bookings/pricing";
+import { canonicalEventType, eventTypeLabel, genreLabel } from "@/lib/profile-options";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
+
+/** The client's own music. Optional: shown as soon as the server includes these fields in the booking. */
+type BookingMusic = {
+  openingDanceLink?: string | null;
+  openingDanceFileName?: string | null;
+  lastSongLink?: string | null;
+  lastSongFileName?: string | null;
+};
 
 export function AccountBookingDetail({
   booking: b,
@@ -27,7 +39,7 @@ export function AccountBookingDetail({
   reviewToken,
   reviewDone,
 }: {
-  booking: CustomerBookingDetail;
+  booking: CustomerBookingDetail & BookingMusic;
   invoice: CustomerInvoice | null;
   bank: BankDetails | null;
   reviewToken?: string | null;
@@ -44,6 +56,41 @@ export function AccountBookingDetail({
       </div>
     );
   }
+  function song(
+    label: string,
+    kind: AudioKind,
+    link?: string | null,
+    stored?: string | null,
+  ) {
+    if (!link && !stored) return null;
+    return (
+      <div className="flex min-w-0 flex-col gap-1">
+        <dt className="text-sm text-muted-foreground">{label}</dt>
+        <dd className="min-w-0 break-words text-sm leading-relaxed">
+          {link ? (
+            /^https?:\/\//i.test(link) ? (
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center break-all text-red-700 underline-offset-4 hover:underline dark:text-red-400"
+              >
+                {link}
+              </a>
+            ) : (
+              link
+            )
+          ) : stored && hasAudioFile(stored) ? (
+            <BookingAudio bookingId={b.id} kind={kind} stored={stored} />
+          ) : (
+            stored && audioDisplayName(stored)
+          )}
+        </dd>
+      </div>
+    );
+  }
+  const hasMusic =
+    b.openingDanceLink || b.openingDanceFileName || b.lastSongLink || b.lastSongFileName;
   return (
     <div className="flex flex-col gap-6">
       <Button variant="ghost" asChild className="self-start">
@@ -73,7 +120,9 @@ export function AccountBookingDetail({
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>{nl ? "Jouw evenement" : "Your event"}</CardTitle>
+              <CardTitle>
+              <h2>{nl ? "Jouw evenement" : "Your event"}</h2>
+            </CardTitle>
               <CardDescription>
                 {nl
                   ? "De gegevens zoals je ze hebt aangevraagd."
@@ -113,19 +162,37 @@ export function AccountBookingDetail({
                   )}
                   {detail(
                     nl ? "Type evenement" : "Event type",
-                    b.eventTypes.join(", "),
+                    b.eventTypes
+                      .map((type) => eventTypeLabel(canonicalEventType(type), nl))
+                      .join(", "),
                   )}
                   {detail(nl ? "Aantal gasten" : "Guests", b.capacity)}
                   {detail("Dresscode", b.dressCode)}
                   {detail(
                     nl ? "Muziekgenres" : "Music genres",
-                    b.musicGenres.join(", "),
+                    b.musicGenres.map((genre) => genreLabel(genre, nl)).join(", "),
                   )}
                   {detail(
                     nl ? "Apparatuur" : "Equipment",
-                    b.equipment.join(", "),
+                    b.equipment.map(equipmentLabel).join(", "),
                   )}
                 </dl>
+                {hasMusic && (
+                  <dl className="grid gap-5 sm:grid-cols-2">
+                    {song(
+                      nl ? "Openingsdans" : "Opening dance",
+                      "opening-dance",
+                      b.openingDanceLink,
+                      b.openingDanceFileName,
+                    )}
+                    {song(
+                      nl ? "Laatste nummer" : "Last song",
+                      "last-song",
+                      b.lastSongLink,
+                      b.lastSongFileName,
+                    )}
+                  </dl>
+                )}
                 <dl className="flex flex-col gap-5">
                   {detail(nl ? "Omschrijving" : "Description", b.description)}
                   {detail(
@@ -139,10 +206,10 @@ export function AccountBookingDetail({
           <Card>
             <CardHeader>
               <CardTitle>
-                {nl
+              <h2>{nl
                   ? "Contact- en factuurgegevens"
-                  : "Contact and billing details"}
-              </CardTitle>
+                  : "Contact and billing details"}</h2>
+            </CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid gap-5 sm:grid-cols-2">
@@ -173,7 +240,9 @@ export function AccountBookingDetail({
           <BookingPayment booking={b} invoice={invoice} bank={bank} />
           <Card>
             <CardHeader>
-              <CardTitle>{b.professionalName}</CardTitle>
+              <CardTitle>
+              <h2>{b.professionalName}</h2>
+            </CardTitle>
               <CardDescription>
                 {nl
                   ? "Stel je vragen of stem details af via de chat."
