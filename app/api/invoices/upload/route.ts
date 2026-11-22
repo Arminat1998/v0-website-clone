@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { bookings } from "@/lib/db/schema"
 import { professionalIdOrNull } from "@/lib/bookings/professional"
 import { INVOICE_FILE_TYPES, invoiceBlobPrefix, MAX_INVOICE_FILE_BYTES } from "@/lib/bookings/invoicing"
+import { matchesFileType } from "@/lib/file-signature"
 import { takeToken } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
     if (!Number.isFinite(bookingId)) return NextResponse.json({ error: "invalid_booking" }, { status: 400 })
     if (!(INVOICE_FILE_TYPES as readonly string[]).includes(file.type)) return NextResponse.json({ error: "invalid_type" }, { status: 400 })
     if (file.size > MAX_INVOICE_FILE_BYTES) return NextResponse.json({ error: "too_large" }, { status: 400 })
+    if (!(await matchesFileType(file))) return NextResponse.json({ error: "invalid_type" }, { status: 400 })
 
     const [booking] = await db
       .select({ id: bookings.id, status: bookings.status })

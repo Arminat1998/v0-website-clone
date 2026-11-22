@@ -6,6 +6,7 @@ import { user as userTable } from "@/lib/db/schema"
 import { getSession } from "@/lib/session"
 import { IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/artist-page-types"
 import { isSafeBlobPath } from "@/lib/blob-paths"
+import { matchesFileType } from "@/lib/file-signature"
 import { takeToken } from "@/lib/rate-limit"
 
 const PREFIX = "customer-avatars/"
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
     if (!(file instanceof File)) return NextResponse.json({ error: "no_file" }, { status: 400 })
     if (!(IMAGE_TYPES as readonly string[]).includes(file.type)) return NextResponse.json({ error: "invalid_type" }, { status: 400 })
     if (file.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "too_large" }, { status: 400 })
+    if (!(await matchesFileType(file))) return NextResponse.json({ error: "invalid_type" }, { status: 400 })
 
     const pathname = `${PREFIX}${account.id}/avatar-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${EXTENSIONS[file.type]}`
     await put(pathname, file, { access: "private", addRandomSuffix: false, contentType: file.type })
