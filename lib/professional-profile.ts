@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { professionalProfiles } from "@/lib/db/schema"
 import type { ProfessionalProfileData } from "@/lib/professional-profile-types"
+import { logError } from "@/lib/log-error"
 
 export async function getProfessionalProfile(
   professionalId: string,
@@ -42,7 +43,7 @@ export async function getProfessionalProfile(
       bannerPath: row.bannerPath,
     }
   } catch (error) {
-    console.error("Failed to load professional profile:", error)
+    logError("Failed to load professional profile:", error)
     return null
   }
 }

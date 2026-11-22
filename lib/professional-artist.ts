@@ -10,6 +10,7 @@ import { getRestriction } from "@/lib/moderation"
 import { digitsOnlyPrice } from "@/lib/professional-profile-types"
 import { canonicalEventType, genreLabel, isPhotoVideo } from "@/lib/profile-options"
 import type { Artist, EquipmentDetail, Photographer } from "@/lib/smart-search"
+import { logError } from "@/lib/log-error"
 
 interface ProfessionalAccount {
   id: string
@@ -93,7 +94,7 @@ async function unavailableDatesOf(accounts: { id: string }[]) {
   try {
     return await loadUnavailableDates(accounts.map((account) => account.id))
   } catch (error) {
-    console.error("Failed to load unavailable dates:", error)
+    logError("Failed to load unavailable dates:", error)
     return new Map<string, string[]>()
   }
 }
@@ -166,7 +167,7 @@ export async function getProfessionalProfileSummary(professionalId: string): Pro
       .limit(1)
     return row ? toProfileSummary(row) : null
   } catch (error) {
-    console.error("Failed to load profile summary:", error)
+    logError("Failed to load profile summary:", error)
     return null
   }
 }
@@ -262,7 +263,7 @@ export async function isLiveProfessional(id: string): Promise<boolean> {
       .limit(1)
     return !!account && account.review === "goedgekeurd" && !getRestriction(account)
   } catch (error) {
-    console.error("Failed to check professional status:", error)
+    logError("Failed to check professional status:", error)
     return false
   }
 }
@@ -303,7 +304,7 @@ export async function getProfessionalArtistBySlug(
     const [profile, unavailable] = await Promise.all([getProfessionalProfileSummary(account.id), unavailableDatesOf([account])])
     return buildProfessionalArtist(account, profile, unavailable.get(account.id))
   } catch (error) {
-    console.error("Failed to load professional account:", error)
+    logError("Failed to load professional account:", error)
     return null
   }
 }

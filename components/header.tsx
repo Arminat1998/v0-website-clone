@@ -30,6 +30,9 @@ function currentState(item: (typeof NAV_ITEMS)[number], pathname: string) {
   return item.match.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ? ("true" as const) : undefined
 }
 
+/** A path on this site, so a link can never send someone elsewhere after logging in. */
+const isOwnPath = (path: string) => path.startsWith("/") && !path.startsWith("//") && !/[\\\u0000-\u0020]/.test(path)
+
 export function Header() {
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [signupModalOpen, setSignupModalOpen] = useState(false)
@@ -92,7 +95,7 @@ export function Header() {
     setSignupModalOpen(false)
     const afterLogin = afterLoginRef.current
     afterLoginRef.current = null
-    if (afterLogin) {
+    if (afterLogin && isOwnPath(afterLogin)) {
       router.push(afterLogin)
       router.refresh()
       return
@@ -106,8 +109,7 @@ export function Header() {
     const role = result.data?.user.role
     const home = role === "admin" ? "/admin" : role === "professional" ? "/dashboard" : "/account"
     const next = new URLSearchParams(window.location.search).get("next")
-    const safeNext = next && next.startsWith("/") && !next.startsWith("//") && !/[\\\\\u0000-\u0020]/.test(next)
-    router.push(role === "user" && safeNext ? next : home)
+    router.push(role === "user" && next && isOwnPath(next) ? next : home)
     router.refresh()
   }
 

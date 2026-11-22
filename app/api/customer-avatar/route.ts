@@ -8,6 +8,7 @@ import { IMAGE_TYPES, MAX_IMAGE_BYTES } from "@/lib/artist-page-types"
 import { isSafeBlobPath } from "@/lib/blob-paths"
 import { matchesFileType } from "@/lib/file-signature"
 import { takeToken } from "@/lib/rate-limit"
+import { logError } from "@/lib/log-error"
 
 const PREFIX = "customer-avatars/"
 const ROUTE = "/api/customer-avatar"
@@ -41,7 +42,7 @@ async function removeOld(image: string | null | undefined, userId: string) {
   try {
     await del(old)
   } catch (error) {
-    console.error("Customer avatar cleanup failed:", error)
+    logError("Customer avatar cleanup failed:", error)
   }
 }
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ image })
   } catch (error) {
-    console.error("Customer avatar upload failed:", error)
+    logError("Customer avatar upload failed:", error)
     return NextResponse.json({ error: "upload_failed" }, { status: 500 })
   }
 }
@@ -81,7 +82,7 @@ export async function DELETE() {
     await removeOld(account.image, account.id)
     return NextResponse.json({ ok: true })
   } catch (error) {
-    console.error("Customer avatar delete failed:", error)
+    logError("Customer avatar delete failed:", error)
     return NextResponse.json({ error: "delete_failed" }, { status: 500 })
   }
 }
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
 
     return new NextResponse(result.stream, { headers: { ...headers, "Content-Type": result.blob.contentType } })
   } catch (error) {
-    console.error("Customer avatar read failed:", error)
+    logError("Customer avatar read failed:", error)
     return new NextResponse("Not found", { status: 404 })
   }
 }

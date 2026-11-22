@@ -5,6 +5,7 @@ import { and, eq, isNotNull, or } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { bookings } from "@/lib/db/schema"
 import { BOOKING_AUDIO_PREFIX } from "@/lib/bookings/audio"
+import { logError } from "@/lib/log-error"
 
 const HOUR = 60 * 60 * 1000
 
@@ -23,7 +24,7 @@ export async function isBookableAudio(pathname: string) {
     return Date.now() - uploadedAt.getTime() < BOOKABLE_MS
   } catch (error) {
     if (error instanceof BlobNotFoundError) return false
-    console.error("Failed to check booking audio:", error)
+    logError("Failed to check booking audio:", error)
     return true
   }
 }
@@ -50,7 +51,7 @@ export async function tidyLooseAudio(customerId: string): Promise<boolean> {
     if (old.length) await del(old.map((blob) => blob.pathname), { abortSignal: AbortSignal.timeout(5000) })
     return loose.length - old.length < MAX_LOOSE_FILES
   } catch (error) {
-    console.error("Failed to tidy booking audio:", error)
+    logError("Failed to tidy booking audio:", error)
     return true
   }
 }

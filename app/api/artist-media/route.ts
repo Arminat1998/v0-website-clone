@@ -5,6 +5,7 @@ import { IMAGE_TYPES, MAX_IMAGE_BYTES, MEDIA_PREFIX } from "@/lib/artist-page-ty
 import { isSafeBlobPath } from "@/lib/blob-paths"
 import { matchesFileType } from "@/lib/file-signature"
 import { takeToken } from "@/lib/rate-limit"
+import { logError } from "@/lib/log-error"
 
 const EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ pathname: blob.pathname })
   } catch (error) {
-    console.error("Artist media upload failed:", error)
+    logError("Artist media upload failed:", error)
     return NextResponse.json({ error: "upload_failed" }, { status: 500 })
   }
 }
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
       headers: { ...headers, "Content-Type": result.blob.contentType },
     })
   } catch (error) {
-    console.error("Artist media read failed:", error)
+    logError("Artist media read failed:", error)
     return new NextResponse("Not found", { status: 404 })
   }
 }

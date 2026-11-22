@@ -4,6 +4,7 @@ import { and, asc, eq, gte, inArray, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { bookings, professionalUnavailableDates } from "@/lib/db/schema"
 import { todayIso } from "@/lib/bookings/format"
+import { logError } from "@/lib/log-error"
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
@@ -56,7 +57,7 @@ export async function hasUnavailableDatesTable() {
   try {
     return await checkTable()
   } catch (error) {
-    console.error("Failed to check the availability table:", error)
+    logError("Failed to check the availability table:", error)
     return false
   }
 }
@@ -92,7 +93,7 @@ export async function loadUnavailableDates(professionalIds: string[]): Promise<M
     try {
       rows = await booked().union(blocked())
     } catch (error) {
-      console.error("Failed to load blocked dates:", error)
+      logError("Failed to load blocked dates:", error)
       rows = await booked()
     }
   } else rows = await booked()
@@ -117,7 +118,7 @@ export async function loadBlockedByHand(professionalId: string): Promise<string[
       .orderBy(asc(professionalUnavailableDates.date))
     return rows.map((row) => row.date)
   } catch (error) {
-    console.error("Failed to load blocked dates:", error)
+    logError("Failed to load blocked dates:", error)
     return []
   }
 }

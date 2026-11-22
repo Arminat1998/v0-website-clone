@@ -2,6 +2,7 @@ import { get } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import { professionalIdOrNull } from "@/lib/bookings/professional"
 import { isSafeBlobPath } from "@/lib/blob-paths"
+import { logError } from "@/lib/log-error"
 
 export async function GET(request: NextRequest) {
   const professionalId = await professionalIdOrNull()
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("Invoice file fetch failed:", error)
+    logError("Invoice file fetch failed:", error)
     return NextResponse.json({ error: "fetch_failed" }, { status: 500 })
   }
 }

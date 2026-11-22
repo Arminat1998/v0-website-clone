@@ -14,6 +14,7 @@ import type {
   ProfileEquipmentItem,
   ProfileSocialLink,
 } from "@/lib/professional-profile-types"
+import { logError } from "@/lib/log-error"
 
 export type SaveProfessionalProfileInput = Omit<ProfessionalProfileData, "email"> & {
   /** Display labels for the selected genres, used for the public page. */
@@ -209,7 +210,7 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
         .where(eq(artistPages.professionalId, professionalId))
     }
   } catch (error) {
-    console.error("Failed to save professional profile:", error)
+    logError("Failed to save professional profile:", error)
     return { ok: false, error: "failed" }
   }
 
