@@ -33,7 +33,7 @@ export function AccountFavorites({ favorites }: { favorites: FavoriteItem[] }) {
           {favorites.map((favorite) => (
             <Card
               key={`${favorite.professionalType}:${favorite.professionalId}`}
-              className="overflow-hidden"
+              className="overflow-hidden pt-0"
             >
               <div className="relative">
                 {favorite.banner || favorite.image ? (
