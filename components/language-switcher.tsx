@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useLanguage } from "@/contexts/language-context"
 import type { Language } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import { ChevronDown } from "lucide-react"
 
-export function LanguageSwitcher() {
+/** On small screens only the flag shows; `showLabel` keeps the language name visible (in a menu). */
+export function LanguageSwitcher({ showLabel = false }: { showLabel?: boolean }) {
   const { language, setLanguage } = useLanguage()
 
   const languages = [
@@ -21,12 +23,12 @@ export function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="font-medium text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 gap-1 px-2"
+          aria-label={`${language === "nl" ? "Taal" : "Language"}: ${currentLanguage?.label}`}
+          className="h-11 gap-1 px-2 font-medium text-foreground"
         >
-          <span className="text-lg">{currentLanguage?.flag}</span>
-          <span className="hidden sm:inline">{currentLanguage?.label}</span>
-          <ChevronDown className="h-4 w-4" />
+          <span className="text-lg" aria-hidden>{currentLanguage?.flag}</span>
+          <span className={showLabel ? "" : "hidden md:inline"}>{currentLanguage?.label}</span>
+          <ChevronDown className="h-4 w-4" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -34,11 +36,14 @@ export function LanguageSwitcher() {
           <DropdownMenuItem
             key={lang.code}
             onClick={() => setLanguage(lang.code)}
-            className={
-              language === lang.code ? "bg-red-50 text-red-600 font-medium dark:bg-red-950/30 dark:text-red-400" : ""
-            }
+            lang={lang.code}
+            aria-current={language === lang.code ? "true" : undefined}
+            className={cn(
+              "min-h-11 sm:min-h-9",
+              language === lang.code && "bg-red-50 font-medium text-red-700 dark:bg-red-950/30 dark:text-red-400",
+            )}
           >
-            {lang.flag} {lang.label}
+            <span aria-hidden>{lang.flag}</span> {lang.label}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

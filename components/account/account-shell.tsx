@@ -18,6 +18,7 @@ import {
   Star,
   Sun,
   UserRound,
+  X,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import { useTheme } from "@/contexts/theme-context";
@@ -25,6 +26,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -117,7 +119,7 @@ export function AccountShell({
   const nav = (
     <nav
       aria-label={nl ? "Klantomgeving" : "Customer account"}
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-1"
     >
       {items.map(({ href, label, icon: Icon }) => (
         <Link
@@ -126,19 +128,20 @@ export function AccountShell({
           onClick={() => setOpen(false)}
           aria-current={active?.href === href ? "page" : undefined}
           className={cn(
-            "flex items-center rounded-lg px-4 py-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring",
+            "flex min-h-11 items-center rounded-lg px-4 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring",
             active?.href === href
-              ? "bg-brand/10 text-brand font-semibold"
+              ? "bg-brand/10 font-semibold text-red-700 dark:text-red-400"
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
           <span className="flex items-center gap-3">
-            <Icon className="size-5" />
+            <Icon className="size-5" aria-hidden />
             {label}
           </span>
           {href.endsWith("meldingen") && unread > 0 && (
-            <span className="ml-auto rounded-full bg-brand px-2 text-sm text-brand-foreground">
+            <span className="ml-auto rounded-full bg-red-700 px-2 text-sm text-white">
               {unread}
+              <span className="sr-only">{nl ? " ongelezen" : " unread"}</span>
             </span>
           )}
         </Link>
@@ -166,7 +169,7 @@ export function AccountShell({
     <div className="flex flex-col gap-4">
       <Link
         href="/"
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
         <ArrowLeft className="size-4" />
         {nl ? "Terug naar ontdekken" : "Back to explore"}
@@ -186,6 +189,7 @@ export function AccountShell({
         <Button
           variant="ghost"
           size="icon"
+          className="size-11"
           onClick={signOut}
           disabled={signingOut}
           aria-label={nl ? "Uitloggen" : "Sign out"}
@@ -194,7 +198,7 @@ export function AccountShell({
         </Button>
       </div>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       )}
@@ -213,46 +217,64 @@ export function AccountShell({
         <div className="border-t p-5">{footer}</div>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="flex h-20 items-center justify-between border-b px-4 sm:px-8">
+        <header className="flex min-h-16 items-center justify-between gap-2 border-b lg:min-h-20 px-4 sm:px-8">
           <div className="flex items-center gap-3">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="lg:hidden"
+                  className="size-11 lg:hidden"
                   aria-label={nl ? "Menu openen" : "Open menu"}
                 >
                   <Menu />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col">
-                <SheetHeader>
-                  <SheetTitle>{nl ? "Mijn account" : "My account"}</SheetTitle>
-                  <SheetDescription>ARSI Events</SheetDescription>
+              {/* The sheet's own close button is 16 px and English only, so it is replaced by the one below. */}
+              <SheetContent side="left" className="gap-0 overflow-y-auto [&>button]:hidden">
+                <SheetHeader className="flex-row items-center justify-between">
+                  <div>
+                    <SheetTitle>{nl ? "Mijn account" : "My account"}</SheetTitle>
+                    <SheetDescription>ARSI Events</SheetDescription>
+                  </div>
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-11"
+                      aria-label={nl ? "Menu sluiten" : "Close menu"}
+                    >
+                      <X />
+                    </Button>
+                  </SheetClose>
                 </SheetHeader>
                 <div className="flex-1 px-4">{nav}</div>
                 <div className="p-4">{footer}</div>
               </SheetContent>
             </Sheet>
             <p className="text-sm text-muted-foreground">
-              {nl ? "Mijn account" : "My account"}
-              <span className="mx-3 text-border">/</span>
+              <span className="hidden sm:inline">
+                {nl ? "Mijn account" : "My account"}
+                <span className="mx-3 text-border" aria-hidden>
+                  /
+                </span>
+              </span>
               <span className="text-foreground">{active?.label}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <LanguageSwitcher />
             <Button
               variant="ghost"
               size="icon"
+              className="size-11"
               onClick={toggleTheme}
-              aria-label={nl ? "Thema wisselen" : "Toggle theme"}
+              aria-label={nl ? "Licht of donker thema" : "Light or dark theme"}
             >
               <Moon className="dark:hidden" />
               <Sun className="hidden dark:block" />
             </Button>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" className="size-11" asChild>
               <Link
                 href="/account/meldingen"
                 aria-label={
@@ -268,7 +290,7 @@ export function AccountShell({
         </header>
         <main
           id="account-content"
-          className="mx-auto max-w-7xl p-4 sm:p-8 lg:p-10"
+          className="touch-targets mx-auto max-w-7xl p-4 sm:p-8 lg:p-10"
         >
           {children}
         </main>
@@ -279,7 +301,7 @@ export function AccountShell({
           </span>
           <Link
             href="/"
-            className="inline-flex items-center gap-1 hover:text-foreground"
+            className="inline-flex min-h-11 items-center gap-1 hover:text-foreground"
           >
             {nl ? "Ontdek professionals" : "Discover professionals"}
             <ArrowUpRight className="size-4" />

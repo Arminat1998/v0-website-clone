@@ -16,20 +16,20 @@ export function EarningsSummary({ bookings }: { bookings: Booking[] }) {
 
   const stats = [
     { label: t.completed.totalEarned, value: formatEuro(total, locale), icon: Wallet, tone: "text-foreground" },
-    { label: t.completed.paidOut, value: formatEuro(paidOut, locale), icon: Banknote, tone: "text-green-500" },
-    { label: t.completed.awaitingPayout, value: formatEuro(awaiting, locale), icon: Hourglass, tone: "text-amber-500" },
+    { label: t.completed.paidOut, value: formatEuro(paidOut, locale), icon: Banknote, tone: "text-green-800 dark:text-green-500" },
+    { label: t.completed.awaitingPayout, value: formatEuro(awaiting, locale), icon: Hourglass, tone: "text-amber-800 dark:text-amber-500" },
     { label: `${t.completed.eventsCount} ${t.completed.thisYear}`, value: thisYear.toString(), icon: CalendarCheck, tone: "text-foreground" },
   ]
 
   return (
-    <dl className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:mb-8">
+    <dl className="grid grid-cols-2 gap-4 xl:grid-cols-4">
       {stats.map(({ label, value, icon: Icon, tone }) => (
-        <div key={label} className="flex items-center gap-4 rounded-lg border border-border bg-card p-5">
-          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-500">
+        <div key={label} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center sm:gap-4 sm:p-6">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-700 dark:text-red-400">
             <Icon className="h-5 w-5" aria-hidden />
           </span>
           <div className="min-w-0">
-            <dd className={`truncate text-2xl font-bold ${tone}`}>{value}</dd>
+            <dd className={`text-xl font-semibold tabular-nums sm:text-2xl ${tone}`}>{value}</dd>
             <dt className="text-sm text-muted-foreground">{label}</dt>
           </div>
         </div>

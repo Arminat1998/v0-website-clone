@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { Photographer } from "@/lib/smart-search"
 import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
+import { hoursLabel } from "@/lib/artist-facts"
 import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
 import { useRouter } from "next/navigation"
@@ -93,7 +94,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1 text-muted-foreground">
               <Clock className="w-3.5 h-3.5" aria-hidden />
-              <span>{t.hoursRange}</span>
+              <span>{hoursLabel(professional, nl)}</span>
             </div>
             <div className="text-right">
               <span className="font-bold text-base text-foreground">
@@ -147,7 +148,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 text-blue-600 dark:text-blue-500 border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/40 dark:hover:text-blue-300 bg-transparent font-medium h-10"
+            className="flex-1 text-blue-600 dark:text-blue-500 border-blue-600 dark:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/40 dark:hover:text-blue-300 bg-transparent font-medium h-11"
             onClick={(e) => {
               e.stopPropagation()
               onClick()
@@ -156,10 +157,10 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
             {t.viewProfile}
           </Button>
           {isDemoProfessional(professional.id) ? (
-            <DemoBookButton className="flex-1 h-10 whitespace-normal text-xs leading-tight" />
+            <DemoBookButton className="flex-1 h-11 whitespace-normal text-xs leading-tight" />
           ) : (
             <Button
-              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-10"
+              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-11"
               onClick={(e) => {
                 e.stopPropagation()
                 const href = `/booking?professionalId=${encodeURIComponent(String(professional.id))}&type=photographer`

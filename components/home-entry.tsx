@@ -1,15 +1,6 @@
-"use client"
+import { HomeClient } from "@/components/home-client"
 
-import dynamic from "next/dynamic"
-
-const HomeClient = dynamic(
-  () => import("@/components/home-client").then((module) => module.HomeClient),
-  {
-    ssr: false,
-    loading: () => <main className="min-h-screen bg-background" aria-busy="true" />,
-  },
-)
-
+/** The homepage. It renders on the server, so visitors see it right away instead of a blank screen until all scripts have loaded. */
 export function HomeEntry() {
   return <HomeClient />
 }

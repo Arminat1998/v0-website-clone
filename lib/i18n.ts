@@ -106,7 +106,6 @@ export interface Translations {
   equipmentPrice: string // Added equipment price translation
   performanceFee: string
   playDuration: string
-  hoursRange: string
 
   // Footer
   aboutUs: string
@@ -421,7 +420,6 @@ export const translations: Record<Language, Translations> = {
     equipmentPrice: "Apparatuur", // Added Dutch translation
     performanceFee: "Gage",
     playDuration: "Speelduur",
-    hoursRange: "1–8 uur",
 
     // Footer
     aboutUs: "Over Ons",
@@ -737,7 +735,6 @@ export const translations: Record<Language, Translations> = {
     equipmentPrice: "Equipment", // Added English translation
     performanceFee: "Fee",
     playDuration: "Duration",
-    hoursRange: "1–8 hours",
 
     // Footer
     aboutUs: "About Us",

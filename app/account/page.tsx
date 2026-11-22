@@ -1,3 +1,4 @@
+import { todayIso } from "@/lib/bookings/format";
 import { getMyBookings } from "@/app/actions/bookings";
 import {
   getCustomerProfile,
@@ -27,7 +28,7 @@ export default async function AccountPage() {
       profileReady={Boolean(
         profile.firstName && profile.lastName && profile.phone,
       )}
-      today={new Date().toISOString().slice(0, 10)}
+      today={todayIso()}
     />
   );
 }

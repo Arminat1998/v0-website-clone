@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react"
 import type { Artist } from "@/lib/smart-search"
 import type { ArtistPageContent } from "@/lib/artist-page-types"
+import { ARTIST_TYPES, PHOTO_VIDEO_TYPES, canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "@/lib/profile-options"
 
 export type DialogKey = "tagline" | "about" | "tags" | "photos" | "videos" | "socials"
 export type TabKey = "overview" | "info" | "photos" | "videos" | "equipment" | "availability"
@@ -32,22 +33,18 @@ export const websiteCopy = {
     editCover: "Omslagfoto bewerken",
     removeCover: "Eigen omslagfoto verwijderen",
     editAvatar: "Profielfoto wijzigen",
-    chat: "Chat",
     book: "Boek nu",
     editBasics: "Basisgegevens bewerken",
     editTagline: "Slogan bewerken",
     addTagline: "Slogan toevoegen",
-    reviews: "reviews",
     details: "Gegevens",
     editDetails: "Gegevens bewerken via je profiel",
     rate: "Tarief per uur",
-    rateNote: "excl. apparatuur",
+    rateNote: "excl. btw en apparatuur",
     duration: "Duur",
-    durationValue: "1-8 uur",
     experience: "Ervaring",
-    travel: "Reisafstand",
-    travelValue: "Tot 10.000 km",
     city: "Gevestigd in",
+    travel: "Reisafstand",
     type: "Type",
     about: "Over mij",
     editAbout: "Over mij bewerken",
@@ -121,22 +118,18 @@ export const websiteCopy = {
     editCover: "Edit cover photo",
     removeCover: "Remove custom cover photo",
     editAvatar: "Change profile photo",
-    chat: "Chat",
     book: "Book now",
     editBasics: "Edit basic details",
     editTagline: "Edit tagline",
     addTagline: "Add tagline",
-    reviews: "reviews",
     details: "Details",
     editDetails: "Edit details in your profile",
     rate: "Rate per hour",
-    rateNote: "excl. equipment",
+    rateNote: "excl. VAT and equipment",
     duration: "Duration",
-    durationValue: "1-8 hours",
     experience: "Experience",
-    travel: "Travel radius",
-    travelValue: "Up to 10,000 km",
     city: "Based in",
+    travel: "Travel range",
     type: "Type",
     about: "About me",
     editAbout: "Edit about me",
@@ -203,7 +196,7 @@ export type WebsiteCopy = (typeof websiteCopy)["nl"]
 export const photoVideoCopy: Record<"nl" | "en", Partial<WebsiteCopy>> = {
   nl: {
     tabs: { ...websiteCopy.nl.tabs, equipment: "Extra's" },
-    rateNote: "excl. extra's",
+    rateNote: "excl. btw en extra's",
     aboutPlaceholder: "Vertel je verhaal: je stijl, je ervaring en wat je foto's of video's bijzonder maakt.",
     genres: "Specialisaties",
     editTags: "Evenementtypes en specialisaties bewerken",
@@ -216,7 +209,7 @@ export const photoVideoCopy: Record<"nl" | "en", Partial<WebsiteCopy>> = {
   },
   en: {
     tabs: { ...websiteCopy.en.tabs, equipment: "Extras" },
-    rateNote: "excl. extras",
+    rateNote: "excl. VAT and extras",
     aboutPlaceholder: "Tell your story: your style, your experience and what makes your photos or videos special.",
     genres: "Specialisations",
     editTags: "Edit event types and specialisations",
@@ -227,6 +220,28 @@ export const photoVideoCopy: Record<"nl" | "en", Partial<WebsiteCopy>> = {
     equipmentTitle: "Extras",
     equipmentOptions: "Extras",
   },
+}
+
+/** The copy for a profile: artists and photographers differ in a few labels. */
+export function profileCopy(artist: Artist, language: "nl" | "en"): WebsiteCopy {
+  return artist.kind === "photo-video" ? { ...websiteCopy[language], ...photoVideoCopy[language] } : websiteCopy[language]
+}
+
+/** Stored values are in one language; these show them in the language of the site. */
+export function professionLabel(specialty: string, nl: boolean) {
+  const type = [...ARTIST_TYPES, ...PHOTO_VIDEO_TYPES].find((item) => item.value === specialty)
+  return type ? (nl ? type.nl : type.en) : specialty
+}
+
+export const eventTagLabel = (tag: string, nl: boolean) => eventTypeLabel(canonicalEventType(tag), nl)
+
+export const genreTagLabel = (tag: string, nl: boolean) => genreLabel(canonicalGenre(tag), nl)
+
+/** Real profiles hold a number ("12"), sample profiles a sentence ("10+ years of ..."): both become "12 jaar", "10+ jaar". */
+export function experienceLabel(experience: string | undefined, nl: boolean) {
+  const match = experience?.match(/^(\d+)(\+?)/)
+  if (!match || match[1] === "0") return null
+  return `${match[1]}${match[2]} ${nl ? "jaar" : match[1] === "1" && !match[2] ? "year" : "years"}`
 }
 
 /** Where the "Book" buttons on a page lead to. */

@@ -1,30 +1,32 @@
 "use client";
 
 import { useBookGuard } from "@/hooks/use-book-guard";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import {
-  Clock,
-  Target,
-  MapPin,
-  Star,
-  MessageCircle,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Car, Clock, MapPin, Target } from "lucide-react";
+import { hoursLabel, rangeLabel } from "@/lib/artist-facts";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Artist } from "@/lib/smart-search";
 import { ArtistPortfolio } from "@/components/artist-portfolio";
 import { FavoriteButton } from "@/components/account/favorite-button";
-import { mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
+import { emptyPageContent, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types";
 import { useLanguage } from "@/contexts/language-context";
-import { digitsOnlyPrice, formatRentalPrice, imageSrc } from "@/lib/professional-profile-types";
-import { bookingHref } from "@/components/artist-website/website-context";
-import { isDemoProfessional } from "@/lib/demo-professionals"
-import { DemoBookButton } from "@/components/demo-book-button"
+import {
+  WebsiteProvider,
+  bookingHref,
+  eventTagLabel,
+  experienceLabel,
+  genreTagLabel,
+  professionLabel,
+  profileCopy,
+} from "@/components/artist-website/website-context";
+import { AvailabilitySection } from "@/components/artist-website/availability-section";
+import { EquipmentSection } from "@/components/artist-website/equipment-section";
+import { ProfileRating } from "@/components/artist-website/profile-rating";
+import { isDemoProfessional } from "@/lib/demo-professionals";
+import { DemoBookButton } from "@/components/demo-book-button";
 
 interface ArtistProfileViewProps {
   artist: Artist;
@@ -35,6 +37,10 @@ interface ArtistProfileViewProps {
   stickyBookBar?: boolean;
 }
 
+const tabClass =
+  "min-h-11 flex-none whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted sm:px-8 sm:py-3 sm:text-base";
+
+/** The profile in the modal. It shares its data, labels, equipment and calendar with the full page (artist-website). */
 export function ArtistProfileView({
   artist,
   onNavigate,
@@ -46,20 +52,12 @@ export function ArtistProfileView({
   const bookGuard = useBookGuard();
   const { language } = useLanguage();
   const nl = language === "nl";
-  // Real accounts always carry their own equipment list. Only the demo artists may fall back to sample content.
-  const isReal = !!artist.equipmentDetails;
   // Photographers and videographers use the same view with their own labels and booking route.
   const photo = artist.kind === "photo-video";
-  const packageItems = artist.equipmentDetails?.packageItems ?? [];
-  const extraItems = artist.equipmentDetails?.extraItems ?? [];
-  const packageTotal = packageItems.reduce((sum, item) => sum + (Number(digitsOnlyPrice(item.price)) || 0), 0);
+  const demo = isDemoProfessional(artist.id);
+  const t = profileCopy(artist, nl ? "nl" : "en");
   const notProvided = nl ? "Niet opgegeven" : "Not specified";
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("about");
-
-  const fullName = `${artist.name} ${artist.specialty.split(" ")[0]}`;
 
   const artistImage =
     (content?.bannerPath ? mediaUrl(content.bannerPath) : null) ||
@@ -72,876 +70,202 @@ export function ArtistProfileView({
     artist.image ||
     `/placeholder.svg?height=144&width=144&query=${encodeURIComponent(artist.name)} profile portrait`;
 
-
-  const years = [2024, 2025, 2026, 2027];
-
-  const getDaysInMonth = (month: number, year: number) => {
-    return new Date(year, month + 1, 0).getDate();
+  const book = () => {
+    const href = bookingHref(artist);
+    if (!bookGuard(href)) return;
+    onNavigate?.();
+    router.push(href);
   };
 
-  const getFirstDayOfMonth = (month: number, year: number) => {
-    const day = new Date(year, month, 1).getDay();
-    // Convert Sunday (0) to 7 for Monday-first calendar
-    return day === 0 ? 6 : day - 1;
-  };
-
-  const isDateAvailable = (day: number) => {
-    const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-    return artist.availableDates?.includes(dateStr);
-  };
-
-  const isDateUnavailable = (day: number) => {
-    const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
-    return artist.unavailableDates?.includes(dateStr);
-  };
-
-  const isDateInPast = (day: number) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const checkDate = new Date(currentYear, currentMonth, day);
-    return checkDate < today;
-  };
-
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentMonth, currentYear);
-    const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
-    const days = [];
-
-    // Empty cells for days before the first day of the month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="aspect-square" />);
-    }
-
-    // Calendar days
-    for (let day = 1; day <= daysInMonth; day++) {
-      const unavailable = isDateUnavailable(day);
-      const isSelected = selectedDate === day;
-      const isPast = isDateInPast(day);
-
-      let dayClasses =
-        "aspect-square w-full text-sm rounded-md flex items-center justify-center transition-colors ";
-
-      if (isPast) {
-        dayClasses +=
-          "bg-zinc-500 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-500 cursor-not-allowed line-through";
-      } else if (unavailable) {
-        dayClasses +=
-          "bg-red-600 dark:bg-red-500 text-white font-medium cursor-not-allowed";
-      } else if (isSelected) {
-        dayClasses +=
-          "bg-green-600 dark:bg-green-500 text-white font-medium ring-2 ring-green-400 dark:ring-green-300";
-      } else {
-        dayClasses +=
-          "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 cursor-pointer bg-zinc-200 dark:bg-zinc-700";
-      }
-
-      days.push(
-        <button
-          key={day}
-          onClick={() =>
-            !unavailable && !isPast && setSelectedDate(isSelected ? null : day)
-          }
-          disabled={unavailable || isPast}
-          className={dayClasses}
-        >
-          {day}
-        </button>,
-      );
-    }
-
-    return days;
-  };
-
-  const formatSelectedDate = () => {
-    if (!selectedDate) return nl ? "Kies een datum" : "Select a Date";
-    const date = new Date(currentYear, currentMonth, selectedDate);
-    return date.toLocaleDateString(nl ? "nl-NL" : "en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const goToPreviousMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
-    }
-    setSelectedDate(null); // Reset selection when changing month
-  };
-
-  const goToNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
-    setSelectedDate(null); // Reset selection when changing month
-  };
+  const travel = rangeLabel(artist, nl);
+  const facts = [
+    { icon: Clock, label: t.duration, value: hoursLabel(artist, nl) },
+    { icon: Target, label: t.experience, value: experienceLabel(artist.experience, nl) ?? notProvided },
+    { icon: MapPin, label: t.city, value: artist.location || notProvided },
+    ...(travel ? [{ icon: Car, label: t.travel, value: travel }] : []),
+  ];
 
   return (
-    <div className="bg-background">
-      <div className="relative">
-        {/* Hero Image */}
-        <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
-          <img
-            src={artistImage || "/placeholder.svg"}
-            alt={artist.name}
-            className="w-full h-full object-cover"
-          />
-          {heroAction}
-        </div>
-
-        {/* Profile Image */}
-        <div className="absolute left-3 sm:left-6 -bottom-14 sm:-bottom-20 size-28 sm:size-44 rounded-full border-4 border-background bg-muted z-30 overflow-hidden shadow-lg">
-          <img
-            src={profileImage || "/placeholder.svg"}
-            alt={artist.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-
-      {/* Profile Header */}
-      <div className="px-3 sm:px-6 pb-4 sm:pb-6 pt-16 sm:pt-24">
-        <div className="mb-4 sm:mb-6">
-          <h2 className="text-xl sm:text-3xl font-bold mb-1 text-foreground">
-            {artist.name}
-          </h2>
-          <p className="text-xs sm:text-base text-muted-foreground mb-3">
-            {content?.tagline || fullName}
-          </p>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-3 h-3 sm:w-5 sm:h-5 ${
-                    i < Math.floor(artist.rating)
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "fill-muted text-muted"
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="font-semibold text-sm sm:text-lg text-foreground">
-              {artist.rating}
-            </span>
-            <a
-              href="#"
-              className="text-xs sm:text-base text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              ({artist.reviews})
-            </a>
+    <WebsiteProvider
+      value={{
+        artist,
+        content: content ?? emptyPageContent(),
+        edit: null,
+        t,
+        openDialog: () => {},
+        goToTab: () => {},
+        openPhoto: () => {},
+      }}
+    >
+      {/* min-w-0: the dialog is a grid, so without it the row of tabs would make the whole modal wider than the screen. */}
+      <div className="min-w-0 bg-background">
+        <div className="relative">
+          {/* Hero Image */}
+          <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
+            <img src={artistImage || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
+            {heroAction}
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <FavoriteButton professionalId={String(artist.id)} professionalType={photo ? "photographer" : "artist"} />
-            <Button
-              variant="outline"
-              className="flex-1 bg-transparent border-border text-foreground hover:bg-accent text-sm sm:text-base py-2 sm:py-auto"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              {nl ? "Chat" : "Chat"}
-            </Button>
-            {isDemoProfessional(artist.id) ? (
-              <DemoBookButton className="flex-1 text-sm sm:text-base py-2 sm:py-auto" />
+
+          {/* Profile Image */}
+          <div className="absolute -bottom-14 left-3 z-10 size-28 overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg sm:-bottom-20 sm:left-6 sm:size-44">
+            <img src={profileImage || "/placeholder.svg"} alt={artist.name} className="h-full w-full object-cover" />
+          </div>
+        </div>
+
+        {/* Profile Header */}
+        <div className="px-3 pb-4 pt-16 sm:px-6 sm:pb-6 sm:pt-24">
+          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              {/* The modal's own (hidden) title is the heading with this name, so this is not a second one. */}
+              <p className="mb-1 text-xl font-bold text-foreground sm:text-3xl">{artist.name}</p>
+              <p className="mb-3 text-sm text-muted-foreground sm:text-base">
+                {content?.tagline || professionLabel(artist.specialty, nl)}
+              </p>
+              <ProfileRating artist={artist} />
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 [&_[data-slot=button]]:min-h-11">
+              <FavoriteButton professionalId={String(artist.id)} professionalType={photo ? "photographer" : "artist"} />
+              {/* With the bar at the bottom the book button is always in view, so it is not repeated here. */}
+              {!stickyBookBar &&
+                (demo ? (
+                  <DemoBookButton />
+                ) : (
+                  <Button className="bg-red-700 px-6 text-white hover:bg-red-600" onClick={book}>
+                    {t.book}
+                  </Button>
+                ))}
+            </div>
+          </div>
+
+          {/* Info Cards Grid */}
+          <dl className={`mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-4 ${travel ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
+            <div className={`rounded-lg border-2 border-border bg-card p-3 sm:rounded-xl sm:p-6 ${travel ? "col-span-2 lg:col-span-1" : ""}`}>
+              <dt className="mb-2 text-xs text-muted-foreground sm:text-sm">{t.rate}</dt>
+              <dd>
+                <span className="mb-1 block text-2xl font-bold text-foreground sm:text-4xl">
+                  <span className="text-red-600">€</span>
+                  {artist.price.replace("€", "").trim()}
+                </span>
+                <span className="block text-xs text-muted-foreground">{t.rateNote}</span>
+              </dd>
+            </div>
+            {facts.map(({ icon: Icon, label, value }) => (
+              <div key={label} className="rounded-lg border-2 border-border bg-card p-3 sm:rounded-xl sm:p-6">
+                <dt className="mb-2 flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+                  <Icon className="size-4 text-red-600 sm:size-5" aria-hidden />
+                  {label}
+                </dt>
+                <dd className="break-words text-lg font-bold text-foreground sm:text-2xl">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-4 h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0 sm:mb-6">
+              <TabsTrigger value="about" className={tabClass}>
+                {nl ? "Over" : "About"}
+              </TabsTrigger>
+              <TabsTrigger value="portfolio" className={tabClass}>
+                Portfolio
+              </TabsTrigger>
+              <TabsTrigger value="equipment" className={tabClass}>
+                {t.tabs.equipment}
+              </TabsTrigger>
+              <TabsTrigger value="availability" className={tabClass}>
+                {t.tabs.availability}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="about" className="mt-0">
+              <h3 className="mb-3 text-lg font-bold text-foreground sm:mb-4 sm:text-2xl">{t.about}</h3>
+              <p className="mb-6 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-muted-foreground sm:mb-8 sm:text-base">
+                {artist.description || t.aboutEmpty}
+              </p>
+
+              <div className="mb-6 sm:mb-8">
+                <h4 className="mb-3 text-base font-bold text-foreground sm:mb-4 sm:text-xl">{t.eventTypes}</h4>
+                {artist.eventTypes?.length ? (
+                  <ul className="flex flex-wrap gap-1 sm:gap-2">
+                    {artist.eventTypes.map((tag) => (
+                      <li
+                        key={tag}
+                        className="rounded-full border border-foreground/60 px-3 py-1 text-xs font-medium text-foreground sm:px-4 sm:py-2 sm:text-sm"
+                      >
+                        {eventTagLabel(tag, nl)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{notProvided}</p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="mb-3 text-base font-bold text-foreground sm:mb-4 sm:text-xl">{t.genres}</h4>
+                {artist.musicStyles?.length ? (
+                  <ul className="flex flex-wrap gap-1 sm:gap-2">
+                    {artist.musicStyles.map((tag) => (
+                      <li
+                        key={tag}
+                        className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800 sm:px-4 sm:py-2 sm:text-sm dark:bg-red-900/30 dark:text-red-300"
+                      >
+                        {genreTagLabel(tag, nl)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{notProvided}</p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="portfolio" className="mt-0">
+              {content ? (
+                <ArtistPortfolio content={content} artistName={artist.name} />
+              ) : (
+                <div className="space-y-6 sm:space-y-8">
+                  <div>
+                    <h3 className="mb-3 text-lg font-bold text-foreground sm:mb-4 sm:text-2xl">{t.photos}</h3>
+                    <p className="text-sm text-muted-foreground">{t.photosEmpty}</p>
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-lg font-bold text-foreground sm:mb-4 sm:text-2xl">{t.videos}</h3>
+                    <p className="text-sm text-muted-foreground">{t.videosEmpty}</p>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="equipment" className="mt-0">
+              <EquipmentSection />
+            </TabsContent>
+
+            <TabsContent value="availability" className="mt-0">
+              <AvailabilitySection />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {stickyBookBar && (
+          <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">{artist.name}</p>
+              <p className="whitespace-nowrap text-sm text-foreground">
+                <span className="font-semibold">{artist.price}</span>/{nl ? "uur" : "hr"}
+                <span className="ml-1 text-xs text-muted-foreground">{nl ? "excl. btw" : "excl. VAT"}</span>
+              </p>
+            </div>
+            {demo ? (
+              <DemoBookButton className="h-11 max-w-[55%] shrink whitespace-normal text-xs leading-tight sm:max-w-none sm:text-sm" />
             ) : (
-              <Button
-                className="bg-red-700 hover:bg-red-600 text-white flex-1 text-sm sm:text-base py-2 sm:py-auto"
-                onClick={() => {
-                  const href = bookingHref(artist);
-                  if (!bookGuard(href)) return;
-                  onNavigate?.();
-                  router.push(href);
-                }}
-              >
-                {nl ? "Boek nu" : "Book Now"}
+              <Button className="h-11 shrink-0 bg-red-700 px-6 text-white hover:bg-red-600" onClick={book}>
+                {t.book}
               </Button>
             )}
           </div>
-        </div>
-
-        {/* Info Cards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-          {/* Per Hour Card */}
-          <div className="border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 bg-card">
-            <div className="text-xs sm:text-sm text-muted-foreground mb-2">
-              {nl ? "Per uur" : "Per Hour"}
-            </div>
-            <div className="flex items-baseline gap-0.5 mb-1">
-              <span className="text-2xl sm:text-4xl font-bold text-red-600">
-                €
-              </span>
-              <span className="text-2xl sm:text-4xl font-bold text-foreground">
-                {artist.price.replace("€", "").trim()}
-              </span>
-            </div>
-            <div className="text-xs text-muted-foreground">{photo ? "excl. extras" : "excl.eq"}</div>
-          </div>
-
-          {/* Duration Card */}
-          <div className="border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 bg-card">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {nl ? "Duur" : "Duration"}
-              </span>
-            </div>
-            <div className="text-lg sm:text-2xl font-bold text-foreground">
-              1-8h
-            </div>
-          </div>
-
-          {/* Experience Card */}
-          <div className="border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 bg-card">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {nl ? "Ervaring" : "Exp"}
-              </span>
-            </div>
-            <div className="text-lg sm:text-2xl font-bold text-foreground">
-              {isReal ? (artist.experience ? `${artist.experience}y` : "–") : "10y"}
-            </div>
-          </div>
-
-          {/* Travel Radius Card */}
-          <div className="border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 bg-card">
-            <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-              <span className="text-xs sm:text-sm text-muted-foreground">
-                {nl ? "Reisafstand" : "Travel"}
-              </span>
-            </div>
-            <div className="text-lg sm:text-2xl font-bold text-foreground">
-              {isReal ? "–" : "10k"}
-            </div>
-            {!isReal && <div className="text-xs text-muted-foreground">km</div>}
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start h-auto p-0 bg-transparent gap-0 mb-4 sm:mb-6 overflow-x-auto flex-nowrap">
-            <TabsTrigger
-              value="about"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
-            >
-              {nl ? "Over" : "About"}
-            </TabsTrigger>
-            <TabsTrigger
-              value="portfolio"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
-            >
-              {nl ? "Portfolio" : "Portfolio"}
-            </TabsTrigger>
-            <TabsTrigger
-              value="equipment"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
-            >
-              {photo ? (nl ? "Extra's" : "Extras") : nl ? "Apparatuur" : "Equipment"}
-            </TabsTrigger>
-            <TabsTrigger
-              value="availability"
-              className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted px-3 sm:px-8 py-2 sm:py-3 font-medium text-xs sm:text-base whitespace-nowrap text-foreground"
-            >
-              {nl ? "Beschikbaarheid" : "Availability"}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="about" className="mt-0">
-            <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-              {nl ? "Over" : "About"}
-            </h3>
-            <p className="text-xs sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
-              {artist.description ||
-                (isReal
-                  ? notProvided
-                  : `Armin A.T is a passionate artist whose deep musical roots as a pianist and guitarist shape his dynamic DJ sets.`)}
-            </p>
-
-            <div className="mb-6 sm:mb-8">
-              <h4 className="text-base sm:text-xl font-bold mb-3 sm:mb-4 text-foreground">
-                {nl ? "Soorten evenementen" : "Event Types"}
-              </h4>
-              <div className="flex flex-wrap gap-1 sm:gap-2">
-                {isReal && !artist.eventTypes?.length && (
-                  <span className="text-xs sm:text-sm text-muted-foreground">{notProvided}</span>
-                )}
-                {(
-                  artist.eventTypes || (isReal ? [] : [
-                    "Birthday Party",
-                    "Wedding",
-                    "Private Dinner",
-                    "House Party",
-                    "Graduation Party",
-                  ])
-                ).map((event) => (
-                  <button
-                    key={event}
-                    className="px-2 sm:px-4 py-1 sm:py-2 border-2 border-foreground rounded-full text-xs font-medium hover:bg-accent transition-colors text-foreground"
-                  >
-                    {event}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-base sm:text-xl font-bold mb-3 sm:mb-4 text-foreground">
-                {photo ? (nl ? "Specialisaties" : "Specialties") : nl ? "Muziekgenres" : "Music Genres"}
-              </h4>
-              <div className="flex flex-wrap gap-1 sm:gap-2">
-                {isReal && !artist.musicStyles?.length && (
-                  <span className="text-xs sm:text-sm text-muted-foreground">{notProvided}</span>
-                )}
-                {(
-                  artist.musicStyles || (isReal ? [] : [
-                    "House",
-                    "Techno",
-                    "Deep House",
-                    "Tech House",
-                    "Trance",
-                  ])
-                ).map((genre) => (
-                  <span
-                    key={genre}
-                    className="px-2 sm:px-4 py-1 sm:py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs sm:text-sm font-medium"
-                  >
-                    {genre}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="portfolio" className="mt-0">
-            {content ? (
-              <ArtistPortfolio content={content} artistName={artist.name} />
-            ) : (
-            <div className="space-y-6 sm:space-y-8">
-              <div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-                  {nl ? "Eventfoto's" : "Event Photos"}
-                </h3>
-                <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">
-                  {nl ? "Nog geen albums." : "No albums available."}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-                  {nl ? "Video's" : "Videos"}
-                </h3>
-                <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">
-                  {nl ? "Nog geen video's." : "No videos available."}
-                </p>
-              </div>
-
-              {!photo && (
-              <div>
-                <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">
-                  {nl ? "Volg" : "Connect"}
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-                  <div className="border-2 border-border rounded-lg p-3 sm:p-6 flex items-center gap-2 sm:gap-3 hover:border-muted-foreground transition-colors cursor-pointer bg-card">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="w-5 h-5 fill-red-600 flex-shrink-0"
-                    >
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93-.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                    </svg>
-                    <span className="font-medium text-xs sm:text-base text-foreground">
-                      YouTube
-                    </span>
-                  </div>
-                  <div className="border-2 border-border rounded-lg p-3 sm:p-6 flex items-center gap-2 sm:gap-3 hover:border-muted-foreground transition-colors cursor-pointer bg-card">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="w-5 h-5 fill-green-600 flex-shrink-0"
-                    >
-                      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.609 12.102 1.35.206.121.274.387.153.593-.299.421-1.02.599-1.559.3z" />
-                    </svg>
-                    <span className="font-medium text-xs sm:text-base text-foreground">
-                      Spotify
-                    </span>
-                  </div>
-                  <div className="border-2 border-border rounded-lg p-3 sm:p-6 flex items-center gap-2 sm:gap-3 hover:border-muted-foreground transition-colors cursor-pointer bg-card">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="w-5 h-5 fill-orange-600 flex-shrink-0"
-                    >
-                      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.949 17.847c-2.936-1.739-6.604-2.125-10.946-1.166-.238.052-.467-.106-.519-.344-.052-.238.106-.467.344-.519 4.765-1.052 8.845-.609 12.102 1.35.206.121.274.387.153.593-.299.421-1.02.599-1.559.3z" />
-                    </svg>
-                    <span className="font-medium text-xs sm:text-base text-foreground">
-                      SoundCloud
-                    </span>
-                  </div>
-                  <div className="border-2 border-border rounded-lg p-3 sm:p-6 flex items-center gap-2 sm:gap-3 hover:border-muted-foreground transition-colors cursor-pointer bg-card">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="w-5 h-5 fill-red-600 flex-shrink-0"
-                    >
-                      <path d="M18.715 4.365c-1.264 0-2.438.344-3.449.943C13.903 2.153 10.726 0 7.015 0 3.14 0 0 3.141 0 7.016c0 3.874 3.14 7.015 7.015 7.015.17 0 .339-.006.507-.018v9.982h11.193c2.873 0 5.201-2.329 5.201-5.201V9.566c0-2.873-2.328-5.201-5.201-5.201z" />
-                    </svg>
-                    <span className="font-medium text-xs sm:text-base text-foreground">
-                      Deezer
-                    </span>
-                  </div>
-                </div>
-              </div>
-              )}
-            </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="equipment" className="mt-0">
-            {isReal ? (
-              <>
-                <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
-                  {photo ? (nl ? "Extra's" : "Extras") : nl ? "Apparatuur" : "Equipment"}
-                </h3>
-                {packageItems.length === 0 && extraItems.length === 0 && (
-                  <p className="rounded-lg border-2 border-border bg-card p-4 text-xs sm:text-base text-muted-foreground">
-                    {photo
-                      ? nl
-                        ? "Deze fotograaf heeft nog geen extra's opgegeven."
-                        : "This photographer has not listed any extras yet."
-                      : nl
-                        ? "Deze artiest heeft nog geen apparatuur opgegeven."
-                        : "This artist has not listed any equipment yet."}
-                  </p>
-                )}
-                {packageItems.length > 0 && (
-                  <div className="bg-card border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 mb-6 sm:mb-8">
-                    <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-6">
-                      <h4 className="text-base sm:text-xl font-bold text-foreground">
-                        {nl ? "Apparatuurpakket" : "Equipment package"}
-                      </h4>
-                      {packageTotal > 0 && (
-                        <span className="rounded-full border-2 border-border px-3 py-1 sm:px-4 text-xs sm:text-base font-bold text-foreground">
-                          {nl ? "Totaal " : "Total "}
-                          {formatRentalPrice(String(packageTotal), nl ? "/dag" : "/day")}
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-                      {packageItems.map((item) => (
-                        <div key={item.name} className="flex gap-3">
-                          {item.image && (
-                            <img
-                              src={imageSrc(item.image) || "/placeholder.svg"}
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded"
-                            />
-                          )}
-                          <div className="min-w-0">
-                            <h5 className="font-semibold text-foreground">{item.name}</h5>
-                            {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {extraItems.length > 0 && (
-                  <>
-                    <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-6 text-foreground">
-                      {nl ? "Extra opties" : "Extra Options"}
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-                      {extraItems.map((item) => (
-                        <div key={item.name} className="border-2 border-border rounded-lg sm:rounded-xl p-4 sm:p-6 bg-card">
-                          <h5 className="font-semibold text-sm sm:text-base text-foreground mb-2">{item.name}</h5>
-                          {item.description && (
-                            <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">{item.description}</p>
-                          )}
-                          {Number(digitsOnlyPrice(item.price)) > 0 && (
-                            <div className="text-base sm:text-lg font-bold text-red-600">
-                              +{formatRentalPrice(item.price, nl ? "/dag" : "/day")}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-            <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
-              {nl ? "Apparatuuropties" : "Equipment Options"}
-            </h3>
-
-            <div className="bg-card border-2 border-border rounded-lg sm:rounded-xl p-3 sm:p-6 mb-6 sm:mb-8">
-              <div className="flex flex-col items-start justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
-                <div className="flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 sm:w-6 sm:h-6 text-red-600 flex-shrink-0"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M20 7h-9M14 17H5M15 3v18M9 3v18" />
-                  </svg>
-                  <h4 className="text-base sm:text-xl font-bold text-foreground">
-                    Basic DJ Package
-                  </h4>
-                </div>
-                <div className="bg-card border-2 border-border rounded-full px-3 py-1 sm:px-4 sm:py-1">
-                  <span className="font-bold text-xs sm:text-base text-foreground">
-                    {artist.equipmentPrice
-                      ? `${artist.equipmentPrice.replace("€", "€ ")}/hour`
-                      : "€450/day"}
-                  </span>
-                </div>
-              </div>
-
-              <p className="font-semibold mb-2 sm:mb-3 text-xs sm:text-base text-foreground">
-                Complete Setup
-              </p>
-              <p className="text-xs sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                Everything for professional DJ setup.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-                {/* Row 1 */}
-                <div className="flex gap-3">
-                  <img
-                    src="/pioneer-cdj-2000-dj-player.jpg"
-                    alt="Pioneer CDJ-2000"
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-foreground">
-                      2x Pioneer CDJ-2000 Players
-                    </h5>
-                    <p className="text-sm text-muted-foreground">
-                      Professional-grade media players
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <img
-                    src="/djm-900nxs2-mixer.jpg"
-                    alt="DJM-900NXS2"
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-foreground">
-                      DJM-900NXS2 Mixer
-                    </h5>
-                    <p className="text-sm text-muted-foreground">
-                      Industry standard 4-channel mixer
-                    </p>
-                  </div>
-                </div>
-
-                {/* Row 2 */}
-                <div className="flex gap-3">
-                  <img
-                    src="/dj-table-with-cover.jpg"
-                    alt="DJ Table"
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-foreground">
-                      DJ Table with Cover
-                    </h5>
-                    <p className="text-sm text-muted-foreground">
-                      Professional setup with cable management
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <img
-                    src="/shure-sm58-microphone.jpg"
-                    alt="Shure SM58"
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-foreground">
-                      Shure SM58 Microphone
-                    </h5>
-                    <p className="text-sm text-muted-foreground">
-                      Professional vocal microphone with stand
-                    </p>
-                  </div>
-                </div>
-
-                {/* Row 3 */}
-                <div className="flex gap-3">
-                  <img
-                    src="/qsc-k12-2-speakers.jpg"
-                    alt="QSC K12.2"
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-foreground">
-                      2x QSC K12.2 Speakers
-                    </h5>
-                    <p className="text-sm text-muted-foreground">
-                      Powerful 2000W speakers with stands
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <img
-                    src="/dj-lighting-package.jpg"
-                    alt="Lighting"
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                  <div>
-                    <h5 className="font-semibold text-foreground">
-                      Basic Lighting Package
-                    </h5>
-                    <p className="text-sm text-muted-foreground">
-                      2 moving heads, 2 par cans, and controller
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-6 text-foreground">
-              {nl ? "Extra opties" : "Extra Options"}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
-              {/* Extra Option 1 */}
-              <div className="border-2 border-border rounded-lg sm:rounded-xl p-4 sm:p-6 bg-card">
-                <div className="flex items-start justify-between mb-2 sm:mb-3">
-                  <h5 className="font-semibold text-sm sm:text-base text-foreground">
-                    Pioneer CDJ-3000
-                  </h5>
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
-                  Upgrade to latest players
-                </p>
-                <div className="text-base sm:text-lg font-bold text-red-600">
-                  +€150/day
-                </div>
-              </div>
-
-              {/* Extra Option 2 */}
-              <div className="border-2 border-border rounded-lg sm:rounded-xl p-4 sm:p-6 bg-card">
-                <h5 className="font-semibold text-sm sm:text-base text-foreground mb-2">
-                  Extra Subwoofer
-                </h5>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
-                  Add powerful bass
-                </p>
-                <div className="text-base sm:text-lg font-bold text-red-600">
-                  +€100/day
-                </div>
-              </div>
-            </div>
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="availability" className="mt-0">
-            <h3 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">
-              {nl ? "Beschikbaarheidskalender" : "Availability Calendar"}
-            </h3>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 sm:mb-6 p-2 sm:p-3 bg-card border border-border rounded-lg w-fit">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-green-600 bg-green-600"></div>
-                <span className="text-xs sm:text-sm text-foreground">
-                  {nl ? "Gekozen" : "Selected"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded border-2 border-red-600 bg-red-600"></div>
-                <span className="text-xs sm:text-sm text-foreground">
-                  {nl ? "Niet beschikbaar" : "Unavailable"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-zinc-200 dark:bg-zinc-700"></div>
-                <span className="text-xs sm:text-sm text-muted-foreground">
-                  {nl ? "Beschikbaar" : "Available"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded bg-zinc-500 dark:bg-zinc-800 flex items-center justify-center">
-                  <span className="text-zinc-300 dark:text-zinc-500 text-xs line-through">
-                    31
-                  </span>
-                </div>
-                <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-                  {nl ? "Voorbij" : "Past"}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-card border border-border rounded-lg sm:rounded-xl p-3 sm:p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-                {/* Right Column - Calendar */}
-                <div className="max-w-md">
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <button
-                      onClick={goToPreviousMonth}
-                      className="p-1 sm:p-2 rounded-lg bg-secondary hover:bg-accent text-foreground transition-colors"
-                    >
-                      <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                    <span className="text-sm sm:text-lg font-semibold text-foreground">
-                      {new Date(currentYear, currentMonth, 1).toLocaleDateString(nl ? "nl-NL" : "en-US", { month: "long" })} {currentYear}
-                    </span>
-                    <button
-                      onClick={goToNextMonth}
-                      className="p-1 sm:p-2 rounded-lg bg-secondary hover:bg-accent text-foreground transition-colors"
-                    >
-                      <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {(nl ? ["M", "D", "W", "D", "V", "Z", "Z"] : ["M", "T", "W", "T", "F", "S", "S"]).map((day, index) => (
-                      <div
-                        key={index}
-                        className="text-center text-xs font-semibold text-muted-foreground h-8 flex items-center justify-center"
-                      >
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-1">
-                    {renderCalendar()}
-                  </div>
-
-                  {isDemoProfessional(artist.id) ? (
-                    <DemoBookButton className="mt-3 sm:mt-4 w-full" />
-                  ) : (
-                  <Link
-                    href={
-                      selectedDate
-                        ? bookingHref(artist, `${selectedDate}-${currentMonth + 1}-${currentYear}`)
-                        : "#"
-                    }
-                    className={`block w-full mt-3 sm:mt-4 py-2 sm:py-3 rounded-lg font-medium text-sm text-center transition-colors ${
-                      selectedDate
-                        ? "bg-red-600 hover:bg-red-700 text-white"
-                        : "bg-secondary text-muted-foreground cursor-not-allowed pointer-events-none"
-                    }`}
-                    onClick={(e) => {
-                      if (!selectedDate) {
-                        e.preventDefault();
-                      } else if (
-                        bookGuard(
-                          bookingHref(artist, `${selectedDate}-${currentMonth + 1}-${currentYear}`),
-                          e,
-                        )
-                      ) {
-                        onNavigate?.();
-                      }
-                    }}
-                  >
-                    {selectedDate ? (nl ? "Boek nu" : "Book Now") : nl ? "Kies een datum" : "Select a Date"}
-                  </Link>
-                  )}
-                </div>
-
-                {/* Left Column - Upcoming Bookings */}
-                <div>
-                  <h3 className="text-base sm:text-xl font-semibold text-red-600 mb-3 sm:mb-4">
-                    {nl ? "Aankomende boekingen" : "Upcoming Bookings"}
-                  </h3>
-                  <div className="space-y-2 sm:space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                    <div className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3 sm:p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-1">
-                        Private Party
-                      </h4>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        Dec 21, 2025
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 text-red-500" />
-                        Eindhoven
-                      </div>
-                    </div>
-
-                    <div className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3 sm:p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-1">
-                        Private Party
-                      </h4>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        Dec 31, 2025
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 text-red-500" />
-                        Zwolle
-                      </div>
-                    </div>
-
-                    <div className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3 sm:p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-1">
-                        Private Wedding
-                      </h4>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        May 8, 2026
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 text-red-500" />
-                        Baarn
-                      </div>
-                    </div>
-
-                    <div className="border-l-4 border-red-500 bg-muted rounded-r-lg p-3 sm:p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-1">
-                        Private Wedding
-                      </h4>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        May 9, 2026
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3 text-red-500" />
-                        Amsterdam
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+        )}
       </div>
-      {stickyBookBar && (
-        <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">{artist.name}</p>
-            <p className="whitespace-nowrap text-sm text-foreground">
-              <span className="font-semibold">{artist.price}</span>/{nl ? "uur" : "hr"}
-              <span className="ml-1 text-xs text-muted-foreground">{nl ? "excl. btw" : "excl. VAT"}</span>
-            </p>
-          </div>
-          {isDemoProfessional(artist.id) ? (
-            <DemoBookButton className="h-11 max-w-[55%] shrink whitespace-normal text-xs leading-tight sm:max-w-none sm:text-sm" />
-          ) : (
-            <Button
-              className="h-11 shrink-0 bg-red-700 px-6 text-white hover:bg-red-600"
-              onClick={() => {
-                const href = bookingHref(artist);
-                if (!bookGuard(href)) return;
-                onNavigate?.();
-                router.push(href);
-              }}
-            >
-              {nl ? "Boek nu" : "Book now"}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+    </WebsiteProvider>
   );
 }
