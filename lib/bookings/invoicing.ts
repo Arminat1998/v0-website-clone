@@ -1,6 +1,7 @@
 import type { BillingProfile, Booking, Invoice, InvoiceLine } from "@/lib/db/schema"
 import { EQUIPMENT_OPTIONS, TRAVEL_RATE_CENTS_PER_KM, bookingVatCents, platformFeeCents, travelCents, vatOn } from "@/lib/bookings/pricing"
 import { isSafeBlobPath } from "@/lib/blob-paths"
+import { todayIso } from "@/lib/bookings/format"
 
 /** Dutch VAT rates in percent. Equipment rental is always standard-rated; a live performance by a
  *  performing artist is reduced-rated; passed-on costs (travel) follow the rate of the main service. */
@@ -208,7 +209,7 @@ export function buildInvoiceLines(booking: PricedBooking, profile: VatProfile, a
 }
 
 /** Proposes the next number in the professional's own sequence, e.g. "DJM-2026-007". */
-export function proposeInvoiceNumber(profile: Pick<BillingProfile, "invoicePrefix" | "nextInvoiceNumber">, year = new Date().getFullYear()) {
+export function proposeInvoiceNumber(profile: Pick<BillingProfile, "invoicePrefix" | "nextInvoiceNumber">, year = todayIso().slice(0, 4)) {
   return `${profile.invoicePrefix}${year}-${profile.nextInvoiceNumber.toString().padStart(3, "0")}`
 }
 

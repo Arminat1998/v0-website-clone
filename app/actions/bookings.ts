@@ -7,6 +7,10 @@ import { bookings, customerNotifications, invoices, notifications, type Booking,
 import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
 import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
 import { distanceBetween } from "@/lib/bookings/distance"
+import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
+import { BookingError, isBookingId, optionalText, parseBookingInput, type CreateBookingResult } from "@/lib/bookings/booking-input"
+import { todayIso } from "@/lib/bookings/format"
+import { isBookableAudio } from "@/lib/bookings/audio-storage"
 import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
@@ -14,6 +18,7 @@ import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
 import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 import { createReviewInvite } from "@/lib/reviews"
+import { emailAccepted, emailNewRequest, emailRejected } from "@/lib/email"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 
 export type CustomerBooking = Pick<
@@ -69,10 +74,6 @@ function revalidateDashboard(bookingId?: number) {
   if (bookingId) revalidatePath(`/dashboard/bookings/${bookingId}`)
 }
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10)
-}
-
 export interface CreateBookingInput {
   professionalId: string
   professionalName: string
@@ -117,22 +118,26 @@ export interface CreateBookingInput {
   billingCountry: string
   vatNumber: string
   paymentMethod: "ideal" | "card" | "invoice"
+  /** The total incl. VAT the customer saw; when the server comes to another total, nothing is stored. */
+  expectedTotalCents?: number
 }
 
-const orNull = (value: string) => (value.trim() ? value.trim() : null)
+const orNull = (value: string) => value || null
 
 /**
  * The distance the server charges for: calculated again from the professional's city to the event location.
- * When the geocoder is unavailable, the distance from the browser is used. Beyond the professional's travel
- * range the booking is refused.
+ * Only when the geocoder fails, the distance from the browser is used. A place that does not exist or lies beyond
+ * the professional's travel range is refused.
  */
 async function resolveDistance(professionalId: string, eventLocation: string, clientKm: number, options: BookingOptions) {
   const from = await loadProfessionalCity(professionalId)
-  const place = String(eventLocation ?? "").trim().slice(0, 120)
-  const serverKm = from && place ? await distanceBetween(from, place) : null
-  const km = serverKm ?? Math.round(clientKm)
-  if (!Number.isFinite(km) || km < 0) throw new Error("Invalid booking details")
-  if (km > options.rangeKm) throw new Error("Outside travel range")
+  const place = eventLocation.slice(0, 120)
+  if (!place) throw new BookingError("INVALID_DETAILS", "eventLocation")
+  const distance = from ? await distanceBetween(from, place) : "unknown_from"
+  if (distance === "unknown_to") throw new BookingError("INVALID_DETAILS", "eventLocation")
+  if (distance === "unknown_from") throw new BookingError("UNAVAILABLE")
+  const km = distance === "unavailable" ? Math.round(clientKm) : distance
+  if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
   return km
 }
 
@@ -156,55 +161,44 @@ export async function calculateBookingDistance(professionalId: string, eventLoca
   const place = String(eventLocation ?? "").trim().slice(0, 120)
   if (!options || !from || !place) return { ok: false, error: "NOT_FOUND" }
   const distanceKm = await distanceBetween(from, place)
-  if (distanceKm === null) return { ok: false, error: "NOT_FOUND" }
+  if (typeof distanceKm !== "number") return { ok: false, error: "NOT_FOUND" }
   if (distanceKm > options.rangeKm) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
   return { ok: true, distanceKm, rangeKm: options.rangeKm }
 }
 
-export async function createBooking(input: CreateBookingInput) {
+/** Sends a booking request. Refusals are returned: server actions hide thrown messages in production. */
+export async function createBooking(input: CreateBookingInput): Promise<CreateBookingResult> {
+  try {
+    return await placeBooking(input)
+  } catch (error) {
+    if (error instanceof BookingError) return { ok: false, error: error.code, field: error.field }
+    console.error("Failed to create booking:", error)
+    return { ok: false, error: "RETRY" }
+  }
+}
+
+async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResult> {
   const session = await getSession()
-  if (!session?.user) throw new Error("Unauthorized")
+  if (!session?.user) throw new BookingError("UNAUTHORIZED")
   const customerId = session.user.id
+  const input = parseBookingInput(raw)
 
-  if (!input.professionalId || !input.eventDate || !input.startTime || !input.endTime) {
-    throw new Error("Missing required booking fields")
-  }
-  if (!input.firstName.trim() || !input.lastName.trim() || !input.email.includes("@")) {
-    throw new Error("Missing customer details")
-  }
-  // Free text is stored as-is, so every field has a ceiling: long texts 5000 characters, the rest 300.
-  const LONG_FIELDS = new Set(["description", "specialRequests"])
-  for (const [key, value] of Object.entries(input)) {
-    if (typeof value === "string" && value.length > (LONG_FIELDS.has(key) ? 5000 : 300)) throw new Error("Invalid booking details")
-    if (Array.isArray(value) && (value.length > 30 || value.some((item) => typeof item !== "string" || item.length > 120))) {
-      throw new Error("Invalid booking details")
-    }
-  }
-
-  if (!["artist", "photographer"].includes(input.professionalType) ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(input.eventDate) || input.eventDate < todayIso() ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.startTime) ||
-      !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.endTime) ||
-      !Number.isFinite(input.distanceKm) || input.distanceKm < 0 || input.distanceKm > 2000 ||
-      !Array.isArray(input.equipment) || input.equipment.length > 20) {
-    throw new Error("Invalid booking details")
-  }
-  for (const audio of [input.openingDanceFileName, input.lastSongFileName]) {
-    if (audio && !isOwnAudioPath(audio, customerId)) throw new Error("Invalid booking details")
+  for (const field of ["openingDanceFileName", "lastSongFileName"] as const) {
+    if (input[field] && !isOwnAudioPath(input[field], customerId)) throw new BookingError("INVALID_DETAILS", field)
   }
   // Sample profiles have no account behind them, so a request would never reach anyone.
-  if (isDemoProfessional(input.professionalId)) throw new Error("Professional unavailable")
+  if (isDemoProfessional(input.professionalId) || input.professionalId === customerId) throw new BookingError("UNAVAILABLE")
+  if (!takeToken(`booking:${customerId}`, 10, 10 * 60 * 1000)) throw new BookingError("RETRY")
   const professional = await resolveCustomerProfessional(input.professionalId, input.professionalType)
-  if (!professional) throw new Error("Professional unavailable")
-  if ((await getBlockedDates(input.professionalId)).includes(input.eventDate)) throw new Error("Date unavailable")
+  if (!professional) throw new BookingError("UNAVAILABLE")
 
   // The price comes from the professional's own profile, never from the browser.
   const options = await loadBookingOptions(input.professionalId)
-  if (!options) throw new Error("Professional unavailable")
+  if (!options) throw new BookingError("UNAVAILABLE")
   if (input.startTime === input.endTime || hoursProblem(options, hoursBetween(input.startTime, input.endTime))) {
-    throw new Error("Invalid booking hours")
+    throw new BookingError("INVALID_HOURS")
   }
-  if (input.professionalType === "photographer" && input.equipment.includes("package")) throw new Error("Invalid booking details")
+  if (input.professionalType === "photographer" && input.equipment.includes("package")) throw new BookingError("INVALID_DETAILS", "equipment")
   const distanceKm = await resolveDistance(input.professionalId, input.eventLocation, input.distanceKm, options)
   const pricing = priceBooking(options, {
     startTime: input.startTime,
@@ -213,8 +207,15 @@ export async function createBooking(input: CreateBookingInput) {
     distanceKm,
   })
 
-  const capacity = Number.parseInt(input.capacity, 10)
+  if (input.expectedTotalCents !== undefined && input.expectedTotalCents !== pricing.totalCents) {
+    return { ok: false, error: "PRICE_CHANGED", totalCents: pricing.totalCents }
+  }
 
+  for (const field of ["openingDanceFileName", "lastSongFileName"] as const) {
+    if (input[field] && !(await isBookableAudio(input[field]))) throw new BookingError("INVALID_DETAILS", field)
+  }
+
+  const hasTable = await hasUnavailableDatesTable()
   const created = await db.transaction(async (tx) => {
     // Serialise requests from this customer for this professional and date, so a double click,
     // a retry after a network error or a second tab cannot create the same request twice.
@@ -237,6 +238,11 @@ export async function createBooking(input: CreateBookingInput) {
       .limit(1)
     if (existing) return { id: existing.id, duplicate: true }
 
+    // Checked under the lock of this date, so a booking that is accepted or a date that is blocked at the
+    // same moment cannot slip through.
+    await lockDate(tx, input.professionalId, input.eventDate)
+    if (await dateProblem(tx, input.professionalId, input.eventDate, hasTable)) throw new BookingError("DATE_TAKEN")
+
     const [inserted] = await tx
       .insert(bookings)
       .values({
@@ -245,13 +251,13 @@ export async function createBooking(input: CreateBookingInput) {
         professionalName: professional.name,
         professionalType: input.professionalType,
         status: "pending",
-        eventName: input.eventName.trim() || `${input.eventTypes[0] ?? "Evenement"} ${input.firstName.trim()}`,
+        eventName: input.eventName || `${input.eventTypes[0] ?? "Evenement"} ${input.firstName}`,
         eventDate: input.eventDate,
         startTime: input.startTime,
         endTime: input.endTime,
         eventTypes: input.eventTypes,
         musicGenres: input.musicGenres,
-        capacity: Number.isFinite(capacity) ? capacity : null,
+        capacity: input.capacity,
         description: orNull(input.description),
         specialRequests: orNull(input.specialRequests),
         dressCode: orNull(input.dressCode),
@@ -264,14 +270,14 @@ export async function createBooking(input: CreateBookingInput) {
         houseNumber: orNull(input.houseNumber),
         houseNumberExt: orNull(input.houseNumberExt),
         postalCode: orNull(input.postalCode),
-        city: input.city.trim() || "Onbekend",
+        city: input.city || "Onbekend",
         country: orNull(input.country),
         distanceKm,
         equipment: pricing.equipmentLabels,
-        firstName: input.firstName.trim(),
-        lastName: input.lastName.trim(),
-        email: input.email.trim(),
-        phone: input.phone.trim(),
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
+        phone: input.phone,
         customerType: input.customerType,
         companyName: orNull(input.companyName),
         billingStreet: orNull(input.billingStreet),
@@ -296,13 +302,21 @@ export async function createBooking(input: CreateBookingInput) {
       bookingId: inserted.id,
       type: "new_request",
       title: "Nieuwe boekingsaanvraag",
-      body: `${input.firstName.trim()} ${abbreviateLastName(input.lastName)} wil je boeken voor ${input.eventName.trim() || "een evenement"} op ${formatDutchDate(input.eventDate)}.`,
+      body: `${input.firstName} ${abbreviateLastName(input.lastName)} wil je boeken voor ${input.eventName || "een evenement"} op ${formatDutchDate(input.eventDate)}.`,
     })
     return { id: inserted.id, duplicate: false }
   })
 
-  if (!created.duplicate) revalidateDashboard(created.id)
-  return { id: created.id }
+  if (!created.duplicate) {
+    revalidateDashboard(created.id)
+    emailNewRequest({
+      id: created.id,
+      professionalId: input.professionalId,
+      eventName: input.eventName || "Evenement",
+      eventDate: input.eventDate,
+    })
+  }
+  return { ok: true, id: created.id }
 }
 
 function formatDutchDate(iso: string) {
@@ -330,6 +344,7 @@ export async function getBookingsByStatus(status: Booking["status"] | Booking["s
 
 export async function getBooking(id: number) {
   const professionalId = await getProfessionalId()
+  if (!isBookingId(id)) return null
   const [booking] = await db
     .select()
     .from(bookings)
@@ -338,10 +353,16 @@ export async function getBooking(id: number) {
   return booking ? redactContactDetails(booking) : null
 }
 
-export type AcceptBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN" }
+/** DATE_TAKEN with `blocked`: the professional blocked the date by hand instead of having a booking on it. */
+export type AcceptBookingResult =
+  | { ok: true }
+  | { ok: false; error: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN"; blocked?: boolean }
 
 export async function acceptBooking(id: number, message: string): Promise<AcceptBookingResult> {
   const professionalId = await getProfessionalId()
+  if (!isBookingId(id)) return { ok: false, error: "NOT_FOUND" }
+  const hasTable = await hasUnavailableDatesTable()
+  let accepted: Booking | undefined
   const result = await db.transaction(async (tx): Promise<AcceptBookingResult> => {
     const [booking] = await tx
       .select({ eventDate: bookings.eventDate })
@@ -352,32 +373,23 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
     if (booking.eventDate < todayIso()) return { ok: false, error: "DATE_PASSED" }
 
     // One accepted booking per professional per date, also when two requests are accepted at the same time.
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`accept:${professionalId}:${booking.eventDate}`}))`)
-    const [taken] = await tx
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.professionalId, professionalId),
-          eq(bookings.eventDate, booking.eventDate),
-          inArray(bookings.status, ["accepted", "completed"]),
-        ),
-      )
-      .limit(1)
-    if (taken) return { ok: false, error: "DATE_TAKEN" }
+    await lockDate(tx, professionalId, booking.eventDate)
+    const problem = await dateProblem(tx, professionalId, booking.eventDate, hasTable)
+    if (problem) return { ok: false, error: "DATE_TAKEN", blocked: problem === "blocked" }
 
     const updated = await tx
       .update(bookings)
       .set({
         status: "accepted",
-        responseMessage: message.trim() || null,
+        responseMessage: optionalText(message, 2000),
         respondedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-      .returning({ id: bookings.id, customerId: bookings.customerId })
+      .returning()
     if (!updated.length) return { ok: false, error: "NOT_FOUND" }
-    const customerId = updated[0].customerId
+    accepted = updated[0]
+    const customerId = accepted.customerId
     if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "accepted" })
 
     await tx
@@ -387,57 +399,71 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
     return { ok: true }
   })
   revalidateDashboard(id)
+  if (result.ok && accepted) emailAccepted(accepted)
   return result
 }
 
-export async function rejectBooking(id: number, reason: string) {
+export type RespondResult = { ok: true } | { ok: false; error: "NOT_FOUND" }
+
+export async function rejectBooking(id: number, reason: string): Promise<RespondResult> {
   const professionalId = await getProfessionalId()
-  await db.transaction(async (tx) => {
+  if (!isBookingId(id)) return { ok: false, error: "NOT_FOUND" }
+  const rejected = await db.transaction(async (tx) => {
     const updated = await tx
       .update(bookings)
       .set({
         status: "rejected",
-        rejectionReason: reason.trim() || null,
+        rejectionReason: optionalText(reason, 2000),
         respondedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-      .returning({ customerId: bookings.customerId })
-    if (!updated.length) return
+      .returning()
+    if (!updated.length) return null
     const customerId = updated[0].customerId
     if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "rejected" })
     await tx
       .update(notifications)
       .set({ read: true })
       .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, professionalId)))
+    return updated[0]
   })
   revalidateDashboard(id)
+  if (!rejected) return { ok: false, error: "NOT_FOUND" }
+  emailRejected(rejected)
+  return { ok: true }
 }
 
-export async function completeBooking(id: number) {
+export type CompleteBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "TOO_EARLY" }
+
+export async function completeBooking(id: number): Promise<CompleteBookingResult> {
   const professionalId = await getProfessionalId()
   const booking = await getBooking(id)
-  if (!booking || booking.status !== "accepted") return
-  if (booking.eventDate > todayIso()) throw new Error("Event has not taken place yet")
+  if (!booking || booking.status !== "accepted") return { ok: false, error: "NOT_FOUND" }
+  if (booking.eventDate > todayIso()) return { ok: false, error: "TOO_EARLY" }
 
-  const updated = await db
-    .update(bookings)
-    .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "accepted")))
-    .returning({ customerId: bookings.customerId })
-  if (!updated.length) return
-  const customerId = updated[0].customerId
-  if (customerId) await db.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "completed" })
-
-  await db.insert(notifications).values({
-    professionalId,
-    bookingId: id,
-    type: "reminder",
-    title: "Dien je factuur in",
-    body: `${booking.eventName} is afgerond. Dien je factuur in om je uitbetaling in gang te zetten.`,
+  const completed = await db.transaction(async (tx) => {
+    // The status in the condition makes sure a second click at the same time changes nothing.
+    const updated = await tx
+      .update(bookings)
+      .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "accepted")))
+      .returning({ customerId: bookings.customerId })
+    if (!updated.length) return false
+    const customerId = updated[0].customerId
+    if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "completed" })
+    await tx.insert(notifications).values({
+      professionalId,
+      bookingId: id,
+      type: "reminder",
+      title: "Dien je factuur in",
+      body: `${booking.eventName} is afgerond. Dien je factuur in om je uitbetaling in gang te zetten.`,
+    })
+    await createReviewInvite(booking, tx)
+    return true
   })
-  await createReviewInvite(booking)
   revalidateDashboard(id)
+  return completed ? { ok: true } : { ok: false, error: "NOT_FOUND" }
 }
 
 export interface DashboardSummary {
@@ -542,11 +568,8 @@ export async function getCalendarBookings(): Promise<CalendarBooking[]> {
     .orderBy(asc(bookings.eventDate))
 }
 
-/** Dates that are already taken for a professional; used by the public booking calendar. */
+/** Dates that cannot be booked, from today on: accepted bookings and dates blocked by hand. Public. */
 export async function getBlockedDates(professionalId: string): Promise<string[]> {
-  const rows = await db
-    .select({ eventDate: bookings.eventDate })
-    .from(bookings)
-    .where(and(eq(bookings.professionalId, professionalId), inArray(bookings.status, ["accepted", "completed"])))
-  return rows.map((r) => r.eventDate)
+  if (typeof professionalId !== "string" || !professionalId || professionalId.length > 100) return []
+  return (await loadUnavailableDates([professionalId])).get(professionalId) ?? []
 }

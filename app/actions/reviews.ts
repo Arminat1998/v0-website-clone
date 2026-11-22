@@ -21,7 +21,7 @@ const inviteFields = {
 }
 
 export async function getReviewInvite(token: string) {
-  if (!/^[\w-]{20,64}$/.test(token)) return null
+  if (typeof token !== "string" || !/^[\w-]{20,64}$/.test(token)) return null
   const [row] = await db
     .select(inviteFields)
     .from(reviews)
@@ -40,7 +40,7 @@ const reviewSchema = z.object({
 
 export async function submitReview(token: string, input: { rating: number; comment: string }) {
   const parsed = reviewSchema.safeParse(input)
-  if (!parsed.success) return { ok: false as const, error: "invalid" }
+  if (!parsed.success || typeof token !== "string") return { ok: false as const, error: "invalid" }
   const updated = await db
     .update(reviews)
     .set({ ...parsed.data, submittedAt: new Date() })
@@ -90,6 +90,7 @@ export type ProfessionalReview = Awaited<ReturnType<typeof getProfessionalReview
 export async function replyToReview(id: number, reply: string) {
   const session = await getSession()
   if (session?.user?.role !== "professional") throw new Error("Unauthorized")
+  if (!Number.isSafeInteger(id) || typeof reply !== "string") return { ok: false as const }
   const text = reply.trim()
   if (!text || text.length > 1000) return { ok: false as const }
   const updated = await db
