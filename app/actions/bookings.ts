@@ -7,6 +7,7 @@ import { bookings, customerNotifications, invoices, notifications, type Booking,
 import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
 import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
 import { distanceBetween } from "@/lib/bookings/distance"
+import { isOwnAudioPath } from "@/lib/bookings/audio"
 import { takeToken } from "@/lib/rate-limit"
 import { abbreviateLastName, redactContactDetails } from "@/lib/bookings/privacy"
 import { getProfessionalId } from "@/lib/bookings/professional"
@@ -89,6 +90,7 @@ export interface CreateBookingInput {
   dressCode: string
   playlistLink: string
   openingDanceLink: string
+  /** Path of the uploaded audio file in the private store, or empty. */
   openingDanceFileName: string
   lastSongLink: string
   lastSongFileName: string
@@ -186,6 +188,9 @@ export async function createBooking(input: CreateBookingInput) {
       !Number.isFinite(input.distanceKm) || input.distanceKm < 0 || input.distanceKm > 2000 ||
       !Array.isArray(input.equipment) || input.equipment.length > 20) {
     throw new Error("Invalid booking details")
+  }
+  for (const audio of [input.openingDanceFileName, input.lastSongFileName]) {
+    if (audio && !isOwnAudioPath(audio, customerId)) throw new Error("Invalid booking details")
   }
   // Sample profiles have no account behind them, so a request would never reach anyone.
   if (isDemoProfessional(input.professionalId)) throw new Error("Professional unavailable")
