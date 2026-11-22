@@ -17,6 +17,7 @@ import { getProfessionalId } from "@/lib/bookings/professional"
 import { getSession } from "@/lib/session"
 import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 import { createReviewInvite } from "@/lib/reviews"
+import { emailAccepted, emailNewRequest, emailRejected } from "@/lib/email"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 
 export type CustomerBooking = Pick<
@@ -299,7 +300,15 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
     return { id: inserted.id, duplicate: false }
   })
 
-  if (!created.duplicate) revalidateDashboard(created.id)
+  if (!created.duplicate) {
+    revalidateDashboard(created.id)
+    emailNewRequest({
+      id: created.id,
+      professionalId: input.professionalId,
+      eventName: input.eventName || "Evenement",
+      eventDate: input.eventDate,
+    })
+  }
   return { ok: true, id: created.id }
 }
 
@@ -346,6 +355,7 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
   const professionalId = await getProfessionalId()
   if (!isBookingId(id)) return { ok: false, error: "NOT_FOUND" }
   const hasTable = await hasUnavailableDatesTable()
+  let accepted: Booking | undefined
   const result = await db.transaction(async (tx): Promise<AcceptBookingResult> => {
     const [booking] = await tx
       .select({ eventDate: bookings.eventDate })
@@ -369,9 +379,10 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
         updatedAt: new Date(),
       })
       .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-      .returning({ id: bookings.id, customerId: bookings.customerId })
+      .returning()
     if (!updated.length) return { ok: false, error: "NOT_FOUND" }
-    const customerId = updated[0].customerId
+    accepted = updated[0]
+    const customerId = accepted.customerId
     if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "accepted" })
 
     await tx
@@ -381,6 +392,7 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
     return { ok: true }
   })
   revalidateDashboard(id)
+  if (result.ok && accepted) emailAccepted(accepted)
   return result
 }
 
@@ -399,18 +411,20 @@ export async function rejectBooking(id: number, reason: string): Promise<Respond
         updatedAt: new Date(),
       })
       .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
-      .returning({ customerId: bookings.customerId })
-    if (!updated.length) return false
+      .returning()
+    if (!updated.length) return null
     const customerId = updated[0].customerId
     if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "rejected" })
     await tx
       .update(notifications)
       .set({ read: true })
       .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, professionalId)))
-    return true
+    return updated[0]
   })
   revalidateDashboard(id)
-  return rejected ? { ok: true } : { ok: false, error: "NOT_FOUND" }
+  if (!rejected) return { ok: false, error: "NOT_FOUND" }
+  emailRejected(rejected)
+  return { ok: true }
 }
 
 export type CompleteBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "TOO_EARLY" }
