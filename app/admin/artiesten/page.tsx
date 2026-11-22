@@ -33,13 +33,20 @@ export default function ArtiestenPage() {
             >
               <div className="relative aspect-[4/3] bg-accent">
                 <Image
-                  src={s.photo || "/placeholder.svg"}
-                  alt={s.name}
+                  src={s.banner || s.photo || "/placeholder.svg"}
+                  alt=""
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
-              <div className="p-4">
+              <div className="relative p-4 pt-10">
+                <Image
+                  src={s.photo || "/placeholder.svg"}
+                  alt={s.name}
+                  width={72}
+                  height={72}
+                  className="absolute -top-10 left-4 size-[4.5rem] rounded-full border-4 border-card bg-card object-cover"
+                />
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-semibold text-foreground truncate">{s.name}</h3>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 flex-shrink-0">

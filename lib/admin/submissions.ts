@@ -43,7 +43,9 @@ export async function loadSubmissions(): Promise<Submission[]> {
   return rows.map(({ profile, email, page }) => {
     const data = profile.reviewData ?? {}
     const website = profile.socials.find((link) => link.platform === "website")?.url ?? null
-    const avatar = profile.avatarPath ?? page?.avatarPath ?? null
+    // The page holds the photos visitors see; the profile only until that page exists.
+    const avatar = page ? page.avatarPath : profile.avatarPath
+    const banner = page ? page.bannerPath : profile.bannerPath
     const gallery = page?.gallery ?? []
     const submittedAt = profile.submittedAt.toISOString()
     return {
@@ -51,6 +53,7 @@ export async function loadSubmissions(): Promise<Submission[]> {
       name: profile.stageName || profile.fullName,
       discipline: profile.artistType || "Artiest",
       photo: avatar ? mediaUrl(avatar) : "",
+      banner: banner ? mediaUrl(banner) : "",
       email,
       phone: profile.phone,
       city: profile.city,
@@ -68,7 +71,7 @@ export async function loadSubmissions(): Promise<Submission[]> {
       socials: profile.socials
         .filter((link) => link.platform !== "website")
         .map((link) => ({ platform: link.platform, url: link.url })),
-      portfolioImages: [...(avatar ? [avatar] : []), ...gallery].map(mediaUrl),
+      portfolioImages: gallery.map(mediaUrl),
       videoLinks: (page?.videos ?? []).map((video) => ({ title: video.title || video.url, url: video.url })),
       checklist: { ...emptyChecklist, ...(data.checklist ?? {}) },
       notes: data.notes ?? [],

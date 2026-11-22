@@ -2,7 +2,7 @@ import "server-only"
 
 import { eq } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { professionalProfiles } from "@/lib/db/schema"
+import { artistPages, professionalProfiles } from "@/lib/db/schema"
 import type { ProfessionalProfileData } from "@/lib/professional-profile-types"
 import { logError } from "@/lib/log-error"
 
@@ -11,12 +11,16 @@ export async function getProfessionalProfile(
   account: { email: string; phone?: string | null; name: string },
 ): Promise<ProfessionalProfileData | null> {
   try {
-    const [row] = await db
-      .select()
+    const [found] = await db
+      .select({ row: professionalProfiles, page: { avatarPath: artistPages.avatarPath, bannerPath: artistPages.bannerPath, id: artistPages.professionalId } })
       .from(professionalProfiles)
+      .leftJoin(artistPages, eq(artistPages.professionalId, professionalProfiles.professionalId))
       .where(eq(professionalProfiles.professionalId, professionalId))
       .limit(1)
-    if (!row) return null
+    if (!found) return null
+    const { row } = found
+    // The page holds the photos visitors see; older profiles may still name a file that was replaced there.
+    const photos = found.page?.id ? found.page : row
 
     return {
       stageName: row.stageName || account.name,
@@ -39,8 +43,8 @@ export async function getProfessionalProfile(
       socials: row.socials,
       minimumEquipment: row.minimumEquipment,
       extraEquipment: row.extraEquipment,
-      avatarPath: row.avatarPath,
-      bannerPath: row.bannerPath,
+      avatarPath: photos.avatarPath,
+      bannerPath: photos.bannerPath,
     }
   } catch (error) {
     logError("Failed to load professional profile:", error)

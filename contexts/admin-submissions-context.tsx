@@ -35,6 +35,7 @@ export interface Submission {
   name: string
   discipline: string
   photo: string
+  banner: string
   email: string
   phone: string
   city: string

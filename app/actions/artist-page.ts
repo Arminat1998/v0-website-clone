@@ -4,7 +4,7 @@ import { del } from "@vercel/blob"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { artistPages, user } from "@/lib/db/schema"
+import { artistPages, professionalProfiles, user } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { enhancedArtists } from "@/lib/smart-search"
 import { getArtistPath } from "@/lib/artist-slug"
@@ -93,6 +93,12 @@ export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArti
     .insert(artistPages)
     .values({ professionalId, ...values })
     .onConflictDoUpdate({ target: artistPages.professionalId, set: values })
+
+  // "Edit profile" reads its photos from the profile. Without this it would keep, and save again, a removed file.
+  await db
+    .update(professionalProfiles)
+    .set({ avatarPath: content.avatarPath, bannerPath: content.bannerPath })
+    .where(eq(professionalProfiles.professionalId, professionalId))
 
   await db
     .update(user)
