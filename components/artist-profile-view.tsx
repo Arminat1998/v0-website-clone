@@ -63,10 +63,12 @@ export function ArtistProfileView({
 
   const artistImage =
     (content?.bannerPath ? mediaUrl(content.bannerPath) : null) ||
+    artist.banner ||
     artist.image ||
     `/placeholder.svg?height=400&width=800&query=${encodeURIComponent(artist.name)} ${encodeURIComponent(artist.category ?? artist.specialty)} performance`;
   const profileImage =
     (content?.avatarPath ? mediaUrl(content.avatarPath) : null) ||
+    artist.avatar ||
     artist.image ||
     `/placeholder.svg?height=144&width=144&query=${encodeURIComponent(artist.name)} profile portrait`;
 

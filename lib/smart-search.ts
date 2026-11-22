@@ -19,6 +19,9 @@ export interface Artist {
   category?: string
   artistTypes?: string[]
   image?: string
+  /** Real professionals only: the banner and profile photo of their own page. */
+  banner?: string
+  avatar?: string
   equipment?: string[]
   /** Real professionals only: the equipment they entered during sign-up. */
   equipmentDetails?: { packageItems: EquipmentDetail[]; extraItems: EquipmentDetail[] }
@@ -60,6 +63,9 @@ export interface Photographer {
   unavailableDates?: string[]
   category?: string
   image?: string
+  /** Real professionals only: the banner and profile photo of their own page. */
+  banner?: string
+  avatar?: string
   /** Real professionals only: their public profile page. */
   href?: string
   /** Real professionals only: the extras they listed (photographers have no package). */

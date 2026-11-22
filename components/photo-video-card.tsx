@@ -36,7 +36,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
     >
       <div className="relative h-48 overflow-hidden">
         <img
-          src={professional.image || `/placeholder.svg?height=200&width=400&query=${professional.category}`}
+          src={professional.banner || professional.image || `/placeholder.svg?height=200&width=400&query=${professional.category}`}
           alt={professional.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -69,7 +69,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false }: Pho
           <div className="relative flex-shrink-0">
             <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-card shadow-lg">
               <img
-                src={professional.image || `/placeholder.svg?height=96&width=96&query=${professional.name}`}
+                src={professional.avatar || professional.image || `/placeholder.svg?height=96&width=96&query=${professional.name}`}
                 alt={professional.name}
                 className="w-full h-full object-cover"
               />

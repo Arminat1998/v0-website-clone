@@ -549,7 +549,7 @@ export default function BookingPage() {
           <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
             <div className="relative h-32 sm:h-48 bg-gradient-to-br from-red-600 to-red-800">
               <img 
-                src={professionalImage || "/placeholder.svg"} 
+                src={professional.banner || professionalImage} 
                 alt={`${professional.name} header`} 
                 className="w-full h-full object-cover" 
               />
@@ -558,7 +558,7 @@ export default function BookingPage() {
             <div className="p-4 sm:p-6 -mt-12 sm:-mt-16 relative">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-card bg-card overflow-hidden mx-auto mb-3 sm:mb-4">
                 <img 
-                  src={professional.image || professionalImage || "/placeholder.svg"} 
+                  src={professional.avatar || professionalImage} 
                   alt={professional.name} 
                   className="w-full h-full object-cover" 
                 />
