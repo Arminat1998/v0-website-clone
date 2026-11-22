@@ -9,13 +9,15 @@ import { Footer } from "@/components/footer"
 
 export function HomeClient() {
   return (
-    <main className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Header />
-      <HeroSection />
-      <ServiceSelector />
-      <HowItWorks />
-      <OurServices />
+      <main>
+        <HeroSection />
+        <ServiceSelector />
+        <HowItWorks />
+        <OurServices />
+      </main>
       <Footer />
-    </main>
+    </div>
   )
 }
