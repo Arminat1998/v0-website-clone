@@ -138,8 +138,8 @@ export function ArtistProfileView({
           </div>
 
           {/* Info Cards Grid */}
-          <dl className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-4 lg:grid-cols-4">
-            <div className="rounded-lg border-2 border-border bg-card p-3 sm:rounded-xl sm:p-6">
+          <dl className={`mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:gap-4 ${travel ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
+            <div className={`rounded-lg border-2 border-border bg-card p-3 sm:rounded-xl sm:p-6 ${travel ? "col-span-2 lg:col-span-1" : ""}`}>
               <dt className="mb-2 text-xs text-muted-foreground sm:text-sm">{t.rate}</dt>
               <dd>
                 <span className="mb-1 block text-2xl font-bold text-foreground sm:text-4xl">
