@@ -7,9 +7,11 @@ interface DualRangeSliderProps {
   maxValue: number
   onMinChange: (value: number) => void
   onMaxChange: (value: number) => void
+  minLabel: string
+  maxLabel: string
 }
 
-export function DualRangeSlider({ min, max, minValue, maxValue, onMinChange, onMaxChange }: DualRangeSliderProps) {
+export function DualRangeSlider({ min, max, minValue, maxValue, onMinChange, onMaxChange, minLabel, maxLabel }: DualRangeSliderProps) {
   const minPercent = ((minValue - min) / (max - min)) * 100
   const maxPercent = ((maxValue - min) / (max - min)) * 100
 
@@ -33,9 +35,10 @@ export function DualRangeSlider({ min, max, minValue, maxValue, onMinChange, onM
         min={min}
         max={max}
         value={minValue}
+        aria-label={minLabel}
         onChange={(e) => {
           const value = Number(e.target.value)
-          if (value < maxValue) {
+          if (value <= maxValue) {
             onMinChange(value)
           }
         }}
@@ -48,9 +51,10 @@ export function DualRangeSlider({ min, max, minValue, maxValue, onMinChange, onM
         min={min}
         max={max}
         value={maxValue}
+        aria-label={maxLabel}
         onChange={(e) => {
           const value = Number(e.target.value)
-          if (value > minValue) {
+          if (value >= minValue) {
             onMaxChange(value)
           }
         }}

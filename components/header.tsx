@@ -30,6 +30,13 @@ function currentState(item: (typeof NAV_ITEMS)[number], pathname: string) {
   return item.match.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ? ("true" as const) : undefined
 }
 
+// The server sends Dutch titles; these follow the language the visitor chose.
+const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
+  "/": { nl: "ARSI Events — Alles voor jouw evenement", en: "ARSI Events — Everything for your event" },
+  "/artiesten": { nl: "Artiesten boeken | ARSI Events", en: "Book artists | ARSI Events" },
+  "/photo-video": { nl: "Fotografen en videografen boeken | ARSI Events", en: "Book photographers and videographers | ARSI Events" },
+}
+
 /** A path on this site, so a link can never send someone elsewhere after logging in. */
 const isOwnPath = (path: string) => path.startsWith("/") && !path.startsWith("//") && !/[\\\u0000-\u0020]/.test(path)
 
@@ -118,6 +125,10 @@ export function Header() {
   const nl = useLanguage().language === "nl"
   const { toggleTheme } = useTheme()
   const pathname = usePathname()
+  useEffect(() => {
+    const title = PAGE_TITLES[pathname ?? ""]
+    if (title) document.title = nl ? title.nl : title.en
+  }, [pathname, nl])
   const [menuOpen, setMenuOpen] = useState(false)
   const themeLabel = nl ? "Licht of donker thema" : "Light or dark theme"
 

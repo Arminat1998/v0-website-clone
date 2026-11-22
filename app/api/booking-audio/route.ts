@@ -1,12 +1,12 @@
 import { get, issueSignedToken } from "@vercel/blob"
 import { handleUploadPresigned, type HandleUploadPresignedBody } from "@vercel/blob/client"
 import { and, eq, or } from "drizzle-orm"
-import { type NextRequest, NextResponse } from "next/server"
+import { after, type NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { bookings } from "@/lib/db/schema"
 import { getSession, isAdmin } from "@/lib/session"
 import { takeToken } from "@/lib/rate-limit"
-import { tidyLooseAudio } from "@/lib/bookings/audio-storage"
+import { sweepLooseAudio, tidyLooseAudio } from "@/lib/bookings/audio-storage"
 import { AUDIO_KINDS, MAX_AUDIO_BYTES, audioContentType, audioDisplayName, isOwnAudioPath, type AudioKind } from "@/lib/bookings/audio"
 import { logError } from "@/lib/log-error"
 
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         }
       },
     })
+    after(sweepLooseAudio)
     return NextResponse.json(result)
   } catch (error) {
     logError("Booking audio upload failed:", error)

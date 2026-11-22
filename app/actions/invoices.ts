@@ -3,6 +3,7 @@
 import { and, asc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
+import { logError } from "@/lib/log-error"
 import {
   billingProfiles,
   bookings,
@@ -158,10 +159,40 @@ export async function getInvoiceForBooking(bookingId: number): Promise<Invoice |
   return invoice ?? null
 }
 
+export type InvoiceErrorCode =
+  | "NOT_FOUND"
+  | "INVOICE_LOCKED"
+  | "PROFILE_INCOMPLETE"
+  | "TOTAL_MISMATCH"
+  | "INVALID_NUMBER"
+  | "INVALID_DATE"
+  | "DATE_IN_FUTURE"
+  | "INVALID_FILE"
+  | "FAILED"
+
+export type SubmitInvoiceResult = { ok: true; invoice: Invoice } | { ok: false; error: InvoiceErrorCode }
+
+class InvoiceError extends Error {
+  constructor(readonly code: InvoiceErrorCode) {
+    super(code)
+  }
+}
+
+/** Refusals are returned: server actions hide thrown messages in production. */
+async function invoiceResult(store: () => Promise<Invoice>): Promise<SubmitInvoiceResult> {
+  try {
+    return { ok: true, invoice: await store() }
+  } catch (error) {
+    if (error instanceof InvoiceError) return { ok: false, error: error.code }
+    logError("Failed to store invoice:", error)
+    return { ok: false, error: "FAILED" }
+  }
+}
+
 function assertInvoiceFields(invoiceNumber: unknown, invoiceDate: unknown) {
-  if (typeof invoiceNumber !== "string" || !invoiceNumber.trim() || invoiceNumber.length > 60) throw new Error("Invoice number is required")
-  if (!isIsoDate(invoiceDate)) throw new Error("Invalid invoice date")
-  if (invoiceDate > todayIso()) throw new Error("Invoice date cannot be in the future")
+  if (typeof invoiceNumber !== "string" || !invoiceNumber.trim() || invoiceNumber.length > 60) throw new InvoiceError("INVALID_NUMBER")
+  if (!isIsoDate(invoiceDate)) throw new InvoiceError("INVALID_DATE")
+  if (invoiceDate > todayIso()) throw new InvoiceError("DATE_IN_FUTURE")
 }
 
 interface InvoiceSubmission {
@@ -185,21 +216,21 @@ async function storeInvoice({ professionalId, bookingId, invoiceDate, upload, ..
       .where(and(eq(bookings.id, bookingId), eq(bookings.professionalId, professionalId), eq(bookings.status, "completed")))
       .limit(1)
       .for("update")
-    if (!booking) throw new Error("Booking not found or not completed")
-    if (booking.payoutStatus === "paid") throw new Error("Payout already completed")
+    if (!booking) throw new InvoiceError("NOT_FOUND")
+    if (booking.payoutStatus === "paid") throw new InvoiceError("INVOICE_LOCKED")
     const [existing] = await tx.select().from(invoices).where(eq(invoices.bookingId, bookingId)).orderBy(asc(invoices.id)).limit(1)
     // The client paid the amount on this invoice, or ARSI Events approved it: it may not change anymore.
-    if (existing && (existing.status === "approved" || booking.paymentStatus === "paid")) throw new Error("INVOICE_LOCKED")
+    if (existing && (existing.status === "approved" || booking.paymentStatus === "paid")) throw new InvoiceError("INVOICE_LOCKED")
 
     // Locked as well, so two invoices at the same time do not use the same next number.
     const [profile] = await tx.select().from(billingProfiles).where(eq(billingProfiles.professionalId, professionalId)).limit(1).for("update")
-    if (!profile || (!upload && !isBillingProfileComplete(profile))) throw new Error("Billing profile incomplete")
+    if (!profile || (!upload && !isBillingProfileComplete(profile))) throw new InvoiceError("PROFILE_INCOMPLETE")
 
     const adjustments = sanitizeAdjustments(input.adjustments, booking)
     assertReceiptsOwned(adjustments, invoiceBlobPrefix(professionalId, bookingId))
     const lines = buildInvoiceLines(booking, profile, adjustments)
     const totals = sumInvoiceLines(lines)
-    if (upload && upload.declaredTotalCents !== totals.totalCents) throw new Error("TOTAL_MISMATCH")
+    if (upload && upload.declaredTotalCents !== totals.totalCents) throw new InvoiceError("TOTAL_MISMATCH")
 
     const values = {
       method: upload ? ("upload" as const) : ("self_billing" as const),
@@ -265,16 +296,18 @@ function lineFingerprint(lines: InvoiceLine[]) {
   return lines.map((line) => [line.key, line.description, line.quantity, line.vatRate, line.netCents, line.grossCents, line.receipt?.pathname ?? ""].join("|")).join("\n")
 }
 
-export async function submitSelfBillingInvoice(input: { bookingId: number; invoiceNumber: string; invoiceDate: string; adjustments?: InvoiceAdjustments }) {
-  const professionalId = await getProfessionalId()
-  if (!isBookingId(input.bookingId)) throw new Error("Booking not found or not completed")
-  assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
-  return storeInvoice({
-    professionalId,
-    bookingId: input.bookingId,
-    invoiceNumber: input.invoiceNumber,
-    invoiceDate: input.invoiceDate,
-    adjustments: input.adjustments,
+export async function submitSelfBillingInvoice(input: { bookingId: number; invoiceNumber: string; invoiceDate: string; adjustments?: InvoiceAdjustments }): Promise<SubmitInvoiceResult> {
+  return invoiceResult(async () => {
+    const professionalId = await getProfessionalId()
+    if (!isBookingId(input.bookingId)) throw new InvoiceError("NOT_FOUND")
+    assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
+    return storeInvoice({
+      professionalId,
+      bookingId: input.bookingId,
+      invoiceNumber: input.invoiceNumber,
+      invoiceDate: input.invoiceDate,
+      adjustments: input.adjustments,
+    })
   })
 }
 
@@ -292,29 +325,31 @@ export async function submitUploadedInvoice(input: {
   declaredTotalCents: number
   adjustments?: InvoiceAdjustments
   file: UploadedInvoiceFile
-}) {
-  const professionalId = await getProfessionalId()
-  if (!isBookingId(input.bookingId)) throw new Error("Booking not found or not completed")
-  assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
-  const { pathname, name, size, contentType } = input.file ?? {}
-  if (
-    !isSafeBlobPath(pathname, invoiceBlobPrefix(professionalId, input.bookingId)) ||
-    typeof name !== "string" ||
-    !Number.isSafeInteger(size) ||
-    size <= 0 ||
-    size > MAX_INVOICE_FILE_BYTES ||
-    !(INVOICE_FILE_TYPES as readonly string[]).includes(contentType)
-  ) {
-    throw new Error("Invalid file")
-  }
-  // The invoice lines need the VAT settings, which an upload may submit before the profile was ever opened.
-  await getBillingProfile()
-  return storeInvoice({
-    professionalId,
-    bookingId: input.bookingId,
-    invoiceNumber: input.invoiceNumber,
-    invoiceDate: input.invoiceDate,
-    adjustments: input.adjustments,
-    upload: { file: { pathname, name: name.slice(0, 200), size, contentType }, declaredTotalCents: input.declaredTotalCents },
+}): Promise<SubmitInvoiceResult> {
+  return invoiceResult(async () => {
+    const professionalId = await getProfessionalId()
+    if (!isBookingId(input.bookingId)) throw new InvoiceError("NOT_FOUND")
+    assertInvoiceFields(input.invoiceNumber, input.invoiceDate)
+    const { pathname, name, size, contentType } = input.file ?? {}
+    if (
+      !isSafeBlobPath(pathname, invoiceBlobPrefix(professionalId, input.bookingId)) ||
+      typeof name !== "string" ||
+      !Number.isSafeInteger(size) ||
+      size <= 0 ||
+      size > MAX_INVOICE_FILE_BYTES ||
+      !(INVOICE_FILE_TYPES as readonly string[]).includes(contentType)
+    ) {
+      throw new InvoiceError("INVALID_FILE")
+    }
+    // The invoice lines need the VAT settings, which an upload may submit before the profile was ever opened.
+    await getBillingProfile()
+    return storeInvoice({
+      professionalId,
+      bookingId: input.bookingId,
+      invoiceNumber: input.invoiceNumber,
+      invoiceDate: input.invoiceDate,
+      adjustments: input.adjustments,
+      upload: { file: { pathname, name: name.slice(0, 200), size, contentType }, declaredTotalCents: input.declaredTotalCents },
+    })
   })
 }
