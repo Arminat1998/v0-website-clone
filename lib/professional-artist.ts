@@ -82,51 +82,68 @@ export function getProfessionalArtistPath(account: ProfessionalAccount) {
   return `${base}/${slugify(account.name) || "professional"}-${account.id}`
 }
 
+// Only what the public pages show; the review data of a profile stays out of these queries.
+const summaryColumns = {
+  stageName: professionalProfiles.stageName,
+  bio: professionalProfiles.bio,
+  city: professionalProfiles.city,
+  hourlyRate: professionalProfiles.hourlyRate,
+  yearsExperience: professionalProfiles.yearsExperience,
+  artistType: professionalProfiles.artistType,
+  genres: professionalProfiles.genres,
+  eventTypes: professionalProfiles.eventTypes,
+  avatarPath: professionalProfiles.avatarPath,
+  minimumEquipment: professionalProfiles.minimumEquipment,
+  extraEquipment: professionalProfiles.extraEquipment,
+}
+
+type SummaryRow = Pick<typeof professionalProfiles.$inferSelect, keyof typeof summaryColumns>
+
+function toProfileSummary(row: SummaryRow): ProfessionalProfileSummary {
+  // Extra lighting/sound sets (with a category) belong to the equipment package; only uncategorised items are optional extras.
+  const toDetail = (item: { name: string; description: string; price: string; image?: string }) => ({
+    name: item.name,
+    description: item.description,
+    price: item.price,
+    image: item.image,
+  })
+  // One incomplete profile may not take the whole list down.
+  const extraEquipment = row.extraEquipment ?? []
+  const packageItems = [...Object.values(row.minimumEquipment ?? {}), ...extraEquipment.filter((item) => item.category)]
+    .filter((item) => item.name)
+    .map(toDetail)
+  const extraItems = extraEquipment.filter((item) => !item.category && item.name).map(toDetail)
+  return {
+    stageName: row.stageName,
+    bio: row.bio,
+    city: row.city,
+    hourlyRate: Number(row.hourlyRate),
+    yearsExperience: row.yearsExperience,
+    artistType: row.artistType,
+    genres: row.genres ?? [],
+    eventTypes: row.eventTypes ?? [],
+    avatarPath: row.avatarPath,
+    equipment: [...packageItems, ...extraItems].map((item) => item.name),
+    packageItems,
+    extraItems,
+  }
+}
+
 export async function getProfessionalProfileSummary(professionalId: string): Promise<ProfessionalProfileSummary | null> {
   try {
     const [row] = await db
-      .select()
+      .select(summaryColumns)
       .from(professionalProfiles)
       .where(eq(professionalProfiles.professionalId, professionalId))
       .limit(1)
-    if (!row) return null
-    // Extra lighting/sound sets (with a category) belong to the equipment package; only uncategorised items are optional extras.
-    const toDetail = (item: { name: string; description: string; price: string; image?: string }) => ({
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      image: item.image,
-    })
-    const packageItems = [
-      ...Object.values(row.minimumEquipment),
-      ...row.extraEquipment.filter((item) => item.category),
-    ]
-      .filter((item) => item.name)
-      .map(toDetail)
-    const extraItems = row.extraEquipment
-      .filter((item) => !item.category && item.name)
-      .map(toDetail)
-    return {
-      stageName: row.stageName,
-      bio: row.bio,
-      city: row.city,
-      hourlyRate: Number(row.hourlyRate),
-      yearsExperience: row.yearsExperience,
-      artistType: row.artistType,
-      genres: row.genres,
-      eventTypes: row.eventTypes,
-      avatarPath: row.avatarPath,
-      equipment: [...packageItems, ...extraItems].map((item) => item.name),
-      packageItems,
-      extraItems,
-    }
+    return row ? toProfileSummary(row) : null
   } catch (error) {
     console.error("Failed to load profile summary:", error)
     return null
   }
 }
 
-/** All professionals whose profile was approved in the admin dashboard and whose account is not restricted. */
+/** All professionals whose profile was approved and whose account is not restricted, with their profile in the same query. */
 async function listLiveAccounts() {
   const rows = await db
     .select({
@@ -139,6 +156,7 @@ async function listLiveAccounts() {
       suspendedUntil: userTable.suspendedUntil,
       bannerPath: artistPages.bannerPath,
       avatarPath: artistPages.avatarPath,
+      profile: summaryColumns,
     })
     .from(userTable)
     .innerJoin(professionalProfiles, eq(professionalProfiles.professionalId, userTable.id))
@@ -146,24 +164,23 @@ async function listLiveAccounts() {
     .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
     // Fixed order, oldest account first.
     .orderBy(asc(userTable.createdAt), asc(userTable.id))
-  return rows.filter((account) => !getRestriction(account))
+  return rows
+    .filter((account) => !getRestriction(account))
+    .map((account) => ({ ...account, profile: toProfileSummary(account.profile) }))
 }
 
 /** Approved artists. Photographers and videographers have their own list. */
 export async function listLiveProfessionalArtists(): Promise<Artist[]> {
   try {
     const rows = await listLiveAccounts()
-    const artists = await Promise.all(
-      rows
-        .filter((account) => !isPhotoVideo(account.category))
-        .map(async (account) => {
-          const profile = await getProfessionalProfileSummary(account.id)
-          const artist = buildProfessionalArtist(account, profile)
-          // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
-          return profile?.artistType ? { ...artist, category: profile.artistType } : artist
-        }),
-    )
-    return artists
+    return rows
+      .filter((account) => !isPhotoVideo(account.category))
+      .map((account) => {
+        const { profile } = account
+        const artist = buildProfessionalArtist(account, profile)
+        // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
+        return profile.artistType ? { ...artist, category: profile.artistType } : artist
+      })
   } catch (error) {
     console.error("Failed to list live professionals:", error)
     return []
@@ -174,36 +191,34 @@ export async function listLiveProfessionalArtists(): Promise<Artist[]> {
 export async function listLivePhotographers(): Promise<Photographer[]> {
   try {
     const rows = await listLiveAccounts()
-    return await Promise.all(
-      rows
-        .filter((account) => isPhotoVideo(account.category))
-        .map(async (account) => {
-          const profile = await getProfessionalProfileSummary(account.id)
-          const artist = buildProfessionalArtist(account, profile)
-          const type = profile?.artistType || "Photographer"
-          return {
-            id: artist.id,
-            name: artist.name,
-            specialty: type,
-            location: artist.location,
-            rating: 0,
-            reviews: 0,
-            price: artist.price,
-            available: true,
-            description: artist.description,
-            eventTypes: artist.eventTypes,
-            serviceTypes: artist.musicStyles,
-            experience: artist.experience,
-            // The page filters on "Photographer", "Videographer" or both.
-            category: type,
-            image: artist.image,
-            banner: artist.banner,
-            avatar: artist.avatar,
-            href: getProfessionalArtistPath(account),
-            equipmentDetails: artist.equipmentDetails,
-          }
-        }),
-    )
+    return rows
+      .filter((account) => isPhotoVideo(account.category))
+      .map((account) => {
+        const { profile } = account
+        const artist = buildProfessionalArtist(account, profile)
+        const type = profile.artistType || "Photographer"
+        return {
+          id: artist.id,
+          name: artist.name,
+          specialty: type,
+          location: artist.location,
+          rating: 0,
+          reviews: 0,
+          price: artist.price,
+          available: true,
+          description: artist.description,
+          eventTypes: artist.eventTypes,
+          serviceTypes: artist.musicStyles,
+          experience: artist.experience,
+          // The page filters on "Photographer", "Videographer" or both.
+          category: type,
+          image: artist.image,
+          banner: artist.banner,
+          avatar: artist.avatar,
+          href: getProfessionalArtistPath(account),
+          equipmentDetails: artist.equipmentDetails,
+        }
+      })
   } catch (error) {
     console.error("Failed to list live photographers:", error)
     return []
