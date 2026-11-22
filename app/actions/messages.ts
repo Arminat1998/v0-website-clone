@@ -114,7 +114,7 @@ export async function getThread(id: number): Promise<ThreadMessage[] | null> {
 
 export async function sendMessage(id: number, body: string) {
   const v = await viewer()
-  const text = body.trim()
+  const text = typeof body === "string" ? body.replaceAll("\u0000", "").trim() : ""
   if (!text || text.length > 2000) return { ok: false as const, error: "invalid" }
   const conversation = await accessible(v, id)
   if (!conversation) return { ok: false as const, error: "not_found" }
