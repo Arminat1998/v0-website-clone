@@ -413,30 +413,36 @@ export async function rejectBooking(id: number, reason: string): Promise<Respond
   return rejected ? { ok: true } : { ok: false, error: "NOT_FOUND" }
 }
 
-export async function completeBooking(id: number) {
+export type CompleteBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "TOO_EARLY" }
+
+export async function completeBooking(id: number): Promise<CompleteBookingResult> {
   const professionalId = await getProfessionalId()
   const booking = await getBooking(id)
-  if (!booking || booking.status !== "accepted") return
-  if (booking.eventDate > todayIso()) throw new Error("Event has not taken place yet")
+  if (!booking || booking.status !== "accepted") return { ok: false, error: "NOT_FOUND" }
+  if (booking.eventDate > todayIso()) return { ok: false, error: "TOO_EARLY" }
 
-  const updated = await db
-    .update(bookings)
-    .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "accepted")))
-    .returning({ customerId: bookings.customerId })
-  if (!updated.length) return
-  const customerId = updated[0].customerId
-  if (customerId) await db.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "completed" })
-
-  await db.insert(notifications).values({
-    professionalId,
-    bookingId: id,
-    type: "reminder",
-    title: "Dien je factuur in",
-    body: `${booking.eventName} is afgerond. Dien je factuur in om je uitbetaling in gang te zetten.`,
+  const completed = await db.transaction(async (tx) => {
+    // The status in the condition makes sure a second click at the same time changes nothing.
+    const updated = await tx
+      .update(bookings)
+      .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId), eq(bookings.status, "accepted")))
+      .returning({ customerId: bookings.customerId })
+    if (!updated.length) return false
+    const customerId = updated[0].customerId
+    if (customerId) await tx.insert(customerNotifications).values({ userId: customerId, bookingId: id, status: "completed" })
+    await tx.insert(notifications).values({
+      professionalId,
+      bookingId: id,
+      type: "reminder",
+      title: "Dien je factuur in",
+      body: `${booking.eventName} is afgerond. Dien je factuur in om je uitbetaling in gang te zetten.`,
+    })
+    await createReviewInvite(booking, tx)
+    return true
   })
-  await createReviewInvite(booking)
   revalidateDashboard(id)
+  return completed ? { ok: true } : { ok: false, error: "NOT_FOUND" }
 }
 
 export interface DashboardSummary {
