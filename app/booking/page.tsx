@@ -319,7 +319,12 @@ export default function BookingPage() {
 
   const handleSubmitBooking = async () => {
     if (!sessionData?.user) {
-      setSubmitError("Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.")
+      setSubmitError(
+        tr(
+          "Log in of maak een account aan via de knoppen bovenaan om je aanvraag te versturen. Je ingevulde gegevens blijven bewaard.",
+          "Log in or create an account with the buttons at the top to send your request. Your details are kept.",
+        ),
+      )
       window.scrollTo({ top: 0, behavior: "smooth" })
       return
     }
@@ -395,10 +400,15 @@ export default function BookingPage() {
       const message = error instanceof Error ? error.message : ""
       setSubmitError(
         message.includes("travel range")
-          ? "Deze locatie ligt buiten het werkgebied van deze professional."
+          ? tr("Deze locatie ligt buiten het werkgebied van deze professional.", "This location is outside this professional's travel range.")
           : message.includes("hours")
-            ? "De gekozen tijden passen niet bij de minimale of maximale speelduur van deze professional."
-            : "Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.",
+            ? tr(
+                "De gekozen tijden passen niet bij de minimale of maximale boekingsduur van deze professional.",
+                "The chosen times do not fit this professional's minimum or maximum booking length.",
+              )
+            : message.includes("Date unavailable")
+              ? tr("Op deze datum is de professional al geboekt. Kies een andere datum.", "The professional is already booked on this date. Choose another date.")
+              : tr("Het versturen is niet gelukt. Controleer je gegevens en probeer het opnieuw.", "Sending failed. Check your details and try again."),
       )
     } finally {
       setSubmitting(false)
@@ -718,7 +728,7 @@ export default function BookingPage() {
                     </div>
 
                     <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
-                      {["M", "T", "W", "T", "F", "S", "S"].map((day, index) => (
+                      {(language === "nl" ? ["M", "D", "W", "D", "V", "Z", "Z"] : ["M", "T", "W", "T", "F", "S", "S"]).map((day, index) => (
                         <div
                           key={index}
                           className="text-center text-[10px] sm:text-xs font-semibold text-muted-foreground h-6 sm:h-8 flex items-center justify-center"
@@ -856,7 +866,7 @@ export default function BookingPage() {
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
                   {eventName.length < 3 && eventName.length > 0 && (
-                    <p className="text-xs text-red-500 mt-1">Event name must be at least 3 characters.</p>
+                    <p className="text-xs text-red-500 mt-1">{tr("De naam moet minimaal 3 tekens hebben.", "The name must be at least 3 characters.")}</p>
                   )}
                 </div>
                 
@@ -930,8 +940,8 @@ export default function BookingPage() {
                 {hoursIssue && bookingOptions && (
                   <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
                     {hoursIssue === "min"
-                      ? tr(`${professional.name} speelt minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} plays at least ${bookingOptions.minHours} ${bookingOptions.minHours === 1 ? "hour" : "hours"}. Choose a later end time.`)
-                      : tr(`${professional.name} speelt maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} plays at most ${bookingOptions.maxHours} ${bookingOptions.maxHours === 1 ? "hour" : "hours"}. Choose an earlier end time.`)}
+                      ? tr(`${professional.name} ${artist ? "speelt" : "werkt"} minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} ${artist ? "plays" : "works"} at least ${bookingOptions.minHours} ${bookingOptions.minHours === 1 ? "hour" : "hours"}. Choose a later end time.`)
+                      : tr(`${professional.name} ${artist ? "speelt" : "werkt"} maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} ${artist ? "plays" : "works"} at most ${bookingOptions.maxHours} ${bookingOptions.maxHours === 1 ? "hour" : "hours"}. Choose an earlier end time.`)}
                   </p>
                 )}
 
@@ -1010,7 +1020,7 @@ export default function BookingPage() {
                     maxLength={5000}
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">{description.length}/5000 characters</p>
+                  <p className="text-xs text-muted-foreground mt-1">{description.length}/5000 {tr("tekens", "characters")}</p>
                 </div>
                 
                 {/* Special Requests */}
@@ -1354,7 +1364,7 @@ export default function BookingPage() {
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Factuuradres", "Billing address")}</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw-nummer", "VAT number")}</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   {pricing && <>
-                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Optreden", "Performance")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Optreden", "Performance") : tr("Opdracht", "Assignment")} ({pricing.hours} {tr("uur", "hrs")} x {formatEuro(pricing.hourlyRateCents)})</span><span className="font-medium text-foreground">{formatEuro(pricing.performanceCents)}</span></div>
                   {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Apparatuur en extra's", "Equipment and extras") : tr("Extra's", "Extras")} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
                   <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
