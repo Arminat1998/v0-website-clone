@@ -73,7 +73,7 @@ export function Footer() {
         </div>
 
         <div className="mt-6 border-t border-border pt-6 text-center sm:mt-8 sm:pt-8">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" suppressHydrationWarning>
             © {new Date().getFullYear()} ARSI Events. {t.allRightsReserved}
           </p>
         </div>
