@@ -123,12 +123,12 @@ export function Header() {
   const handleSignup = handleLogin
 
   const nl = useLanguage().language === "nl"
+  const { toggleTheme } = useTheme()
+  const pathname = usePathname()
   useEffect(() => {
     const title = PAGE_TITLES[pathname ?? ""]
     if (title) document.title = nl ? title.nl : title.en
   }, [pathname, nl])
-  const { toggleTheme } = useTheme()
-  const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const themeLabel = nl ? "Licht of donker thema" : "Light or dark theme"
 
