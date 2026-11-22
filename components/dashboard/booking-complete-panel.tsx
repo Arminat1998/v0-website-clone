@@ -17,7 +17,7 @@ export function BookingCompletePanel({ booking }: { booking: Booking }) {
   const canComplete = isTodayOrPast(booking.eventDate)
 
   return (
-    <section aria-labelledby="complete-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+    <section aria-labelledby="complete-heading" className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
       <h2 id="complete-heading" className="text-base font-semibold text-foreground">
         {t.accepted.paymentTitle}
       </h2>
@@ -40,7 +40,7 @@ export function BookingCompletePanel({ booking }: { booking: Booking }) {
               router.push(`/dashboard/bookings/${booking.id}/invoice`)
             })
           }
-          className="mt-4 w-full bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground"
+          className="mt-4 w-full bg-red-700 text-white hover:bg-red-600 disabled:bg-muted disabled:text-muted-foreground"
         >
           {isPending ? (
             <>

@@ -1,6 +1,8 @@
 "use client"
 
-import { Inbox } from "lucide-react"
+import { CalendarCheck, CheckCircle2, Inbox } from "lucide-react"
+import { AccountEmpty, AccountHeading } from "@/components/account/account-common"
+import { Card, CardContent } from "@/components/ui/card"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { BookingListItem } from "@/app/actions/bookings"
 import { BookingCard } from "./booking-card"
@@ -9,29 +11,45 @@ import { EarningsSummary } from "./earnings-summary"
 type Variant = "requests" | "accepted" | "completed"
 
 export function BookingList({ variant, bookings }: { variant: Variant; bookings: BookingListItem[] }) {
-  const { t } = useBookingT()
+  const { t, locale } = useBookingT()
+  const nl = locale.startsWith("nl")
   const copy = variant === "requests" ? t.requests : variant === "accepted" ? t.accepted : t.completed
 
+  const empty =
+    variant === "requests"
+      ? {
+          icon: Inbox,
+          title: nl ? "Geen openstaande aanvragen" : "No open requests",
+          description: nl ? "Nieuwe aanvragen verschijnen hier automatisch." : "New requests show up here automatically.",
+        }
+      : variant === "accepted"
+        ? {
+            icon: CalendarCheck,
+            title: nl ? "Nog geen geaccepteerde boekingen" : "No accepted bookings yet",
+            description: nl ? "Accepteer je een aanvraag, dan staat het optreden hier." : "Accept a request and the gig appears here.",
+          }
+        : {
+            icon: CheckCircle2,
+            title: nl ? "Nog geen afgeronde boekingen" : "No completed bookings yet",
+            description: nl ? "Rond je een optreden af, dan vind je hier je verdiensten." : "Complete a gig and your earnings appear here.",
+          }
+
   return (
-    <div className="min-h-screen bg-background p-6 md:p-8 lg:p-10">
-      <header className="mb-6 md:mb-8">
-        <h1 className="text-2xl font-bold text-foreground md:text-3xl lg:text-4xl">{copy.title}</h1>
-        <p className="mt-2 max-w-2xl text-pretty text-muted-foreground">{copy.subtitle}</p>
-      </header>
+    <div className="flex flex-col gap-6 p-4 sm:p-8 lg:p-10">
+      <AccountHeading title={copy.title} description={copy.subtitle} />
 
       {variant === "completed" && bookings.length > 0 && <EarningsSummary bookings={bookings} />}
 
       {variant === "accepted" && bookings.length > 0 && (
-        <p className="mb-4 text-sm text-muted-foreground">{t.calendar.blockedNote}</p>
+        <p className="text-sm text-muted-foreground">{t.calendar.blockedNote}</p>
       )}
 
       {bookings.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-border bg-card p-10 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <Inbox className="h-6 w-6" aria-hidden />
-          </span>
-          <p className="max-w-sm text-pretty text-muted-foreground">{copy.empty}</p>
-        </div>
+        <Card>
+          <CardContent>
+            <AccountEmpty icon={empty.icon} title={empty.title} description={empty.description} />
+          </CardContent>
+        </Card>
       ) : (
         <ul className="flex flex-col gap-4">
           {bookings.map((booking) => (

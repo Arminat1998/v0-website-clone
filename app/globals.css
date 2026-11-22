@@ -170,6 +170,19 @@
   }
 }
 
+/* Comfortable touch targets (44 px) on phones, for the signed-in areas that mark their content with this class. */
+@layer base {
+  @media (max-width: 767px) {
+    .touch-targets [data-slot="button"],
+    .touch-targets [data-slot="input"],
+    .touch-targets [data-slot="select-trigger"],
+    .touch-targets [data-slot="tabs-trigger"] {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+    }
+  }
+}
+
 /* Dashboard dark mode - alleen voor /dashboard routes */
 .dark [class*="dashboard"],
 .dark .bg-white,

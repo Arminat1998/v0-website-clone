@@ -47,7 +47,7 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
   }
 
   return (
-    <section aria-labelledby="respond-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+    <section aria-labelledby="respond-heading" className="rounded-xl border border-border bg-card p-5 shadow-sm md:p-6">
       <h2 id="respond-heading" className="text-base font-semibold text-foreground">
         {t.detail.respondTitle}
       </h2>
@@ -55,7 +55,7 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
 
       {mode === "idle" ? (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <Button onClick={() => setMode("accept")} className="flex-1 bg-green-600 text-white hover:bg-green-700">
+          <Button onClick={() => setMode("accept")} className="flex-1 bg-green-700 text-white hover:bg-green-800">
             <Check className="mr-2 h-4 w-4" aria-hidden />
             {t.requests.accept}
           </Button>
@@ -84,7 +84,7 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
             />
           </label>
           {error && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-red-700 dark:text-red-400">
               {error}
             </p>
           )}
@@ -92,7 +92,7 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
             <Button
               type="submit"
               disabled={isPending}
-              className={mode === "accept" ? "flex-1 bg-green-600 text-white hover:bg-green-700" : "flex-1 bg-red-600 text-white hover:bg-red-700"}
+              className={mode === "accept" ? "flex-1 bg-green-700 text-white hover:bg-green-800" : "flex-1 bg-red-700 text-white hover:bg-red-600"}
             >
               {isPending ? (
                 <>
