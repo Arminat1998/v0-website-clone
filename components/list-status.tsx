@@ -78,7 +78,9 @@ export function NoResults({
         {t.noPerfectMatch}
       </p>
       <p className="mx-auto mt-2 max-w-prose text-sm text-muted-foreground">
-        {releases.length > 1
+        {releases.length > 1 && releases.every((release) => release.results === 0)
+          ? nl ? "Geen professional past bij deze combinatie. Laat meer dan één keuze los, of wis alles:" : "No professional fits this combination. Drop more than one choice, or clear all:"
+          : releases.length > 1
           ? nl ? "Geen professional past bij deze combinatie. Laat een van de keuzes los:" : "No professional fits this combination. Drop one of the choices:"
           : releases.length === 1
             ? nl ? "Geen professional past bij deze keuze. Laat die los:" : "No professional fits this choice. Drop it:"

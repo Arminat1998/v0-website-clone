@@ -22,6 +22,7 @@ import { bookingErrorMessage, readBookingResult } from "./submit-result"
 import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
 import { getCustomerProfile } from "@/app/actions/customer"
 import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking, travelCents } from "@/lib/bookings/pricing"
@@ -347,6 +348,9 @@ export default function BookingPage() {
       )
     }
   }
+
+  const sideGenres = tagLabels(artist?.musicStyles, styleLabel, language === "nl")
+  const sideEvents = tagLabels(professional.eventTypes, eventLabel, language === "nl")
 
   const goToStep = (step: number) => {
     setCurrentStep(step)
@@ -748,21 +752,21 @@ export default function BookingPage() {
               </div>
 
               {/* Music Genres */}
-              {artist?.musicStyles && artist?.musicStyles.length > 0 && (
+              {sideGenres.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-medium text-muted-foreground mb-2">{t.musicGenresLabel}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {artist?.musicStyles.slice(0, 2).map((genre: string) => (
+                    {sideGenres.slice(0, 2).map((genre) => (
                       <span
                         key={genre}
-                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md capitalize"
+                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md"
                       >
                         {genre}
                       </span>
                     ))}
-                    {artist?.musicStyles.length > 2 && (
+                    {sideGenres.length > 2 && (
                       <span className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md">
-                        +{artist?.musicStyles.length - 2}
+                        +{sideGenres.length - 2}
                       </span>
                     )}
                   </div>
@@ -770,21 +774,21 @@ export default function BookingPage() {
               )}
 
               {/* Event Types */}
-              {professional.eventTypes && professional.eventTypes.length > 0 && (
+              {sideEvents.length > 0 && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">{t.eventTypesLabel}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {professional.eventTypes.slice(0, 2).map((event: string) => (
+                    {sideEvents.slice(0, 2).map((event) => (
                       <span
                         key={event}
-                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md capitalize"
+                        className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md"
                       >
                         {event}
                       </span>
                     ))}
-                    {professional.eventTypes.length > 2 && (
+                    {sideEvents.length > 2 && (
                       <span className="px-2.5 py-0.5 bg-muted text-muted-foreground text-xs rounded-md">
-                        +{professional.eventTypes.length - 2}
+                        +{sideEvents.length - 2}
                       </span>
                     )}
                   </div>
@@ -1508,7 +1512,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               )}
-              {changedTotal !== null && pricing && (
+              {changedTotal !== null && !submitError && (
                 <div role="alert" className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-foreground">
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
                   <p>

@@ -283,7 +283,7 @@ function DateFilter({ value, onChange }: { value: string; onChange: (iso: string
             </SelectContent>
           </Select>
           <Select value={view.year} onValueChange={(next) => setView({ ...view, year: next })}>
-            <SelectTrigger className="w-20" aria-label={nl ? "Jaar" : "Year"}>
+            <SelectTrigger className="w-[5.5rem]" aria-label={nl ? "Jaar" : "Year"}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
