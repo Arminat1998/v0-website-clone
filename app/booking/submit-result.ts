@@ -41,8 +41,8 @@ export function bookingErrorMessage(
     case "DATE_TAKEN":
       return {
         text: nl
-          ? "Deze datum is net geboekt. Kies in stap 1 een andere datum; je andere gegevens blijven staan."
-          : "This date has just been booked. Choose another date in step 1; your other details are kept.",
+          ? "Deze datum is niet meer beschikbaar. Kies in stap 1 een andere datum; je andere gegevens blijven staan."
+          : "This date is no longer available. Choose another date in step 1; your other details are kept.",
         step: 1,
       }
     case "OUT_OF_RANGE":

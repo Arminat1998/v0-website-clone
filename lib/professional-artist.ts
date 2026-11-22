@@ -187,57 +187,47 @@ async function listLiveAccounts() {
 
 /** Approved artists. Photographers and videographers have their own list. */
 export async function listLiveProfessionalArtists(): Promise<Artist[]> {
-  try {
-    const rows = (await listLiveAccounts()).filter((account) => !isPhotoVideo(account.category))
-    const unavailable = await unavailableDatesOf(rows)
-    return rows.map((account) => {
-      const { profile } = account
-      const artist = buildProfessionalArtist(account, profile, unavailable.get(account.id))
-      // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
-      return profile.artistType ? { ...artist, category: profile.artistType } : artist
-    })
-  } catch (error) {
-    console.error("Failed to list live professionals:", error)
-    return []
-  }
+  const rows = (await listLiveAccounts()).filter((account) => !isPhotoVideo(account.category))
+  const unavailable = await unavailableDatesOf(rows)
+  return rows.map((account) => {
+    const { profile } = account
+    const artist = buildProfessionalArtist(account, profile, unavailable.get(account.id))
+    // The overview filters on categories such as "DJ" or "Band", so use the artist type from the profile.
+    return profile.artistType ? { ...artist, category: profile.artistType } : artist
+  })
 }
 
 /** Approved photographers and videographers, in the shape of the photo & video page. */
 export async function listLivePhotographers(): Promise<Photographer[]> {
-  try {
-    const rows = (await listLiveAccounts()).filter((account) => isPhotoVideo(account.category))
-    const unavailable = await unavailableDatesOf(rows)
-    return rows.map((account) => {
-      const { profile } = account
-      const artist = buildProfessionalArtist(account, profile, unavailable.get(account.id))
-      const type = profile.artistType || "Photographer"
-      return {
-        id: artist.id,
-        name: artist.name,
-        specialty: type,
-        location: artist.location,
-        rating: 0,
-        reviews: 0,
-        price: artist.price,
-        available: true,
-        unavailableDates: artist.unavailableDates,
-        description: artist.description,
-        eventTypes: artist.eventTypes,
-        serviceTypes: artist.musicStyles,
-        experience: artist.experience,
-        // The page filters on "Photographer", "Videographer" or both.
-        category: type,
-        image: artist.image,
-        banner: artist.banner,
-        avatar: artist.avatar,
-        href: getProfessionalArtistPath(account),
-        equipmentDetails: artist.equipmentDetails,
-      }
-    })
-  } catch (error) {
-    console.error("Failed to list live photographers:", error)
-    return []
-  }
+  const rows = (await listLiveAccounts()).filter((account) => isPhotoVideo(account.category))
+  const unavailable = await unavailableDatesOf(rows)
+  return rows.map((account) => {
+    const { profile } = account
+    const artist = buildProfessionalArtist(account, profile, unavailable.get(account.id))
+    const type = profile.artistType || "Photographer"
+    return {
+      id: artist.id,
+      name: artist.name,
+      specialty: type,
+      location: artist.location,
+      rating: 0,
+      reviews: 0,
+      price: artist.price,
+      available: true,
+      unavailableDates: artist.unavailableDates,
+      description: artist.description,
+      eventTypes: artist.eventTypes,
+      serviceTypes: artist.musicStyles,
+      experience: artist.experience,
+      // The page filters on "Photographer", "Videographer" or both.
+      category: type,
+      image: artist.image,
+      banner: artist.banner,
+      avatar: artist.avatar,
+      href: getProfessionalArtistPath(account),
+      equipmentDetails: artist.equipmentDetails,
+    }
+  })
 }
 
 /** True when the professional is approved and not restricted, so their page is public. */
