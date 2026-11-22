@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, ExternalLink, FileText, Loader2, Pencil, Printer, Sparkles, Upload, X } from "lucide-react"
-import { submitSelfBillingInvoice, submitUploadedInvoice, type InvoiceContext, type UploadedInvoiceFile } from "@/app/actions/invoices"
+import { submitSelfBillingInvoice, submitUploadedInvoice, type InvoiceContext, type InvoiceErrorCode, type UploadedInvoiceFile } from "@/app/actions/invoices"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { BillingProfile, Invoice, InvoiceMethod } from "@/lib/db/schema"
 import { formatEuro } from "@/lib/bookings/pricing"
@@ -95,22 +95,30 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
     if (method === "self_billing") setInvoiceNumber(proposeInvoiceNumber(saved))
   }
 
-  // A production build hides the message of a server error; then the last, general text remains.
-  function submitErrorText(err: unknown) {
+  function submitErrorText(code: InvoiceErrorCode) {
     const nl = locale.startsWith("nl")
-    const code = err instanceof Error ? err.message : ""
-    if (code === "TOTAL_MISMATCH") return ti.totalMismatch(formatEuro(totals.totalCents, locale))
-    if (code === "INVOICE_LOCKED" || code === "Payout already completed")
-      return nl
-        ? "Deze factuur staat vast, omdat hij is goedgekeurd of betaald. Je kunt hem niet meer wijzigen."
-        : "This invoice is final because it was approved or paid. You can no longer change it."
-    if (code === "Billing profile incomplete")
-      return nl ? "Je factuurgegevens zijn nog niet compleet. Vul ze aan en probeer het opnieuw." : "Your billing details are incomplete. Complete them and try again."
-    if (code === "Invoice date cannot be in the future")
-      return nl ? "De factuurdatum mag niet in de toekomst liggen." : "The invoice date cannot be in the future."
-    return context.invoice
-      ? `${ti.submitError} ${nl ? "Is de factuur al goedgekeurd of betaald, dan kun je hem niet meer wijzigen." : "An approved or paid invoice can no longer be changed."}`
-      : ti.submitError
+    switch (code) {
+      case "TOTAL_MISMATCH":
+        return ti.totalMismatch(formatEuro(totals.totalCents, locale))
+      case "INVOICE_LOCKED":
+        return nl
+          ? "Deze factuur staat vast, omdat hij is goedgekeurd of betaald. Je kunt hem niet meer wijzigen."
+          : "This invoice is final because it was approved or paid. You can no longer change it."
+      case "PROFILE_INCOMPLETE":
+        return nl ? "Je factuurgegevens zijn nog niet compleet. Vul ze aan en probeer het opnieuw." : "Your billing details are incomplete. Complete them and try again."
+      case "INVALID_NUMBER":
+        return nl ? "Vul een factuurnummer in van maximaal 60 tekens." : "Enter an invoice number of at most 60 characters."
+      case "INVALID_DATE":
+        return nl ? "De factuurdatum is ongeldig." : "The invoice date is invalid."
+      case "DATE_IN_FUTURE":
+        return nl ? "De factuurdatum mag niet in de toekomst liggen." : "The invoice date cannot be in the future."
+      case "INVALID_FILE":
+        return nl ? "Dit bestand kan niet worden gebruikt. Upload het opnieuw als PDF, JPG of PNG." : "This file cannot be used. Upload it again as PDF, JPG or PNG."
+      case "NOT_FOUND":
+        return nl ? "Deze boeking is niet gevonden of nog niet afgerond." : "This booking was not found or is not completed yet."
+      default:
+        return ti.submitError
+    }
   }
 
   function submit() {
@@ -121,13 +129,18 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
           method === "self_billing"
             ? await submitSelfBillingInvoice({ bookingId: booking.id, adjustments, invoiceNumber, invoiceDate })
             : await submitUploadedInvoice({ bookingId: booking.id, adjustments, invoiceNumber, invoiceDate, declaredTotalCents: declaredCents ?? 0, file: file! })
-        setInvoice(result)
+        if (!result.ok) {
+          setError(submitErrorText(result.error))
+          // The invoice may have been approved or paid in the meantime: show the current state.
+          router.refresh()
+          return
+        }
+        setInvoice(result.invoice)
         setStep(2)
         window.scrollTo({ top: 0, behavior: "smooth" })
         router.refresh()
-      } catch (err) {
-        setError(submitErrorText(err))
-        // The invoice may have been approved or paid in the meantime: show the current state.
+      } catch {
+        setError(ti.submitError)
         router.refresh()
       }
     })
