@@ -27,7 +27,7 @@ import { hasUnavailableDatesTable } from "@/lib/bookings/availability"
 import { requireAdmin, requireUser } from "@/lib/session"
 import { type AdminUserRow, listAdminUsers } from "@/lib/admin/users"
 import { BLACKLIST_TYPES, type BlacklistType, logAdminAction, normalizeValue } from "@/lib/moderation"
-import { logError } from "@/lib/log-error"
+import { logError, withoutValues } from "@/lib/log-error"
 
 type Result = { ok: true } | { ok: false; error: string }
 
@@ -60,6 +60,10 @@ export async function getAdminAccount(input: { userId: string }): Promise<AdminU
 }
 
 export async function warnUser(input: { userId: string; message: string; severity: string }): Promise<Result> {
+  return withoutValues("Failed: warnUser", () => runWarnUser(input))
+}
+
+async function runWarnUser(input: { userId: string; message: string; severity: string }): Promise<Result> {
   const admin = await requireAdmin()
   const message = input.message.trim()
   if (message.length < 5) return { ok: false, error: "Schrijf een duidelijke waarschuwing (minimaal 5 tekens)." }
@@ -91,6 +95,15 @@ export async function updateWarning(input: {
   message: string
   severity: string
 }): Promise<Result> {
+  return withoutValues("Failed: updateWarning", () => runUpdateWarning(input))
+}
+
+async function runUpdateWarning(input: {
+  warningId: number
+  userId: string
+  message: string
+  severity: string
+}): Promise<Result> {
   const admin = await requireAdmin()
   const message = input.message.trim()
   if (message.length < 5) return { ok: false, error: "Schrijf een duidelijke waarschuwing (minimaal 5 tekens)." }
@@ -117,6 +130,10 @@ export async function updateWarning(input: {
 }
 
 export async function revokeWarning(input: { warningId: number; userId: string }): Promise<Result> {
+  return withoutValues("Failed: revokeWarning", () => runRevokeWarning(input))
+}
+
+async function runRevokeWarning(input: { warningId: number; userId: string }): Promise<Result> {
   const admin = await requireAdmin()
   const [removed] = await db
     .delete(userWarnings)
@@ -138,6 +155,10 @@ export async function revokeWarning(input: { warningId: number; userId: string }
 }
 
 export async function suspendUser(input: { userId: string; days: number; reason: string }): Promise<Result> {
+  return withoutValues("Failed: suspendUser", () => runSuspendUser(input))
+}
+
+async function runSuspendUser(input: { userId: string; days: number; reason: string }): Promise<Result> {
   const admin = await requireAdmin()
   const reason = input.reason.trim()
   const days = Math.floor(input.days)
@@ -165,6 +186,14 @@ export async function suspendUser(input: { userId: string; days: number; reason:
 }
 
 export async function banUser(input: {
+  userId: string
+  reason: string
+  addToBlacklist: boolean
+}): Promise<Result> {
+  return withoutValues("Failed: banUser", () => runBanUser(input))
+}
+
+async function runBanUser(input: {
   userId: string
   reason: string
   addToBlacklist: boolean
@@ -206,6 +235,10 @@ export async function banUser(input: {
 }
 
 export async function reinstateUser(input: { userId: string }): Promise<Result> {
+  return withoutValues("Failed: reinstateUser", () => runReinstateUser(input))
+}
+
+async function runReinstateUser(input: { userId: string }): Promise<Result> {
   const admin = await requireAdmin()
   const { target, error } = await loadTarget(input.userId, admin.id)
   if (!target) return { ok: false, error: error ?? "Onbekende fout." }
@@ -229,6 +262,10 @@ export async function reinstateUser(input: { userId: string }): Promise<Result> 
 }
 
 export async function forceLogout(input: { userId: string }): Promise<Result> {
+  return withoutValues("Failed: forceLogout", () => runForceLogout(input))
+}
+
+async function runForceLogout(input: { userId: string }): Promise<Result> {
   const admin = await requireAdmin()
   const { target, error } = await loadTarget(input.userId, admin.id)
   if (!target) return { ok: false, error: error ?? "Onbekende fout." }
@@ -240,6 +277,10 @@ export async function forceLogout(input: { userId: string }): Promise<Result> {
 }
 
 export async function addUserNote(input: { userId: string; note: string }): Promise<Result> {
+  return withoutValues("Failed: addUserNote", () => runAddUserNote(input))
+}
+
+async function runAddUserNote(input: { userId: string; note: string }): Promise<Result> {
   const admin = await requireAdmin()
   const note = input.note.trim()
   if (!note) return { ok: false, error: "Notitie is leeg." }
@@ -257,6 +298,10 @@ export async function addUserNote(input: { userId: string; note: string }): Prom
 }
 
 export async function deleteUserNote(input: { noteId: number; userId: string }): Promise<Result> {
+  return withoutValues("Failed: deleteUserNote", () => runDeleteUserNote(input))
+}
+
+async function runDeleteUserNote(input: { noteId: number; userId: string }): Promise<Result> {
   await requireAdmin()
   await db.delete(userNotes).where(and(eq(userNotes.id, input.noteId), eq(userNotes.userId, input.userId)))
   refresh(input.userId)
@@ -265,6 +310,10 @@ export async function deleteUserNote(input: { noteId: number; userId: string }):
 
 /** Takes a professional offline (back to "nieuw") without affecting the account. */
 export async function unpublishProfessional(input: { userId: string }): Promise<Result> {
+  return withoutValues("Failed: unpublishProfessional", () => runUnpublishProfessional(input))
+}
+
+async function runUnpublishProfessional(input: { userId: string }): Promise<Result> {
   const admin = await requireAdmin()
   const { target, error } = await loadTarget(input.userId, admin.id)
   if (!target) return { ok: false, error: error ?? "Onbekende fout." }
@@ -292,6 +341,10 @@ export async function unpublishProfessional(input: { userId: string }): Promise<
  * Accounts with bookings or invoices are refused: those records must be kept.
  */
 export async function deleteUser(input: { userId: string; confirmEmail: string }): Promise<Result> {
+  return withoutValues("Failed: deleteUser", () => runDeleteUser(input))
+}
+
+async function runDeleteUser(input: { userId: string; confirmEmail: string }): Promise<Result> {
   const admin = await requireAdmin()
   const { target, error } = await loadTarget(input.userId, admin.id)
   if (!target) return { ok: false, error: error ?? "Onbekende fout." }
@@ -358,6 +411,10 @@ export async function deleteUser(input: { userId: string; confirmEmail: string }
 }
 
 export async function addBlacklistEntry(input: { type: string; value: string; reason: string }): Promise<Result> {
+  return withoutValues("Failed: addBlacklistEntry", () => runAddBlacklistEntry(input))
+}
+
+async function runAddBlacklistEntry(input: { type: string; value: string; reason: string }): Promise<Result> {
   const admin = await requireAdmin()
   if (!(BLACKLIST_TYPES as readonly string[]).includes(input.type)) return { ok: false, error: "Ongeldig type." }
   const type = input.type as BlacklistType
@@ -383,6 +440,10 @@ export async function addBlacklistEntry(input: { type: string; value: string; re
 }
 
 export async function removeBlacklistEntry(input: { id: number }): Promise<Result> {
+  return withoutValues("Failed: removeBlacklistEntry", () => runRemoveBlacklistEntry(input))
+}
+
+async function runRemoveBlacklistEntry(input: { id: number }): Promise<Result> {
   const admin = await requireAdmin()
   const [entry] = await db.select().from(blacklist).where(eq(blacklist.id, input.id)).limit(1)
   if (!entry) return { ok: false, error: "Item niet gevonden." }
@@ -399,6 +460,10 @@ export async function removeBlacklistEntry(input: { id: number }): Promise<Resul
 
 /** Called by the signed-in user to dismiss a warning shown to them. */
 export async function acknowledgeWarning(input: { id: number }): Promise<Result> {
+  return withoutValues("Failed: acknowledgeWarning", () => runAcknowledgeWarning(input))
+}
+
+async function runAcknowledgeWarning(input: { id: number }): Promise<Result> {
   const current = await requireUser()
   await db
     .update(userWarnings)

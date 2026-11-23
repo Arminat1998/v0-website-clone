@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { useLanguage } from "@/contexts/language-context"
@@ -9,6 +10,7 @@ import {
   answerUserTestConsent,
   claimUserTestFromUrl,
   finishUserTest,
+  followUserTestPage,
   resumeUserTest,
   trackUserTest,
   userTestAvailable,
@@ -26,6 +28,10 @@ export function UserTest() {
   const [note, setNote] = useState("")
   const [completed, setCompleted] = useState("")
   const [ease, setEase] = useState<number | null>(null)
+  const pathname = usePathname()
+  useEffect(() => {
+    if (pathname) followUserTestPage(pathname)
+  }, [pathname])
 
   useEffect(() => {
     if (!userTestAvailable()) return
