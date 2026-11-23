@@ -40,7 +40,7 @@ export default async function EditProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="px-4 pt-16 sm:px-6 sm:pt-16 md:px-8 lg:px-10">
+      <div className="px-4 pt-4 sm:px-6 sm:pt-8 md:px-8 lg:px-10">
         <ProfileLinks current="profile" publicPath={row?.reviewStatus === "goedgekeurd" ? getProfessionalArtistPath(account) : null} />
       </div>
       <ProfessionalProfileForm mode="edit" initialProfile={initialProfile} category={account.category} />
