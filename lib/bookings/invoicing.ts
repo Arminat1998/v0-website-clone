@@ -230,7 +230,24 @@ export function parseEuroInput(value: string): number | null {
 }
 
 export function isBillingProfileComplete(profile: Pick<BillingProfile, "businessName" | "iban" | "street" | "postalCode" | "city">) {
-  return Boolean(profile.businessName.trim() && profile.iban?.trim() && profile.street?.trim() && profile.postalCode?.trim() && profile.city?.trim())
+  return Boolean(hasPayoutDetails(profile) && profile.street?.trim() && profile.postalCode?.trim() && profile.city?.trim())
+}
+
+/** The least ARSI Events needs to pay out, also when the professional uploads an own invoice. */
+export function hasPayoutDetails(profile: Pick<BillingProfile, "businessName" | "iban">) {
+  return Boolean(profile.businessName.trim()) && isValidIban(profile.iban ?? "")
+}
+
+/** Checks the shape and the two check digits (ISO 13616), so a typing mistake is caught. */
+export function isValidIban(value: string) {
+  const iban = value.replace(/\s+/g, "").toUpperCase()
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false
+  let remainder = 0
+  for (const char of iban.slice(4) + iban.slice(0, 4)) {
+    const value = Number.parseInt(char, 36)
+    remainder = (remainder * (value > 9 ? 100 : 10) + value) % 97
+  }
+  return remainder === 1
 }
 
 export function formatIban(iban: string) {

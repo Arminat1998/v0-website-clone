@@ -86,7 +86,7 @@ export function SmartSearchInput({ kind, search, count, autoStart = false, onAut
 
   const resultsText = (n: number) =>
     n === 0
-      ? nl ? "Hier past nu niemand bij." : "No one fits this right now."
+      ? nl ? "Hier past nu niemand bij. Laat hieronder een keuze los, of beantwoord de volgende vraag." : "No one fits this right now. Drop a choice below, or answer the next question."
       : nl ? `${n} ${n === 1 ? "professional past" : "professionals passen"} hierbij.` : `${n} ${n === 1 ? "professional fits" : "professionals fit"} this.`
 
   const closingText = (n: number) =>

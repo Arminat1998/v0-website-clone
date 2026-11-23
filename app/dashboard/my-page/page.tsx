@@ -8,6 +8,7 @@ import {
   getProfessionalArtistPath,
   getProfessionalProfileSummary,
 } from "@/lib/professional-artist"
+import { getProfileRow } from "@/lib/professional-profile"
 import { getArtistPageContent } from "@/lib/artist-page"
 import { getArtistPath } from "@/lib/artist-slug"
 import { enhancedArtists } from "@/lib/smart-search"
@@ -27,6 +28,9 @@ export default async function MyPageDashboard() {
   const artist = listedArtist ?? buildProfessionalArtist(account, profile)
   const artistPath = listedArtist ? getArtistPath(listedArtist) : getProfessionalArtistPath(account)
 
+  // Until the profile is approved there is no public page to open or share.
+  const isLive = Boolean(listedArtist) || (await getProfileRow(professionalId))?.reviewStatus === "goedgekeurd"
+
   const stored = await getArtistPageContent(professionalId)
   const content: ArtistPageContent = stored ?? {
     bannerPath: null,
@@ -43,8 +47,8 @@ export default async function MyPageDashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-4 p-4 pt-16 sm:p-6 lg:p-8">
-        <ProfileLinks current="website" publicPath={artistPath} />
-        <ArtistPageEditor initialContent={content} artist={artist} artistPath={artistPath} />
+        <ProfileLinks current="website" />
+        <ArtistPageEditor initialContent={content} artist={artist} artistPath={isLive ? artistPath : null} />
       </div>
     </DashboardLayout>
   )

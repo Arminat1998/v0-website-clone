@@ -61,17 +61,20 @@ export async function findBlacklistMatch(input: { email?: string | null; phone?:
   return match ?? null
 }
 
-export async function logAdminAction(entry: {
-  adminId: string
-  adminName: string
-  action: string
-  targetUserId?: string | null
-  targetLabel?: string | null
-  details?: string | null
-}) {
+export async function logAdminAction(
+  entry: {
+    adminId: string
+    adminName: string
+    action: string
+    targetUserId?: string | null
+    targetLabel?: string | null
+    details?: string | null
+  },
+  tx: Pick<typeof db, "insert"> = db,
+) {
   // The name can be changed by the admin, the id cannot. The table has no column for it, so it goes in the details.
   const by = `[admin-id ${entry.adminId}]`
-  await db.insert(adminAuditLog).values({
+  await tx.insert(adminAuditLog).values({
     adminName: entry.adminName,
     action: entry.action,
     targetUserId: entry.targetUserId ?? null,

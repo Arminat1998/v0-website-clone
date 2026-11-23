@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useLanguage } from "@/contexts/language-context"
 import { AudioLines, Camera, Disc3, Globe, Music2, Play, type LucideIcon } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -26,6 +27,7 @@ interface ArtistPortfolioProps {
 }
 
 export function ArtistPortfolio({ content, artistName }: ArtistPortfolioProps) {
+  const nl = useLanguage().language !== "en"
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   const socials = SOCIAL_KEYS.filter((key) => content.socials[key])
   const videos = content.videos.filter((video) => getVideoEmbed(video.url))
@@ -34,9 +36,9 @@ export function ArtistPortfolio({ content, artistName }: ArtistPortfolioProps) {
   return (
     <div className="space-y-6 sm:space-y-8">
       <section>
-        <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">Event Photos</h3>
+        <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">{nl ? "Foto's" : "Photos"}</h3>
         {content.gallery.length === 0 ? (
-          <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">No photos yet.</p>
+          <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">{nl ? "Nog geen foto's." : "No photos yet."}</p>
         ) : (
           <ul className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
             {content.gallery.map((path, index) => (
@@ -61,9 +63,9 @@ export function ArtistPortfolio({ content, artistName }: ArtistPortfolioProps) {
       </section>
 
       <section>
-        <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">Videos</h3>
+        <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">{nl ? "Video's" : "Videos"}</h3>
         {videos.length === 0 ? (
-          <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">No videos yet.</p>
+          <p className="text-xs sm:text-base text-muted-foreground text-center py-6 sm:py-8">{nl ? "Nog geen video's." : "No videos yet."}</p>
         ) : (
           <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             {videos.map((video) => {

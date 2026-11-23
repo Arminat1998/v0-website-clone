@@ -11,6 +11,7 @@ import { digitsOnlyPrice } from "@/lib/professional-profile-types"
 import { canonicalEventType, genreLabel, isPhotoVideo } from "@/lib/profile-options"
 import type { Artist, EquipmentDetail, Photographer } from "@/lib/smart-search"
 import { logError } from "@/lib/log-error"
+import { loadRatings, type RatingSummary } from "@/lib/reviews"
 
 interface ProfessionalAccount {
   id: string
@@ -45,6 +46,8 @@ export interface ProfessionalProfileSummary {
   equipment: string[]
   packageItems: EquipmentDetail[]
   extraItems: EquipmentDetail[]
+  /** Set when there are submitted reviews. */
+  rating?: RatingSummary
 }
 
 /** Day price of the equipment package: the sum of its items, like the single package price on the cards. */
@@ -73,8 +76,8 @@ export function buildProfessionalArtist(
     equipment: profile?.equipment.length ? profile.equipment : undefined,
     equipmentDetails: { packageItems: profile?.packageItems ?? [], extraItems: profile?.extraItems ?? [] },
     equipmentPrice: packagePrice(profile?.packageItems ?? []),
-    rating: 0,
-    reviews: 0,
+    rating: profile?.rating?.rating ?? 0,
+    reviews: profile?.rating?.reviews ?? 0,
     price: profile?.hourlyRate ? `€${profile.hourlyRate}` : "€0",
     available: true,
     unavailableDates,
@@ -160,12 +163,11 @@ function toProfileSummary(row: SummaryRow): ProfessionalProfileSummary {
 
 export async function getProfessionalProfileSummary(professionalId: string): Promise<ProfessionalProfileSummary | null> {
   try {
-    const [row] = await db
-      .select(summaryColumns)
-      .from(professionalProfiles)
-      .where(eq(professionalProfiles.professionalId, professionalId))
-      .limit(1)
-    return row ? toProfileSummary(row) : null
+    const [[row], ratings] = await Promise.all([
+      db.select(summaryColumns).from(professionalProfiles).where(eq(professionalProfiles.professionalId, professionalId)).limit(1),
+      loadRatings([professionalId]),
+    ])
+    return row ? { ...toProfileSummary(row), rating: ratings.get(professionalId) } : null
   } catch (error) {
     logError("Failed to load profile summary:", error)
     return null
@@ -193,9 +195,9 @@ async function listLiveAccounts() {
     .where(and(eq(userTable.role, "professional"), eq(professionalProfiles.reviewStatus, "goedgekeurd")))
     // Fixed order, oldest account first.
     .orderBy(asc(userTable.createdAt), asc(userTable.id))
-  return rows
-    .filter((account) => !getRestriction(account))
-    .map((account) => ({ ...account, profile: toProfileSummary(account.profile) }))
+  const live = rows.filter((account) => !getRestriction(account))
+  const ratings = await loadRatings(live.map((account) => account.id))
+  return live.map((account) => ({ ...account, profile: { ...toProfileSummary(account.profile), rating: ratings.get(account.id) } }))
 }
 
 /** Approved artists. Photographers and videographers have their own list. */
@@ -223,8 +225,8 @@ export async function listLivePhotographers(): Promise<Photographer[]> {
       name: artist.name,
       specialty: type,
       location: artist.location,
-      rating: 0,
-      reviews: 0,
+      rating: artist.rating,
+      reviews: artist.reviews,
       price: artist.price,
       available: true,
       unavailableDates: artist.unavailableDates,

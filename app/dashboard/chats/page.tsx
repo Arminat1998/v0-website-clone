@@ -8,7 +8,7 @@ export default async function ChatsPage({ searchParams }: { searchParams: Promis
   const c = Number((await searchParams).c)
   return (
     <DashboardLayout>
-      <ChatInbox initialInbox={await getInbox()} initialId={Number.isSafeInteger(c) && c > 0 ? c : undefined} />
+      <ChatInbox startsFromBooking initialInbox={await getInbox()} initialId={Number.isSafeInteger(c) && c > 0 ? c : undefined} />
     </DashboardLayout>
   )
 }

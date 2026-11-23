@@ -38,7 +38,7 @@ export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="w-[98vw] max-w-[98vw] sm:max-w-[600px] md:max-w-[900px] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-0 bg-background">
+      <DialogContent aria-describedby={undefined} showCloseButton={false} className="w-[98vw] max-w-[98vw] sm:max-w-[600px] md:max-w-[900px] lg:max-w-[1200px] xl:max-w-[1400px] max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-0 bg-background">
         <DialogTitle className="sr-only">{artist.name}</DialogTitle>
         <ArtistProfileView
           artist={withPageContent(artist, content)}

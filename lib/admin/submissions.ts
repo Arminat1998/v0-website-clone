@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { artistPages, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { mediaUrl } from "@/lib/artist-page-types"
 import { requireAdmin } from "@/lib/session"
-import type { ChecklistState, Submission, SubmissionStatus } from "@/contexts/admin-submissions-context"
+import type { ChecklistState, ReviewState, Submission, SubmissionStatus } from "@/contexts/admin-submissions-context"
 
 export const REVIEW_STATUSES: SubmissionStatus[] = [
   "nieuw",
@@ -22,8 +22,24 @@ const emptyChecklist: ChecklistState = {
   passendBijArsi: false,
 }
 
+export const CHECKLIST_KEYS = Object.keys(emptyChecklist) as (keyof ChecklistState)[]
+
 function asStatus(value: string): SubmissionStatus {
   return (REVIEW_STATUSES as string[]).includes(value) ? (value as SubmissionStatus) : "nieuw"
+}
+
+/** How the review of one profile stands. */
+export function reviewState(
+  profile: Pick<typeof professionalProfiles.$inferSelect, "reviewStatus" | "reviewerName" | "reviewData">,
+): ReviewState {
+  const data = profile.reviewData ?? {}
+  return {
+    status: asStatus(profile.reviewStatus),
+    reviewer: profile.reviewerName,
+    checklist: { ...emptyChecklist, ...(data.checklist ?? {}) },
+    notes: data.notes ?? [],
+    timeline: (data.timeline ?? []) as ReviewState["timeline"],
+  }
 }
 
 /** Every professional profile as an admin submission, newest first. */
@@ -41,7 +57,6 @@ export async function loadSubmissions(): Promise<Submission[]> {
     .orderBy(desc(professionalProfiles.submittedAt))
 
   return rows.map(({ profile, email, page }) => {
-    const data = profile.reviewData ?? {}
     const website = profile.socials.find((link) => link.platform === "website")?.url ?? null
     // The page holds the photos visitors see; the profile only until that page exists.
     const avatar = page ? page.avatarPath : profile.avatarPath
@@ -58,8 +73,7 @@ export async function loadSubmissions(): Promise<Submission[]> {
       phone: profile.phone,
       city: profile.city,
       submittedAt,
-      status: asStatus(profile.reviewStatus),
-      reviewer: profile.reviewerName,
+      ...reviewState(profile),
       bio: profile.bio,
       experience: profile.yearsExperience ? `${profile.yearsExperience} jaar ervaring` : "",
       availability: `${profile.minHours}-${profile.maxHours} uur per optreden, binnen ${profile.rangeKm} km van ${profile.city || "de woonplaats"}`,
@@ -73,9 +87,6 @@ export async function loadSubmissions(): Promise<Submission[]> {
         .map((link) => ({ platform: link.platform, url: link.url })),
       portfolioImages: gallery.map(mediaUrl),
       videoLinks: (page?.videos ?? []).map((video) => ({ title: video.title || video.url, url: video.url })),
-      checklist: { ...emptyChecklist, ...(data.checklist ?? {}) },
-      notes: data.notes ?? [],
-      timeline: (data.timeline ?? []) as Submission["timeline"],
     }
   })
 }

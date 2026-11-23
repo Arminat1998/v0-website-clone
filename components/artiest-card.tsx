@@ -14,6 +14,7 @@ import { useLanguage } from "@/contexts/language-context"
 import { FavoriteButton } from "@/components/account/favorite-button"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
+import { CardRating } from "@/components/artist-website/profile-rating"
 
 interface ArtiestCardProps {
   artist: Artist
@@ -87,7 +88,10 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
 
           <div className="flex min-w-0 flex-1 flex-col gap-2 mt-12">
             <div className="flex flex-col gap-1">
-              <h3 className="font-bold text-lg leading-tight text-foreground text-balance">{artist.name}</h3>
+              <div className="flex items-start">
+                <h3 className="min-w-0 font-bold text-lg leading-tight text-foreground text-balance">{artist.name}</h3>
+                <CardRating professional={artist} />
+              </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 <span className="truncate">

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -208,6 +208,17 @@ function DraftField({
     setDraft(null)
     onCommit(draft)
   }
+  // Always the newest version, so a filter that changed meanwhile is not overwritten by an older one.
+  const latest = useRef(commit)
+  useEffect(() => {
+    latest.current = commit
+  })
+  // Applies by itself shortly after typing; Enter and leaving the field apply at once.
+  useEffect(() => {
+    if (draft === null || draft === "") return
+    const timer = setTimeout(() => latest.current(), 900)
+    return () => clearTimeout(timer)
+  }, [draft])
   return (
     <NumericInput
       id={id}

@@ -497,7 +497,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 
   const [counts] = await db
     .select({
-      pendingCount: sql<number>`count(*) filter (where ${bookings.status} = 'pending')`.mapWith(Number),
+      pendingCount: sql<number>`count(*) filter (where ${bookings.status} = 'pending' and ${bookings.eventDate} >= ${today})`.mapWith(Number),
       upcomingCount: sql<number>`count(*) filter (where ${bookings.status} = 'accepted' and ${bookings.eventDate} >= ${today})`.mapWith(Number),
       awaitingPayoutCents: sql<number>`coalesce(sum(${bookings.payoutCents}) filter (where ${bookings.status} = 'completed' and ${bookings.payoutStatus} = 'pending'), 0)`.mapWith(Number),
       earnedThisYearCents: sql<number>`coalesce(sum(${bookings.payoutCents}) filter (where ${bookings.status} = 'completed' and ${bookings.eventDate} >= ${yearStart}), 0)`.mapWith(Number),
@@ -517,7 +517,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const recentRequests = await db
     .select()
     .from(bookings)
-    .where(and(eq(bookings.professionalId, professionalId), eq(bookings.status, "pending")))
+    .where(and(eq(bookings.professionalId, professionalId), eq(bookings.status, "pending"), gte(bookings.eventDate, today)))
     .orderBy(desc(bookings.createdAt))
     .limit(3)
 
