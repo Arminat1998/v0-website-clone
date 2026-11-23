@@ -81,6 +81,7 @@ export function AccountBookingDetail({
       </div>
     );
   }
+  const closed = b.status === "rejected" || b.status === "cancelled";
   const hasMusic =
     b.openingDanceLink || b.openingDanceFileName || b.lastSongLink || b.lastSongFileName;
   return (
@@ -236,9 +237,13 @@ export function AccountBookingDetail({
               <h2>{b.professionalName}</h2>
             </CardTitle>
               <CardDescription>
-                {nl
-                  ? "Stel je vragen of stem details af via de chat."
-                  : "Ask questions or align details via chat."}
+                {closed
+                  ? nl
+                    ? "Deze boeking gaat niet door. Bekijk welke andere professionals bij je evenement passen."
+                    : "This booking will not take place. See which other professionals suit your event."
+                  : nl
+                    ? "Stel je vragen of stem details af via de chat."
+                    : "Ask questions or align details via chat."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
@@ -252,8 +257,15 @@ export function AccountBookingDetail({
                   </Link>
                 </Button>
               )}
+              {closed && (
+                <Button asChild className="min-h-11">
+                  <Link href={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}>
+                    {nl ? "Andere professionals bekijken" : "See other professionals"}
+                  </Link>
+                </Button>
+              )}
               <MessageButton
-                variant={reviewToken ? "outline" : "default"}
+                variant={closed || reviewToken ? "outline" : "default"}
                 professionalId={b.professionalId}
                 label={nl ? "Stuur een bericht" : "Send a message"}
               />
