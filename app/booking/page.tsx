@@ -606,7 +606,7 @@ export default function BookingPage() {
       let dayClasses = "aspect-square w-full text-sm rounded-md flex items-center justify-center transition-colors "
 
       if (isPast) {
-        dayClasses += "bg-zinc-500 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-500 cursor-not-allowed line-through"
+        dayClasses += "cursor-not-allowed bg-muted/40 text-muted-foreground/60 line-through"
       } else if (unavailable) {
         dayClasses += "bg-red-600 dark:bg-red-500 text-white font-medium cursor-not-allowed"
       } else if (isSelected) {
@@ -886,7 +886,7 @@ export default function BookingPage() {
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
                 <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{t.selectDateLocation}</h2>
                 
-                <div className="max-w-lg">
+                <div className="mx-auto max-w-lg">
                   {/* Calendar: booked and blocked days only show as not available, never as events */}
                   <div>
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -912,10 +912,10 @@ export default function BookingPage() {
                     </div>
 
                     <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
-                      {(language === "nl" ? ["M", "D", "W", "D", "V", "Z", "Z"] : ["M", "T", "W", "T", "F", "S", "S"]).map((day, index) => (
+                      {(language === "nl" ? ["ma", "di", "wo", "do", "vr", "za", "zo"] : ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]).map((day, index) => (
                         <div
                           key={index}
-                          className="text-center text-[10px] sm:text-xs font-semibold text-muted-foreground h-6 sm:h-8 flex items-center justify-center"
+                          className="text-center text-xs font-semibold text-muted-foreground h-6 sm:h-8 flex items-center justify-center"
                         >
                           {day}
                         </div>
@@ -928,7 +928,7 @@ export default function BookingPage() {
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-200 dark:bg-zinc-700" aria-hidden />{tr("Beschikbaar", "Available")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" aria-hidden />{tr("Gekozen", "Selected")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Niet beschikbaar", "Not available")}</li>
-                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-500 dark:bg-zinc-800" aria-hidden />{tr("Voorbij", "Past")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-border bg-muted/40" aria-hidden />{tr("Voorbij", "Past")}</li>
                     </ul>
 
                     <div className="mt-4 p-3 bg-muted rounded-lg">
