@@ -20,7 +20,7 @@ import { FavoriteButton } from "./favorite-button";
 import { BookingAudio } from "@/components/booking/booking-audio";
 import { audioDisplayName, hasAudioFile, type AudioKind } from "@/lib/bookings/audio";
 import { equipmentLabel } from "@/lib/bookings/pricing";
-import { canonicalEventType, eventTypeLabel, genreLabel } from "@/lib/profile-options";
+import { canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "@/lib/profile-options";
 import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
@@ -165,7 +165,7 @@ export function AccountBookingDetail({
                   {detail("Dresscode", b.dressCode)}
                   {detail(
                     nl ? "Muziekgenres" : "Music genres",
-                    b.musicGenres.map((genre) => genreLabel(genre, nl)).join(", "),
+                    b.musicGenres.map((genre) => genreLabel(canonicalGenre(genre), nl)).join(", "),
                   )}
                   {detail(
                     nl ? "Apparatuur" : "Equipment",

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 
 type Mode = "idle" | "accept" | "reject"
 
-export function BookingRespondPanel({ bookingId, expired = false }: { bookingId: number; expired?: boolean }) {
+export function BookingRespondPanel({ bookingId, expired = false, photo = false }: { bookingId: number; expired?: boolean; photo?: boolean }) {
   const { t, language } = useBookingT()
   const nl = language !== "en"
   const router = useRouter()
@@ -93,7 +93,7 @@ export function BookingRespondPanel({ bookingId, expired = false }: { bookingId:
               onChange={(event) => setMessage(event.target.value)}
               rows={4}
               required={mode === "reject"}
-              placeholder={mode === "accept" ? t.detail.acceptPlaceholder : t.detail.rejectPlaceholder}
+              placeholder={mode === "accept" ? (photo ? t.detail.acceptPlaceholderPhoto : t.detail.acceptPlaceholder) : t.detail.rejectPlaceholder}
               className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </label>

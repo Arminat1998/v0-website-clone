@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Building2,
   Calendar,
+  Camera,
   CheckCircle2,
   Clock,
   ExternalLink,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking, Invoice } from "@/lib/db/schema"
-import { canonicalEventType, eventTypeLabel } from "@/lib/profile-options"
+import { canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "@/lib/profile-options"
 import { EQUIPMENT_OPTIONS, equipmentLabel, formatEuro } from "@/lib/bookings/pricing"
 import { displayStatus } from "@/lib/bookings/display-status"
 import { isContactUnlocked } from "@/lib/bookings/privacy"
@@ -101,6 +102,23 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
   const isActive = isContactUnlocked(booking.status)
   // Old bookings can be without an account, so there is nobody to write to.
   const canMessage = Boolean(booking.customerId) && (booking.status === "pending" || isActive)
+  const nl = locale.startsWith("nl")
+  // Photographers and videographers have no soundcheck, playlist or stage to build up.
+  const photo = booking.professionalType === "photographer"
+  const showEquipment = !photo || booking.equipment.length > 0
+  const genres = booking.musicGenres.map((genre) => genreLabel(canonicalGenre(genre), nl))
+  const lastSong = booking.lastSongLink || booking.lastSongFileName ? `${t.detail.lastSong}: ${booking.lastSongLink ?? audioDisplayName(booking.lastSongFileName ?? "")}` : ""
+  const runSheet = photo
+    ? [
+        { time: booking.startTime, label: t.accepted.startPhoto, note: genres.join(", ") },
+        { time: booking.endTime, label: t.accepted.endPhoto, note: "" },
+      ]
+    : [
+        { time: shiftTime(booking.startTime, -90), label: t.accepted.setup, note: t.accepted.setupNote },
+        { time: booking.startTime, label: t.accepted.start, note: genres.join(", ") },
+        { time: booking.endTime, label: t.accepted.end, note: lastSong },
+        { time: shiftTime(booking.endTime, 45), label: t.accepted.breakdown, note: "" },
+      ]
   const address = eventAddress(booking)
   const billing = billingAddress(booking)
   const notProvided = <span className="text-muted-foreground">{t.common.notProvided}</span>
@@ -189,12 +207,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
             <Section id="runsheet" title={t.accepted.runSheet} icon={<Clock className="h-4 w-4" aria-hidden />}>
               <p className="text-sm text-muted-foreground">{t.accepted.runSheetSubtitle}</p>
               <ol className="mt-4 flex flex-col gap-0">
-                {[
-                  { time: shiftTime(booking.startTime, -90), label: t.accepted.setup, note: t.accepted.setupNote },
-                  { time: booking.startTime, label: t.accepted.start, note: booking.musicGenres.join(", ") },
-                  { time: booking.endTime, label: t.accepted.end, note: booking.lastSongLink || booking.lastSongFileName ? `${t.detail.lastSong}: ${booking.lastSongLink ?? audioDisplayName(booking.lastSongFileName ?? "")}` : "" },
-                  { time: shiftTime(booking.endTime, 45), label: t.accepted.breakdown, note: "" },
-                ].map((item, index, all) => (
+                {runSheet.map((item, index, all) => (
                   <li key={item.label} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 font-mono text-xs font-semibold text-white">
@@ -221,10 +234,12 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                       {t.detail.reminderEquipment}: {booking.equipment.map(equipmentLabel).join(", ")}
                     </li>
                   )}
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
-                    {t.detail.reminderMusic}
-                  </li>
+                  {!photo && (
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
+                      {t.detail.reminderMusic}
+                    </li>
+                  )}
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
                     {t.detail.reminderContact}
@@ -236,7 +251,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
 
           <Section id="event" title={t.detail.event} icon={<Calendar className="h-4 w-4" aria-hidden />}>
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label={t.detail.eventType}>{booking.eventTypes.length ? <Chips items={booking.eventTypes.map((type) => eventTypeLabel(canonicalEventType(type), locale.startsWith("nl")))} /> : notProvided}</Field>
+              <Field label={t.detail.eventType}>{booking.eventTypes.length ? <Chips items={booking.eventTypes.map((type) => eventTypeLabel(canonicalEventType(type), nl))} /> : notProvided}</Field>
               <Field label={t.detail.duration}>
                 {Number(booking.hours)} {t.common.hours} ({booking.startTime} – {booking.endTime})
               </Field>
@@ -275,36 +290,44 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
             </dl>
           </Section>
 
-          <Section id="music" title={t.detail.music} icon={<Music className="h-4 w-4" aria-hidden />}>
-            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Field label={t.detail.genres}>{booking.musicGenres.length ? <Chips items={booking.musicGenres} /> : notProvided}</Field>
-              </div>
-              <Field label={t.detail.playlist}>
-                {booking.playlistLink ? <ExternalRef href={booking.playlistLink} label={booking.playlistLink} /> : notProvided}
-              </Field>
-              <Field label={t.detail.openingDance}>
-                {booking.openingDanceLink ? (
-                  <ExternalRef href={booking.openingDanceLink} label={booking.openingDanceLink} />
-                ) : booking.openingDanceFileName ? (
-                  <BookingAudio bookingId={booking.id} kind="opening-dance" stored={booking.openingDanceFileName} />
-                ) : (
-                  notProvided
-                )}
-              </Field>
-              <Field label={t.detail.lastSong}>
-                {booking.lastSongLink ? (
-                  <ExternalRef href={booking.lastSongLink} label={booking.lastSongLink} />
-                ) : booking.lastSongFileName ? (
-                  <BookingAudio bookingId={booking.id} kind="last-song" stored={booking.lastSongFileName} />
-                ) : (
-                  notProvided
-                )}
-              </Field>
-            </dl>
-          </Section>
+          {photo ? (
+            genres.length > 0 && (
+              <Section id="specialties" title={t.detail.specialties} icon={<Camera className="h-4 w-4" aria-hidden />}>
+                <Chips items={genres} />
+              </Section>
+            )
+          ) : (
+            <Section id="music" title={t.detail.music} icon={<Music className="h-4 w-4" aria-hidden />}>
+              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <Field label={t.detail.genres}>{booking.musicGenres.length ? <Chips items={genres} /> : notProvided}</Field>
+                </div>
+                <Field label={t.detail.playlist}>
+                  {booking.playlistLink ? <ExternalRef href={booking.playlistLink} label={booking.playlistLink} /> : notProvided}
+                </Field>
+                <Field label={t.detail.openingDance}>
+                  {booking.openingDanceLink ? (
+                    <ExternalRef href={booking.openingDanceLink} label={booking.openingDanceLink} />
+                  ) : booking.openingDanceFileName ? (
+                    <BookingAudio bookingId={booking.id} kind="opening-dance" stored={booking.openingDanceFileName} />
+                  ) : (
+                    notProvided
+                  )}
+                </Field>
+                <Field label={t.detail.lastSong}>
+                  {booking.lastSongLink ? (
+                    <ExternalRef href={booking.lastSongLink} label={booking.lastSongLink} />
+                  ) : booking.lastSongFileName ? (
+                    <BookingAudio bookingId={booking.id} kind="last-song" stored={booking.lastSongFileName} />
+                  ) : (
+                    notProvided
+                  )}
+                </Field>
+              </dl>
+            </Section>
+          )}
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className={showEquipment ? "grid grid-cols-1 gap-6 md:grid-cols-2" : "grid grid-cols-1 gap-6"}>
             <Section id="location" title={t.detail.location} icon={<MapPin className="h-4 w-4" aria-hidden />}>
               <address className="text-sm not-italic leading-relaxed text-foreground">
                 {address.map((line) => (
@@ -333,24 +356,26 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
               </a>
             </Section>
 
-            <Section id="equipment" title={t.detail.equipment} icon={<Speaker className="h-4 w-4" aria-hidden />}>
-              {booking.equipment.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t.detail.noEquipment}</p>
-              ) : (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {booking.equipment.map((id) => {
-                    // Only old bookings store an id with a fixed price; newer ones store the label and keep the amount in the price card.
-                    const oldOption = EQUIPMENT_OPTIONS.find((o) => o.id === id)
-                    return (
-                      <li key={id} className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0">
-                        <span className="text-foreground">{equipmentLabel(id)}</span>
-                        {oldOption && <span className="font-medium text-muted-foreground">{formatEuro(oldOption.priceCents, locale)}</span>}
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </Section>
+            {showEquipment && (
+              <Section id="equipment" title={t.detail.equipment} icon={<Speaker className="h-4 w-4" aria-hidden />}>
+                {booking.equipment.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.detail.noEquipment}</p>
+                ) : (
+                  <ul className="flex flex-col gap-2 text-sm">
+                    {booking.equipment.map((id) => {
+                      // Only old bookings store an id with a fixed price; newer ones store the label and keep the amount in the price card.
+                      const oldOption = EQUIPMENT_OPTIONS.find((o) => o.id === id)
+                      return (
+                        <li key={id} className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0">
+                          <span className="text-foreground">{equipmentLabel(id)}</span>
+                          {oldOption && <span className="font-medium text-muted-foreground">{formatEuro(oldOption.priceCents, locale)}</span>}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </Section>
+            )}
           </div>
 
           <Section id="client" title={t.detail.client} icon={<Users className="h-4 w-4" aria-hidden />}>
@@ -426,7 +451,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
         <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
           <BookingPricingCard booking={booking} />
 
-          {booking.status === "pending" && <BookingRespondPanel bookingId={booking.id} expired={status === "expired"} />}
+          {booking.status === "pending" && <BookingRespondPanel bookingId={booking.id} photo={photo} expired={status === "expired"} />}
           {booking.status === "accepted" && <BookingCompletePanel booking={booking} />}
           {booking.status === "completed" && <BookingInvoicePanel booking={booking} invoice={invoice} />}
 
