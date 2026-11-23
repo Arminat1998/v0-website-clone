@@ -128,14 +128,18 @@ export function AccountBookingList({
               />
             </Field>
             <Tabs value={status} onValueChange={setStatus}>
-              <div className="overflow-x-auto">
-                <TabsList className="h-auto flex-wrap justify-start">
-                  <TabsTrigger value="all">
+              <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none]">
+                <TabsList className="flex h-auto w-max justify-start gap-1">
+                  <TabsTrigger value="all" className="min-h-11 flex-none px-3">
                     {nl ? "Alles" : "All"} ({bookings.length})
                   </TabsTrigger>
                   {Object.entries(statusLabels[language]).map(
                     ([key, label]) => (
-                      <TabsTrigger key={key} value={key}>
+                      <TabsTrigger
+                        key={key}
+                        value={key}
+                        className="min-h-11 flex-none px-3"
+                      >
                         {label}
                       </TabsTrigger>
                     ),
