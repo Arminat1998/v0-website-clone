@@ -30,7 +30,9 @@ import {
   INVOICE_FILE_TYPES,
   MAX_INVOICE_FILE_BYTES,
   invoiceBlobPrefix,
+  hasPayoutDetails,
   isBillingProfileComplete,
+  isValidIban,
   PERFORMANCE_VAT_RATES,
   proposeInvoiceNumber,
   sumInvoiceLines,
@@ -84,16 +86,27 @@ export interface BillingProfileInput {
 
 const orNull = (value: string) => optionalText(value, 200)
 
-export async function saveBillingProfile(input: BillingProfileInput) {
+export interface BillingProfileErrors {
+  businessName?: "REQUIRED"
+  iban?: "REQUIRED" | "INVALID"
+}
+
+export type SaveBillingProfileResult = { ok: true; profile: BillingProfile } | { ok: false; errors: BillingProfileErrors }
+
+/** Wrong fields are returned per field: server actions hide thrown messages in production. */
+export async function saveBillingProfile(input: BillingProfileInput): Promise<SaveBillingProfileResult> {
   return withoutValues("Failed to save the billing profile:", () => runSaveBillingProfile(input))
 }
 
-async function runSaveBillingProfile(input: BillingProfileInput) {
+async function runSaveBillingProfile(input: BillingProfileInput): Promise<SaveBillingProfileResult> {
   const professionalId = await getProfessionalId()
   const businessName = orNull(input.businessName)
-  if (!businessName) throw new Error("Business name is required")
   const iban = String(input.iban ?? "").replace(/\s+/g, "").toUpperCase()
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) throw new Error("Invalid IBAN")
+  const errors: BillingProfileErrors = {}
+  if (!businessName) errors.businessName = "REQUIRED"
+  if (!iban) errors.iban = "REQUIRED"
+  else if (!isValidIban(iban)) errors.iban = "INVALID"
+  if (!businessName || errors.iban) return { ok: false, errors }
   const performanceVatRate = (PERFORMANCE_VAT_RATES as readonly number[]).includes(input.performanceVatRate) ? input.performanceVatRate : 9
   const nextInvoiceNumber = Number.isInteger(input.nextInvoiceNumber) && input.nextInvoiceNumber > 0 && input.nextInvoiceNumber < 1_000_000 ? input.nextInvoiceNumber : 1
 
@@ -119,13 +132,12 @@ async function runSaveBillingProfile(input: BillingProfileInput) {
     .where(eq(billingProfiles.professionalId, professionalId))
     .returning()
   revalidatePath("/dashboard", "layout")
-  return profile
+  return { ok: true, profile }
 }
 
 export interface InvoiceContext {
   booking: Booking
   profile: BillingProfile
-  profileComplete: boolean
   invoice: Invoice | null
   lines: InvoiceLine[]
   totals: InvoiceTotals
@@ -143,7 +155,6 @@ export async function getInvoiceContext(bookingId: number): Promise<InvoiceConte
   return {
     booking: redactContactDetails(booking),
     profile,
-    profileComplete: isBillingProfileComplete(profile),
     invoice: invoice ?? null,
     lines,
     totals: sumInvoiceLines(lines),
@@ -228,7 +239,8 @@ async function storeInvoice({ professionalId, bookingId, invoiceDate, upload, ..
 
     // Locked as well, so two invoices at the same time do not use the same next number.
     const [profile] = await tx.select().from(billingProfiles).where(eq(billingProfiles.professionalId, professionalId)).limit(1).for("update")
-    if (!profile || (!upload && !isBillingProfileComplete(profile))) throw new InvoiceError("PROFILE_INCOMPLETE")
+    // An upload has the address on the invoice itself, but without an IBAN nobody can be paid.
+    if (!profile || !(upload ? hasPayoutDetails(profile) : isBillingProfileComplete(profile))) throw new InvoiceError("PROFILE_INCOMPLETE")
 
     const adjustments = sanitizeAdjustments(input.adjustments, booking)
     assertReceiptsOwned(adjustments, invoiceBlobPrefix(professionalId, bookingId))
