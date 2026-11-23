@@ -17,26 +17,29 @@ const serialize = (policy) =>
     .map(([directive, sources]) => `${directive} ${sources.join(" ")}`)
     .join("; ")
 
-// Enforced: rules that do not affect how the site loads its own files.
-const enforcedPolicy = {
+// Vercel shows its comment toolbar on preview deployments only; production never loads it.
+const onPreview = process.env.VERCEL_ENV === "preview"
+const vercelToolbar = onPreview ? ["https://vercel.live"] : []
+const vercelToolbarLive = onPreview ? ["wss://ws-us3.pusher.com"] : []
+
+// Checked against every page, the signed-in areas included (round 6): all files, images, audio and invoices come
+// from this site's own routes, uploads go to the blob API, video embeds come from YouTube (no-cookie) and Vimeo.
+// Next.js starts its pages from inline scripts, so script-src needs 'unsafe-inline' as long as pages are static.
+const policy = {
+  "default-src": ["'self'"],
   "base-uri": ["'self'"],
   "object-src": ["'none'"],
   "form-action": ["'self'"],
   "frame-ancestors": ["'self'"],
-}
-
-// Reported in the browser console only, not enforced yet: the signed-in areas still have to be checked against it.
-// Next.js starts its pages from inline scripts, so script-src needs 'unsafe-inline' as long as pages are static.
-const reportOnlyPolicy = {
-  "default-src": ["'self'"],
-  "script-src": ["'self'", "'unsafe-inline'", ...postHog],
-  "style-src": ["'self'", "'unsafe-inline'"],
-  "img-src": ["'self'", "data:", "blob:"],
-  "font-src": ["'self'", "data:"],
+  "script-src": ["'self'", "'unsafe-inline'", ...postHog, ...vercelToolbar],
+  "style-src": ["'self'", "'unsafe-inline'", ...vercelToolbar],
+  "img-src": ["'self'", "data:", "blob:", ...vercelToolbar],
+  "font-src": ["'self'", "data:", ...vercelToolbar],
   "media-src": ["'self'", "blob:"],
-  // Booking music goes from the browser straight to the blob store.
-  "connect-src": ["'self'", "https://vercel.com/api/blob", "https://vercel.com/api/blob/", ...postHog],
-  "frame-src": ["https://www.youtube-nocookie.com", "https://player.vimeo.com"],
+  // Booking music goes from the browser straight to the blob store. data: is for the profile form, which turns a
+  // cropped photo (a data URL in the browser) back into a file before uploading it.
+  "connect-src": ["'self'", "data:", "https://vercel.com/api/blob", "https://vercel.com/api/blob/", ...postHog, ...vercelToolbar, ...vercelToolbarLive],
+  "frame-src": ["https://www.youtube-nocookie.com", "https://player.vimeo.com", ...vercelToolbar],
   "worker-src": ["'self'", "blob:"],
   "manifest-src": ["'self'"],
 }
@@ -68,8 +71,7 @@ const nextConfig = {
             {
               source: "/((?!api/).*)",
               headers: [
-                { key: "Content-Security-Policy", value: serialize(enforcedPolicy) },
-                { key: "Content-Security-Policy-Report-Only", value: serialize(reportOnlyPolicy) },
+                { key: "Content-Security-Policy", value: serialize(policy) },
               ],
             },
           ]
