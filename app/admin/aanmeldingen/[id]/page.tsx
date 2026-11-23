@@ -19,6 +19,7 @@ import {
 import { useAdmin, type ChecklistState } from "@/contexts/admin-submissions-context"
 import { statusClasses, formatDateTime } from "@/lib/admin-status"
 import { useAdminT } from "@/lib/admin-i18n"
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { missingLabel, rejectReasonLabel } from "@/lib/review-points"
 import { ReviewActions } from "@/components/admin/review-actions"
 import { ArtistAccountActions } from "@/components/admin/artist-account-actions"
@@ -201,7 +202,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">{t.detail.genres}</p>
                 <div className="flex flex-wrap gap-2">
-                  {submission.genres.map((g) => (
+                  {tagLabels(submission.genres, styleLabel, nl).map((g) => (
                     <span key={g} className="px-3 py-1 rounded-full bg-accent text-xs text-foreground">
                       {g}
                     </span>
@@ -213,7 +214,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                   {t.detail.eventTypes}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {submission.eventTypes.map((t) => (
+                  {tagLabels(submission.eventTypes, eventLabel, nl).map((t) => (
                     <span key={t} className="px-3 py-1 rounded-full bg-accent text-xs text-foreground">
                       {t}
                     </span>
