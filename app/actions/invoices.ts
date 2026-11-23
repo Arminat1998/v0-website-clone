@@ -3,7 +3,7 @@
 import { and, asc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { logError } from "@/lib/log-error"
+import { logError, withoutValues } from "@/lib/log-error"
 import {
   billingProfiles,
   bookings,
@@ -85,6 +85,10 @@ export interface BillingProfileInput {
 const orNull = (value: string) => optionalText(value, 200)
 
 export async function saveBillingProfile(input: BillingProfileInput) {
+  return withoutValues("Failed to save the billing profile:", () => runSaveBillingProfile(input))
+}
+
+async function runSaveBillingProfile(input: BillingProfileInput) {
   const professionalId = await getProfessionalId()
   const businessName = orNull(input.businessName)
   if (!businessName) throw new Error("Business name is required")

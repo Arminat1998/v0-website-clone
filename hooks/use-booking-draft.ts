@@ -2,12 +2,23 @@
 
 import { useEffect, useRef } from "react"
 
+const PREFIX = "booking-draft:"
+
+/** After signing out, so the next person in this tab does not see it. */
+export function clearBookingDrafts() {
+  try {
+    for (const key of Object.keys(sessionStorage)) if (key.startsWith(PREFIX)) sessionStorage.removeItem(key)
+  } catch {
+    // No storage available.
+  }
+}
+
 /**
  * Keeps what was typed in the booking form in this browser tab, so a refresh does not lose it. Personal and billing
  * details are left out; those come from the account.
  */
 export function useBookingDraft<T extends object>(professionalKey: string | null, draft: T, restore: (saved: Partial<T>) => void, done: boolean) {
-  const key = professionalKey ? `booking-draft:${professionalKey}` : null
+  const key = professionalKey ? `${PREFIX}${professionalKey}` : null
   const restored = useRef(false)
   const json = JSON.stringify(draft)
 

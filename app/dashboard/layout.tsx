@@ -5,6 +5,7 @@ import { WarningBanner } from "@/components/warning-banner"
 import { getActiveWarningsForUser } from "@/lib/admin/users"
 import { db } from "@/lib/db"
 import { professionalProfiles } from "@/lib/db/schema"
+import { logError } from "@/lib/log-error"
 import { requireProfessionalUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
@@ -19,7 +20,7 @@ async function getProfileReview(professionalId: string): Promise<ProfileReview |
     return profile ?? null
   } catch (error) {
     // Without a status the banner stays hidden rather than showing a wrong one.
-    console.error("Failed to load review status:", error)
+    logError("Failed to load review status:", error)
     return undefined
   }
 }

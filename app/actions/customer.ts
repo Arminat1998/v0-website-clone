@@ -1,5 +1,6 @@
 "use server";
 
+import { withoutValues } from "@/lib/log-error";
 import { and, desc, eq, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -56,6 +57,10 @@ export async function getCustomerProfile(): Promise<
 }
 
 export async function saveCustomerProfile(input: CustomerProfileInput) {
+  return withoutValues("Failed to save the customer profile:", () => runSaveCustomerProfile(input));
+}
+
+async function runSaveCustomerProfile(input: CustomerProfileInput) {
   const account = await customerUser();
   const result = customerProfileSchema.safeParse(input);
   if (!result.success) return { ok: false as const };

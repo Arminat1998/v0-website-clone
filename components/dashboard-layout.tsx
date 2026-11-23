@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import useSWR from "swr"
 import { getDashboardCounts } from "@/app/actions/bookings"
+import { clearBookingDrafts } from "@/hooks/use-booking-draft"
 import { authClient } from "@/lib/auth-client"
 import { useTheme } from "@/contexts/theme-context"
 import { useLanguage } from "@/contexts/language-context"
@@ -51,7 +52,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [signingOut, setSigningOut] = useState(false)
   const [error, setError] = useState("")
 
-  const { data: counts } = useSWR("dashboard-counts", () => getDashboardCounts(), { refreshInterval: 60_000 })
+  const { data: counts } = useSWR(sessionData?.user.id ? ["dashboard-counts", sessionData.user.id] : null, () => getDashboardCounts(), { refreshInterval: 60_000 })
 
   const items: { label: string; href: string; icon: typeof Inbox; count?: number; unit?: string }[] = [
     { label: t.dashboard, href: "/dashboard", icon: LayoutDashboard },
@@ -73,6 +74,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     try {
       const result = await authClient.signOut()
       if (result.error) throw new Error("Sign out failed")
+      clearBookingDrafts()
       router.push("/")
       router.refresh()
     } catch {
@@ -218,7 +220,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </Button>
           </div>
         </header>
-        <main className={cn("touch-targets mx-auto max-w-7xl", PADDED_PAGES.includes(pathname) && "p-4 sm:p-8 lg:p-10")}>
+        <main data-private className={cn("touch-targets mx-auto max-w-7xl", PADDED_PAGES.includes(pathname) && "p-4 sm:p-8 lg:p-10")}>
           {children}
         </main>
       </div>

@@ -17,6 +17,13 @@ const STORAGE_KEY = "arsi:usertest"
 const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY
 const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.i.posthog.com"
 
+const MAX_TEST_MS = 2 * 60 * 60 * 1000
+
+// Links for resetting a password or writing a review hold a secret.
+const URL_PROPERTIES = ["$current_url", "$pathname", "$referrer", "$initial_current_url", "$initial_pathname", "$initial_referrer", "path"]
+const withoutTokens = (value: unknown) =>
+  typeof value === "string" ? value.replace(/([?&]token=)[^&#]*/g, "$1x").replace(/(\/review\/)[^/?#]+/g, "$1x") : value
+
 export const USERTEST_GOAL_EVENT = "arsi:usertest-goal"
 
 let client: PostHog | null = null
@@ -61,11 +68,14 @@ export function claimUserTestFromUrl(): UserTestState | null {
 }
 
 function isActive(state: UserTestState | null): state is UserTestState {
-  return Boolean(state && state.consent === "yes" && !state.done)
+  // A test that was never finished stops by itself.
+  const expired = Boolean(state?.startedAt && Date.now() - state.startedAt > MAX_TEST_MS)
+  return Boolean(state && state.consent === "yes" && !state.done && !expired)
 }
 
 function load(state: UserTestState) {
   if (client || loading || !POSTHOG_KEY) return
+  if (/^\/(admin|reset-password)/.test(window.location.pathname)) return
   loading = import("posthog-js").then(({ default: posthog }) => {
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
@@ -73,8 +83,14 @@ function load(state: UserTestState) {
       persistence: "localStorage",
       capture_pageview: true,
       autocapture: true,
-      // Typed text never leaves the browser; only where testers click and how long it takes.
-      session_recording: { maskAllInputs: true },
+      // Typed text and personal details never leave the browser; only where testers click and how long it takes.
+      mask_all_text: true,
+      session_recording: { maskAllInputs: true, maskTextSelector: "[data-private], [data-private] *" },
+      before_send: (event) => {
+        if (!event) return event
+        for (const key of URL_PROPERTIES) if (key in event.properties) event.properties[key] = withoutTokens(event.properties[key])
+        return event
+      },
     })
     posthog.identify(`tester-${state.code}`)
     posthog.register({ test_code: state.code })

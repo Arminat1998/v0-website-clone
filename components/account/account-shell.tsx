@@ -33,6 +33,7 @@ import {
   SheetDescription,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { clearBookingDrafts } from "@/hooks/use-booking-draft";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 
@@ -153,6 +154,7 @@ export function AccountShell({
     try {
       const result = await authClient.signOut();
       if (result.error) throw new Error("Sign out failed");
+      clearBookingDrafts();
       router.push("/");
       router.refresh();
     } catch {
@@ -289,6 +291,7 @@ export function AccountShell({
           </div>
         </header>
         <main
+          data-private
           id="account-content"
           className="touch-targets mx-auto max-w-7xl p-4 sm:p-8 lg:p-10"
         >

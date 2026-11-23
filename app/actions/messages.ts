@@ -1,5 +1,6 @@
 "use server"
 
+import { withoutValues } from "@/lib/log-error"
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 import { db } from "@/lib/db"
@@ -115,6 +116,10 @@ export async function getThread(id: number): Promise<ThreadMessage[] | null> {
 }
 
 export async function sendMessage(id: number, body: string) {
+  return withoutValues("Failed to send the message:", () => runSendMessage(id, body))
+}
+
+async function runSendMessage(id: number, body: string) {
   const v = await viewer()
   const text = typeof body === "string" ? body.replaceAll("\u0000", "").trim() : ""
   if (!text || text.length > 2000) return { ok: false as const, error: "invalid" }
