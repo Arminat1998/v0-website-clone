@@ -31,7 +31,7 @@ export function PayoutsTable({ rows }: { rows: AdminPayoutRow[] }) {
   }
 
   function payOut(row: AdminPayoutRow) {
-    const amount = formatEuro(row.payoutCents)
+    const amount = formatEuro(row.payoutCents, locale)
     const question = nl
       ? `${amount} uitbetaald aan ${row.professionalName} voor boeking #${row.id}?`
       : `Paid out ${amount} to ${row.professionalName} for booking #${row.id}?`
@@ -119,7 +119,7 @@ export function PayoutsTable({ rows }: { rows: AdminPayoutRow[] }) {
                 <td className="px-4 py-3">
                   <Badge variant={row.paymentStatus === "paid" ? "default" : "secondary"}>{clientStatus(row)}</Badge>
                 </td>
-                <td className="px-4 py-3 font-medium tabular-nums">{formatEuro(row.payoutCents)}</td>
+                <td className="px-4 py-3 font-medium tabular-nums">{formatEuro(row.payoutCents, locale)}</td>
                 <td className={isOpen ? "px-4 py-3 text-right" : "px-4 py-3"}>
                   {isOpen ? (
                     <Button size="sm" disabled={pending || !row.ibanValid} onClick={() => payOut(row)}>

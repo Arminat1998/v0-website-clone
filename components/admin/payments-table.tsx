@@ -12,6 +12,7 @@ import { BOOKING_TIME_ZONE } from "@/lib/bookings/format"
 
 export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
   const nl = useLanguage().language === "nl"
+  const locale = nl ? "nl-NL" : "en-GB"
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [busyId, setBusyId] = useState<number | null>(null)
@@ -24,8 +25,8 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
     const due = row.summary.due
     if (!due) return
     const question = nl
-      ? `${formatEuro(due.cents)} ontvangen voor boeking #${row.id}?`
-      : `Received ${formatEuro(due.cents)} for booking #${row.id}?`
+      ? `${formatEuro(due.cents, locale)} ontvangen voor boeking #${row.id}?`
+      : `Received ${formatEuro(due.cents, locale)} for booking #${row.id}?`
     if (!window.confirm(question)) return
     setError(null)
     setBusyId(row.id)
@@ -72,7 +73,7 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
                   <td className="px-4 py-3">
                     <p className="font-medium">#{row.id} · {row.eventName}</p>
                     <p className="text-muted-foreground">
-                      {new Date(row.eventDate).toLocaleDateString(nl ? "nl-NL" : "en-GB", { timeZone: BOOKING_TIME_ZONE })}
+                      {new Date(row.eventDate).toLocaleDateString(locale, { timeZone: BOOKING_TIME_ZONE })}
                       {row.invoiceNumber && ` · ${nl ? "factuur" : "invoice"} ${row.invoiceNumber}`}
                     </p>
                   </td>
@@ -84,7 +85,7 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
                   <td className="px-4 py-3">
                     {due ? (
                       <>
-                        <p className="font-medium tabular-nums">{formatEuro(due.cents)}</p>
+                        <p className="font-medium tabular-nums">{formatEuro(due.cents, locale)}</p>
                         <p className="text-muted-foreground">
                           {due.part === "deposit" ? (nl ? "Aanbetaling" : "Deposit") : nl ? "Eindfactuur" : "Final invoice"} ·{" "}
                           {paymentReference(row.id, due.part)}
