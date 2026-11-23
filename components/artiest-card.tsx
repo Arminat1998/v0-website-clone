@@ -40,7 +40,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
 
   return (
     <Card
-      className="relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer p-0 group bg-card border-border"
+      className="relative h-full overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer p-0 group bg-card border-border"
       onClick={onClick}
     >
       <div className="relative h-48 overflow-hidden">
@@ -73,7 +73,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
         )}
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="flex flex-1 flex-col p-4">
         <div className="flex items-start gap-3 mb-3 -mt-16">
           <div className="relative flex-shrink-0">
             <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-card shadow-lg">
@@ -191,7 +191,8 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
           </div>
         </div>
 
-        <div className="flex gap-2">
+        {/* mt-auto: the buttons of cards next to each other stand on one line. */}
+        <div className="mt-auto flex gap-2">
           <Button
             variant="outline"
             className="flex-1 text-blue-600 border-blue-600 bg-transparent hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-950/20 dark:hover:text-white font-medium h-11"
@@ -203,7 +204,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
             {t.viewProfile}
           </Button>
           {isDemoProfessional(artist.id) ? (
-            <DemoBookButton className="flex-1 h-11 whitespace-normal text-xs leading-tight" />
+            <DemoBookButton short className="flex-1 h-11" />
           ) : (
             <Button
               className="flex-1 bg-red-700 hover:bg-red-600 text-white font-medium h-11"
