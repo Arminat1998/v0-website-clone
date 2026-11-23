@@ -292,16 +292,25 @@ export default function BookingPage() {
   // Not in the list: the professional does not exist (any more). A failed lookup says nothing about that.
   const lookupFailed = liveArtists.failed || livePhotographers.failed
   const notFound = !professional && !lookupFailed && !liveArtists.isLoading && !livePhotographers.isLoading
-  useEffect(() => {
-    if (notFound) router.push("/")
-  }, [notFound, router])
 
   if (!professional) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="mx-auto max-w-xl px-4 py-16">
-          {lookupFailed ? (
+          {notFound ? (
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-foreground">
+                {artistId || !professionalId ? tr("Deze artiest bestaat niet (meer)", "This artist no longer exists") : tr("Deze professional bestaat niet (meer)", "This professional no longer exists")}
+              </h1>
+              <p className="mt-3 text-muted-foreground text-pretty">
+                {tr("Het profiel waarvoor je een aanvraag wilt doen is niet gevonden. Kies een andere professional uit het overzicht.", "The profile you want to book was not found. Choose another professional from the overview.")}
+              </p>
+              <Button asChild className="mt-6 bg-red-700 text-white hover:bg-red-600">
+                <Link href={artistId || !professionalId ? "/artiesten" : "/photo-video"}>{tr("Terug naar het overzicht", "Back to the overview")}</Link>
+              </Button>
+            </div>
+          ) : lookupFailed ? (
             <LiveListError
               onRetry={() => (liveArtists.failed ? liveArtists : livePhotographers).retry()}
               retrying={liveArtists.isRetrying || livePhotographers.isRetrying}
