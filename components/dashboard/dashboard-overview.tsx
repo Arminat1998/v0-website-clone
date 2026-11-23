@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
 import { AccountEmpty, AccountHeading } from "@/components/account/account-common"
@@ -28,6 +28,7 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
   const { t: bt, locale } = useBookingT()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [markFailed, setMarkFailed] = useState(false)
 
   const stats = [
     {
@@ -206,18 +207,28 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() =>
+                  onClick={() => {
+                    setMarkFailed(false)
                     startTransition(async () => {
-                      await markAllNotificationsRead()
-                      router.refresh()
+                      try {
+                        await markAllNotificationsRead()
+                        router.refresh()
+                      } catch {
+                        setMarkFailed(true)
+                      }
                     })
-                  }
+                  }}
                   className="min-h-11 px-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
                 >
                   {bt.overview.markAllRead}
                 </button>
               )}
             </div>
+            {markFailed && (
+              <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">
+                {nl ? "Dit is niet gelukt. Probeer opnieuw." : "This did not work. Try again."}
+              </p>
+            )}
             {summary.notifications.length === 0 ? (
               <AccountEmpty
                 icon={Bell}

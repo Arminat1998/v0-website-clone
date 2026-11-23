@@ -52,25 +52,38 @@ export function ChatInbox({
   }
 
   function contactSupport() {
+    setError("")
     startTransition(async () => {
-      const id = await openConversation(null)
-      await inbox.mutate()
-      select(id)
+      try {
+        const id = await openConversation(null)
+        await inbox.mutate()
+        select(id)
+      } catch {
+        setError(nl ? "Het gesprek kon niet worden geopend. Probeer opnieuw." : "Could not open the conversation. Try again.")
+      }
     })
   }
 
   function submit() {
-    if (!selectedId || !draft.trim()) return
+    if (!selectedId || !draft.trim() || pending) return
     const body = draft
-    setDraft("")
+    setError("")
     startTransition(async () => {
-      const result = await sendMessage(selectedId, body)
+      // The text stays in the field until the server has the message.
+      const result = await sendMessage(selectedId, body).catch(() => ({ ok: false as const, error: "offline" }))
       if (!result.ok) {
-        setDraft(body)
-        setError(nl ? "Versturen is niet gelukt. Probeer opnieuw." : "Could not send. Try again.")
+        setError(
+          result.error === "too_many"
+            ? nl
+              ? "Je hebt veel berichten achter elkaar gestuurd. Wacht een minuut en verstuur dan opnieuw."
+              : "You sent a lot of messages in a row. Wait a minute and send again."
+            : nl
+              ? "Versturen is niet gelukt. Probeer opnieuw."
+              : "Could not send. Try again.",
+        )
         return
       }
-      setError("")
+      setDraft((current) => (current === body ? "" : current))
       await Promise.all([thread.mutate(), inbox.mutate()])
     })
   }
@@ -92,6 +105,11 @@ export function ChatInbox({
             </Button>
           )}
         </div>
+        {error && !selected && (
+          <p role="alert" className="border-b p-4 text-sm text-red-700 dark:text-red-400">
+            {error}
+          </p>
+        )}
         <ul className="flex-1 overflow-y-auto">
           {items.length === 0 && (
             <li className="flex flex-col items-center gap-3 p-8 text-center text-sm text-muted-foreground">
@@ -163,6 +181,24 @@ export function ChatInbox({
               </div>
             </header>
             <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4" aria-live="polite">
+              {thread.data === undefined && !thread.error && (
+                <p role="status" className="m-auto text-center text-sm text-muted-foreground">
+                  {nl ? "Gesprek laden..." : "Loading conversation..."}
+                </p>
+              )}
+              {thread.data === undefined && thread.error && (
+                <div role="alert" className="m-auto flex max-w-xs flex-col items-center gap-3 text-center text-sm text-muted-foreground">
+                  <p>{nl ? "Het gesprek kon niet worden geladen." : "The conversation could not be loaded."}</p>
+                  <Button variant="outline" className="min-h-11" disabled={thread.isValidating} onClick={() => thread.mutate()}>
+                    {nl ? "Opnieuw proberen" : "Try again"}
+                  </Button>
+                </div>
+              )}
+              {thread.data === null && (
+                <p role="alert" className="m-auto max-w-xs text-center text-sm text-muted-foreground">
+                  {nl ? "Dit gesprek is niet meer beschikbaar." : "This conversation is no longer available."}
+                </p>
+              )}
               {thread.data?.length === 0 && (
                 <p className="m-auto max-w-xs text-center text-sm leading-relaxed text-muted-foreground">
                   {nl ? "Stuur het eerste bericht om het gesprek te starten." : "Send the first message to start the conversation."}

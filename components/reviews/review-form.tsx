@@ -32,8 +32,15 @@ export function ReviewForm({ invite }: { invite: ReviewInvite }) {
     if (!rating) return setError(nl ? "Kies een aantal sterren." : "Choose a star rating.")
     if (comment.trim().length < 10)
       return setError(nl ? "Schrijf minimaal 10 tekens." : "Write at least 10 characters.")
+    setError("")
     startTransition(async () => {
-      const result = await submitReview(invite.token, { rating, comment })
+      const result = await submitReview(invite.token, { rating, comment }).catch(() => null)
+      if (!result)
+        return setError(
+          nl
+            ? "Versturen is niet gelukt. Je tekst staat er nog. Probeer opnieuw."
+            : "Could not send. Your text is still here. Try again.",
+        )
       if (result.ok) return setDone(true)
       setError(
         result.error === "used"
