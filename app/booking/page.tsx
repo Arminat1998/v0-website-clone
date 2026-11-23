@@ -53,6 +53,23 @@ const placeChars = (value: string) => value.replace(/[^\p{L}\p{M}\d '’.-]/gu, 
 /** Every half hour of the day, as "HH:MM". */
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`)
 
+const timeToMinutes = (time: string) => {
+  const [hours, minutes] = time.split(":").map(Number)
+  return hours * 60 + minutes
+}
+
+/** End times in half-hour increments, ordered from the chosen start time. */
+export function getEndTimeOptions(startTime: string, minHours: number, maxHours: number) {
+  if (!startTime || minHours > maxHours) return []
+  const startMinutes = timeToMinutes(startTime)
+  const options: string[] = []
+  for (let halfHours = Math.ceil(minHours * 2); halfHours <= Math.floor(maxHours * 2); halfHours += 1) {
+    const endMinutes = (startMinutes + halfHours * 30) % (24 * 60)
+    options.push(`${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`)
+  }
+  return options
+}
+
 export default function BookingPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -251,6 +268,14 @@ export default function BookingPage() {
     currentStep === 5,
   )
 
+  // A restored or changed start time may invalidate the saved end time.
+  useEffect(() => {
+    if (!bookingOptions || !startTime || !endTime) return
+    if (!getEndTimeOptions(startTime, bookingOptions.minHours, bookingOptions.maxHours).includes(endTime)) {
+      setEndTime("")
+    }
+  }, [bookingOptions, startTime, endTime])
+
   // The back button of the browser goes to the previous step instead of leaving the form.
   useEffect(() => {
     const onPopState = (event: PopStateEvent) => {
@@ -375,6 +400,9 @@ export default function BookingPage() {
   // An end time before the start time is after midnight; the same time twice is not a duration (the server refuses it too).
   const sameTime = Boolean(startTime) && startTime === endTime
   const endsNextDay = Boolean(startTime && endTime) && endTime < startTime
+  const endTimeOptions = bookingOptions && startTime
+    ? getEndTimeOptions(startTime, bookingOptions.minHours, bookingOptions.maxHours)
+    : []
   const bookedHours = startTime && endTime ? hoursBetween(startTime, endTime) : 0
   const hoursIssue = bookingOptions && startTime && endTime && !sameTime ? hoursProblem(bookingOptions, bookedHours) : null
   const pricing = bookingOptions
@@ -1089,7 +1117,13 @@ export default function BookingPage() {
                       id="booking-start"
                       aria-required="true"
                       value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
+                      onChange={(e) => {
+                        const nextStartTime = e.target.value
+                        setStartTime(nextStartTime)
+                        if (endTime && bookingOptions && !getEndTimeOptions(nextStartTime, bookingOptions.minHours, bookingOptions.maxHours).includes(endTime)) {
+                          setEndTime("")
+                        }
+                      }}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
                       <option value="">{tr("Kies", "Select")}</option>
@@ -1105,11 +1139,14 @@ export default function BookingPage() {
                       aria-required="true"
                       value={endTime}
                       onChange={(e) => setEndTime(e.target.value)}
+                      disabled={!startTime || !bookingOptions}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
                       <option value="">{tr("Kies", "Select")}</option>
-                      {TIME_OPTIONS.map((time) => (
-                        <option key={time} value={time}>{time}</option>
+                      {endTimeOptions.map((time) => (
+                        <option key={time} value={time}>
+                          {time}{timeToMinutes(time) <= timeToMinutes(startTime) ? tr(" (volgende dag)", " (next day)") : ""}
+                        </option>
                       ))}
                     </select>
                   </div>
