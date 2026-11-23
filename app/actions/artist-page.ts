@@ -1,5 +1,6 @@
 "use server"
 
+import { withoutValues } from "@/lib/log-error"
 import { del } from "@vercel/blob"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -49,6 +50,10 @@ function cleanSocials(input: unknown): ArtistPageSocials {
 }
 
 export async function saveArtistPage(input: ArtistPageContent): Promise<SaveArtistPageResult> {
+  return withoutValues("Failed: saveArtistPage", () => runSaveArtistPage(input))
+}
+
+async function runSaveArtistPage(input: ArtistPageContent): Promise<SaveArtistPageResult> {
   const professionalId = await getProfessionalId()
   const ownPrefix = `${MEDIA_PREFIX}${professionalId}/`
   const ownPath = (value: unknown): value is string => isSafeBlobPath(value, ownPrefix)

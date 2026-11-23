@@ -100,7 +100,7 @@ export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: Im
 
   return (
     <Dialog open={file !== null} onOpenChange={(open) => !open && !busy && onCancel()}>
-      <DialogContent className="max-h-[92dvh] gap-4 overflow-y-auto sm:max-w-xl">
+      <DialogContent showCloseButton={!invalid} className="max-h-[92dvh] gap-4 overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{t.title}</DialogTitle>
           <DialogDescription>{t.description}</DialogDescription>

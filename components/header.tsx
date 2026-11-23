@@ -35,6 +35,7 @@ function currentState(item: (typeof NAV_ITEMS)[number], pathname: string) {
 const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
   "/": { nl: "ARSI Events — Alles voor jouw evenement", en: "ARSI Events — Everything for your event" },
   "/artiesten": { nl: "Artiesten boeken | ARSI Events", en: "Book artists | ARSI Events" },
+  "/register/professional": { nl: "Aanmelden als professional | ARSI Events", en: "Join as a professional | ARSI Events" },
   "/booking": { nl: "Boeken | ARSI Events", en: "Book | ARSI Events" },
   "/photo-video": { nl: "Fotografen en videografen boeken | ARSI Events", en: "Book photographers and videographers | ARSI Events" },
 }
@@ -235,6 +236,7 @@ export function Header() {
             <>
               <Button
                 variant="ghost"
+                data-login-trigger
                 className="h-11 px-2 text-sm text-red-700 max-[359px]:hidden hover:bg-red-50 hover:text-red-700 sm:px-4 sm:text-base dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
                 onClick={openLoginModal}
               >

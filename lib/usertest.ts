@@ -75,7 +75,7 @@ function isActive(state: UserTestState | null): state is UserTestState {
 
 function load(state: UserTestState) {
   if (client || loading || !POSTHOG_KEY) return
-  if (/^\/(admin|reset-password)/.test(window.location.pathname)) return
+  if (PRIVATE_PATHS.test(window.location.pathname)) return
   loading = import("posthog-js").then(({ default: posthog }) => {
     posthog.init(POSTHOG_KEY, {
       api_host: POSTHOG_HOST,
@@ -97,6 +97,15 @@ function load(state: UserTestState) {
     client = posthog
     for (const item of queue.splice(0)) posthog.capture(item.event, item.props)
   })
+}
+
+const PRIVATE_PATHS = /^\/(admin|reset-password)/
+
+/** Stops the recording on pages with personal details or a secret, also when the visitor navigates there. */
+export function followUserTestPage(pathname: string) {
+  if (!client) return
+  if (PRIVATE_PATHS.test(pathname)) client.stopSessionRecording()
+  else if (isActive(readUserTest())) client.startSessionRecording()
 }
 
 /** Continues an already started test after a page load. */

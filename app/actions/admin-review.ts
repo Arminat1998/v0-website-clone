@@ -77,7 +77,7 @@ export async function setReviewStatus(input: ReviewStatusInput): Promise<ReviewR
   const admin = await requireAdmin()
   const { id, status, expectedStatus } = input
   const from = STEPS[status]
-  if (typeof id !== "string" || !from || !REVIEW_STATUSES.includes(expectedStatus)) return invalid
+  if (typeof id !== "string" || !REVIEW_STATUSES.includes(status) || !Object.hasOwn(STEPS, status) || !from || !REVIEW_STATUSES.includes(expectedStatus)) return invalid
 
   const message = clean(input.message, 2000)
   const missing = status === "wacht-op-aanvulling" ? missingPoints(input.missing) : []
