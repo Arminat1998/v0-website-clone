@@ -1,5 +1,8 @@
 import { Header } from "@/components/header"
+import type { Metadata } from "next"
 import { ResetPasswordForm } from "@/components/reset-password-form"
+
+export const metadata: Metadata = { title: "Nieuw wachtwoord | ARSI Events", robots: { index: false } }
 
 export default async function ResetPasswordPage({
   searchParams,

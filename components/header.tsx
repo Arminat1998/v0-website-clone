@@ -38,6 +38,8 @@ const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
   "/register/professional": { nl: "Aanmelden als professional | ARSI Events", en: "Join as a professional | ARSI Events" },
   "/booking": { nl: "Boeken | ARSI Events", en: "Book | ARSI Events" },
   "/photo-video": { nl: "Fotografen en videografen boeken | ARSI Events", en: "Book photographers and videographers | ARSI Events" },
+  "/reset-password": { nl: "Nieuw wachtwoord | ARSI Events", en: "New password | ARSI Events" },
+  "/security": { nl: "Beveiliging | ARSI Events", en: "Security | ARSI Events" },
 }
 
 /** A path on this site, so a link can never send someone elsewhere after logging in. */
