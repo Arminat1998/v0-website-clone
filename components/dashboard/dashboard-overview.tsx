@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
+import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
 import { AccountEmpty, AccountHeading } from "@/components/account/account-common"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLanguage } from "@/contexts/language-context"
@@ -256,16 +256,6 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
               </ul>
             )}
           </section>
-
-          <Link href="/dashboard/agreement" className="flex items-center gap-4 rounded-xl border border-red-500/20 bg-card p-5 shadow-sm transition-colors hover:border-brand/40 focus-visible:outline-2 focus-visible:outline-ring md:p-6">
-            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 md:h-12 md:w-12">
-              <FileText className="h-5 w-5 text-red-700 dark:text-red-400 md:h-6 md:w-6" aria-hidden />
-            </span>
-            <div>
-              <div className="text-lg font-semibold text-red-700 dark:text-red-400">{nl ? "Actie vereist" : t.actionNeeded}</div>
-              <div className="text-sm text-muted-foreground">{t.agreementNotAccepted}</div>
-            </div>
-          </Link>
         </aside>
       </div>
     </div>
