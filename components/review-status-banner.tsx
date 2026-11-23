@@ -27,7 +27,7 @@ export function ReviewStatusBanner({ review }: { review: ProfileReview }) {
     text = nl
       ? "Vul je profiel in. Daarna beoordeelt ARSI Events je aanmelding."
       : "Complete your profile. ARSI Events then reviews your application."
-    link = { href: "/register/professional", label: nl ? "Profiel invullen" : "Complete profile" }
+    link = { href: "/dashboard/edit-profile", label: nl ? "Profiel invullen" : "Complete profile" }
   } else if (review.status === "wacht-op-aanvulling") {
     Icon = Info
     title = nl ? "ARSI Events vraagt om een aanvulling" : "ARSI Events asks for more information"
@@ -84,7 +84,7 @@ export function ReviewStatusBanner({ review }: { review: ProfileReview }) {
         </div>
       </div>
       {link && (
-        <Link href={link.href} className="text-sm font-medium text-foreground underline underline-offset-4">
+        <Link href={link.href} className="inline-flex min-h-11 shrink-0 items-center text-sm font-medium text-foreground underline underline-offset-4">
           {link.label}
         </Link>
       )}
