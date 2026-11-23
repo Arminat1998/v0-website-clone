@@ -768,7 +768,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(!!stageName.trim(), photo ? "Profielnaam" : "Artiestennaam", photo ? "Profile name" : "Stage name")
     need(!!fullName.trim(), "Volledige naam", "Full name")
     need(/^\S+@\S+\.\S+$/.test(email.trim()), "E-mail", "Email")
-    if (needsAccount) need(hasPendingPassword, "Wachtwoord (opnieuw beginnen via Sign Up)", "Password (start again via Sign Up)")
+    if (needsAccount) need(hasPendingPassword, "Wachtwoord (opnieuw beginnen via Registreren)", "Password (start again via Sign up)")
     need(!!phone.trim(), "Telefoonnummer", "Phone number")
     need(!!companyName.trim(), "Bedrijfsnaam / Handelsnaam", "Company name / trade name")
     need(/^\d{8}$/.test(kvkNumber), "KVK-nummer (8 cijfers)", "KVK number (8 digits)")
@@ -776,7 +776,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(!!city.trim(), "Stad", "City")
     need(yearsExperience.trim() !== "" && Number(yearsExperience) <= 60, "Jaren ervaring (maximaal 60)", "Years of experience (at most 60)")
     need(Number(hourlyRate) > 0, "Tarief per uur", "Fee per hour")
-    need(!!artistType, photo ? "Type" : "Artiest type", photo ? "Type" : "Artist type")
+    need(!!artistType, photo ? "Type" : "Artiesttype", photo ? "Type" : "Artist type")
     need(selectedGenres.length > 0, photo ? "Specialisaties" : "Muziekgenres", photo ? "Specialisations" : "Music genres")
     need(selectedEventTypes.length > 0, "Evenement types", "Event types")
     if (photo) {
@@ -859,7 +859,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     const accountPassword = getPendingPassword()
     if (needsAccount && accountPassword.length < 8) {
       trackUserTest("signup_error", { reason: "password_missing" })
-      setSaveError(L ? "Je wachtwoord ontbreekt. Begin opnieuw via Sign Up." : "Your password is missing. Start again via Sign Up.")
+      setSaveError(L ? "Je wachtwoord ontbreekt. Begin opnieuw via Registreren." : "Your password is missing. Start again via Sign up.")
       return
     }
 
@@ -883,8 +883,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
           setSaveError(
             lockSignupFields
               ? L
-                ? "Je account aanmaken is niet gelukt. Bestaat er al een account met dit e-mailadres, log dan in. Klopt het adres niet, begin dan opnieuw via Sign Up."
-                : "Creating your account failed. If an account with this email address already exists, log in. If the address is wrong, start again via Sign Up."
+                ? "Je account aanmaken is niet gelukt. Bestaat er al een account met dit e-mailadres, log dan in. Klopt het adres niet, begin dan opnieuw via Registreren."
+                : "Creating your account failed. If an account with this email address already exists, log in. If the address is wrong, start again via Sign up."
               : L
                 ? "Je account aanmaken is niet gelukt. Controleer je e-mailadres, of log in als je al een account hebt."
                 : "Creating your account failed. Check your email address, or log in if you already have an account.",
@@ -999,39 +999,40 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     <div className={`rf min-h-screen ${isEdit ? "bg-background" : "bg-[var(--rf-page)]"}`}>
       {/* Header */}
       {!isEdit && (
-      <header className="bg-card px-4 sm:px-6 py-4 border-b border-border">
+      <header className="border-b border-border bg-card px-3 py-2 sm:px-6 sm:py-3">
         <div className="flex items-center justify-between">
-          <Link href="/">
+          <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label={L ? "ARSI Events, naar home" : "ARSI Events, go to home"}>
             <Image
               src="/arsi-logo.png"
-              alt="ARSI Events Logo"
+              alt=""
               width={120}
               height={60}
-              className="h-10 sm:h-12 w-auto cursor-pointer dark:hidden"
+              className="h-8 w-auto sm:h-12 dark:hidden"
             />
             <Image
               src="/arsi-logo-dark.png"
-              alt="ARSI Events Logo"
+              alt=""
               width={120}
               height={60}
-              className="hidden h-10 sm:h-12 w-auto cursor-pointer dark:block"
+              className="hidden h-8 w-auto sm:h-12 dark:block"
             />
           </Link>
 
-          <div className="flex items-center gap-1 sm:gap-4">
+          <div className="flex items-center gap-2">
             <LanguageSwitcher />
 
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="text-[var(--rf-text)] hover:bg-accent h-8 w-8 sm:h-10 sm:w-10"
+              className="size-11 text-[var(--rf-text)] hover:bg-accent"
               title={!mounted || theme === "light" ? t.darkMode : t.lightMode}
+              aria-label={!mounted || theme === "light" ? t.darkMode : t.lightMode}
             >
               {!mounted || theme === "light" ? (
-                <Moon className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Moon className="size-5" aria-hidden />
               ) : (
-                <Sun className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Sun className="size-5" aria-hidden />
               )}
             </Button>
           </div>
@@ -1261,8 +1262,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <p id="email-help" className="text-xs sm:text-sm text-[var(--rf-muted)]">
                     {lockSignupFields
                       ? L
-                        ? "Hiermee log je straks in. Naam, e-mail en telefoonnummer heb je bij het aanmelden opgegeven en zijn hier niet aan te passen. Typfout? Begin opnieuw via Sign Up."
-                        : "You will use this to log in. Name, email and phone number were entered at sign-up and cannot be changed here. Typo? Start again via Sign Up."
+                        ? "Hiermee log je straks in. Naam, e-mail en telefoonnummer heb je bij het aanmelden opgegeven en zijn hier niet aan te passen. Typfout? Begin opnieuw via Registreren."
+                        : "You will use this to log in. Name, email and phone number were entered at sign-up and cannot be changed here. Typo? Start again via Sign up."
                       : needsAccount
                       ? L
                         ? "Hiermee log je straks in."
@@ -1277,12 +1278,12 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   <div role="alert" className="rounded-lg border border-[var(--rf-red-text)] p-3 text-sm text-[var(--rf-text)] space-y-2">
                     <p>
                       {L
-                        ? "Je wachtwoord staat niet meer in dit scherm (bijvoorbeeld na verversen). Om veiligheidsredenen bewaren we dat niet. Begin opnieuw via Sign Up; dat kost een halve minuut."
-                        : "Your password is no longer in this screen (for example after a refresh). For security we do not store it. Start again via Sign Up; it takes half a minute."}
+                        ? "Je wachtwoord staat niet meer in dit scherm (bijvoorbeeld na verversen). Om veiligheidsredenen bewaren we dat niet. Begin opnieuw via Registreren; dat kost een halve minuut."
+                        : "Your password is no longer in this screen (for example after a refresh). For security we do not store it. Start again via Sign up; it takes half a minute."}
                     </p>
                     <button
                       type="button"
-                      className="underline font-medium"
+                      className="inline-flex min-h-11 items-center font-medium underline underline-offset-4"
                       onClick={() => {
                         try { sessionStorage.removeItem("professionalSignupData") } catch {}
                         clearPendingPassword()
@@ -1558,7 +1559,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Artist Type selector */}
               <div className="space-y-2">
                 <Label id="artistType-label" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
-                  {photo ? "Type" : L ? "Artiest type" : "Artist Type"}
+                  {photo ? "Type" : L ? "Artiesttype" : "Artist type"}
                   <RequiredMark />
                 </Label>
                 <ComboSelect
@@ -1575,7 +1576,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                         ? "Fotograaf, videograaf of allebei"
                         : "Photographer, videographer or both"
                       : L
-                        ? "Selecteer je artiest type"
+                        ? "Selecteer je artiesttype"
                         : "Select your artist type"
                   }
                   searchPlaceholder={L ? "Zoek een type..." : "Search a type..."}
@@ -1866,7 +1867,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                             type="button"
                             onClick={() => removeSocialMedia(link.id)}
                             aria-label={L ? `Verwijder ${getPlatformName(link.platform)}` : `Remove ${getPlatformName(link.platform)}`}
-                            className="ml-2 grid size-9 flex-shrink-0 place-items-center rounded-md text-[var(--rf-muted)] transition-colors hover:text-[var(--rf-red-text)]"
+                            className="ml-2 grid size-11 flex-shrink-0 place-items-center rounded-md text-[var(--rf-muted)] transition-colors hover:text-[var(--rf-red-text)]"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -1889,6 +1890,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
                   <Input
                     type="url"
+                    aria-label={L ? "Link naar je profiel" : "Link to your profile"}
                     placeholder={L ? "Plak je link hier..." : "Paste your link here..."}
                     className={inputClassName}
                     value={currentSocialMedia.url}
@@ -1901,7 +1903,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   variant="outline"
                   size="sm"
                   onClick={addSocialMedia}
-                  className="h-10 w-full rounded-lg border-[var(--rf-line)] bg-[var(--rf-field)] text-[var(--rf-text)] hover:bg-[var(--rf-line-soft)] dark:bg-[var(--rf-field)] dark:hover:bg-[var(--rf-line-soft)] sm:w-auto"
+                  className="h-11 w-full rounded-lg border-[var(--rf-line)] bg-[var(--rf-field)] text-[var(--rf-text)] hover:bg-[var(--rf-line-soft)] dark:bg-[var(--rf-field)] dark:hover:bg-[var(--rf-line-soft)] sm:w-auto"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   {L ? "Social media toevoegen" : "Add social media"}
