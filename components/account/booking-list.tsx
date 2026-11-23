@@ -18,6 +18,7 @@ import {
   eventDate,
   statusLabels,
 } from "./account-common";
+import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBooking } from "@/app/actions/bookings";
 
 export function BookingRows({ bookings }: { bookings: CustomerBooking[] }) {
@@ -58,7 +59,7 @@ export function BookingRows({ bookings }: { bookings: CustomerBooking[] }) {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex flex-col items-end gap-2">
-                <BookingBadge status={booking.status} />
+                <BookingBadge status={displayStatus(booking)} />
                 <span className="text-sm font-medium">
                   {euro(booking.totalCents, nl)}
                 </span>
@@ -85,7 +86,7 @@ export function AccountBookingList({
   const [query, setQuery] = useState("");
   const filtered = bookings.filter(
     (booking) =>
-      (status === "all" || booking.status === status) &&
+      (status === "all" || displayStatus(booking) === status) &&
       `${booking.eventName} ${booking.professionalName} ${booking.city}`
         .toLowerCase()
         .includes(query.toLowerCase()),

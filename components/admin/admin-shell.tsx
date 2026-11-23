@@ -5,14 +5,14 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Inbox, Users, UserCog, ShieldBan, History, Settings, MessageSquare, Banknote, Menu, X, Sun, Moon, ArrowLeft } from "lucide-react"
+import { LayoutDashboard, Inbox, Users, UserCog, ShieldBan, History, MessageSquare, Banknote, Menu, X, Sun, Moon, ArrowLeft } from "lucide-react"
 import { useTheme } from "@/contexts/theme-context"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { Button } from "@/components/ui/button"
 import { useAdmin } from "@/contexts/admin-submissions-context"
 import { useAdminT } from "@/lib/admin-i18n"
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({ children, adminName }: { children: ReactNode; adminName: string }) {
   const pathname = usePathname()
   const { toggleTheme } = useTheme()
   const { t } = useAdminT()
@@ -25,7 +25,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
     { label: "Support", href: "/admin/berichten", icon: MessageSquare },
     { label: t.nav.blacklist, href: "/admin/blacklist", icon: ShieldBan },
     { label: t.nav.activity, href: "/admin/activiteit", icon: History },
-    { label: t.nav.settings, href: "/admin/instellingen", icon: Settings },
   ]
   const { submissions } = useAdmin()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -136,10 +135,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
             aria-hidden="true"
           >
-            NB
+            {adminName.slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">Noor Bakker</p>
+            <p className="text-sm font-medium text-foreground truncate">{adminName}</p>
             <p className="text-xs text-muted-foreground truncate">{t.nav.adminRole}</p>
           </div>
         </div>

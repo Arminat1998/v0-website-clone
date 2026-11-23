@@ -84,8 +84,8 @@ function ReviewItem({ review: r, nl, locale }: { review: ProfessionalReview; nl:
             e.preventDefault()
             setError("")
             startTransition(async () => {
-              const res = await replyToReview(r.id, reply)
-              if (!res.ok) setError(nl ? "Reactie kon niet worden opgeslagen." : "Reply could not be saved.")
+              const res = await replyToReview(r.id, reply).catch(() => null)
+              if (!res?.ok) setError(nl ? "Reactie kon niet worden opgeslagen." : "Reply could not be saved.")
               else router.refresh()
             })
           }}

@@ -267,7 +267,19 @@ export const professionalProfiles = pgTable("professional_profiles", {
     .$type<{
       checklist?: Record<string, boolean>
       notes?: { id: string; author: string; date: string; text: string }[]
-      timeline?: { id: string; type: string; date: string; title: string; description?: string; author: string }[]
+      timeline?: {
+        id: string
+        type: string
+        date: string
+        title: string
+        description?: string
+        author: string
+        missing?: string[]
+        reason?: string
+        message?: string
+      }[]
+      /** What the professional still has to add: keys of MISSING_POINTS in lib/review-points. */
+      missing?: string[]
     }>()
     .notNull()
     .default({}),

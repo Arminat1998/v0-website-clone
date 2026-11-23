@@ -11,8 +11,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const submissions = await loadSubmissions()
 
   return (
-    <AdminSubmissionsProvider initialSubmissions={submissions} adminName={admin.name}>
-      <AdminShell>{children}</AdminShell>
+    <AdminSubmissionsProvider initialSubmissions={submissions}>
+      <AdminShell adminName={admin.name}>{children}</AdminShell>
     </AdminSubmissionsProvider>
   )
 }

@@ -68,9 +68,9 @@ export function UserActions({
     const done = action
     setError("")
     startTransition(async () => {
-      const result = await calls[done]()
-      if (!result.ok) {
-        setError(result.error ?? "")
+      const result = await calls[done]().catch(() => null)
+      if (!result?.ok) {
+        setError(result?.error || t.actionFailed)
         return
       }
       close()

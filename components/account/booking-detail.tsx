@@ -20,7 +20,8 @@ import { FavoriteButton } from "./favorite-button";
 import { BookingAudio } from "@/components/booking/booking-audio";
 import { audioDisplayName, hasAudioFile, type AudioKind } from "@/lib/bookings/audio";
 import { equipmentLabel } from "@/lib/bookings/pricing";
-import { canonicalEventType, eventTypeLabel, genreLabel } from "@/lib/profile-options";
+import { canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "@/lib/profile-options";
+import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
 
@@ -81,6 +82,8 @@ export function AccountBookingDetail({
       </div>
     );
   }
+  const status = displayStatus(b);
+  const closed = status === "rejected" || status === "cancelled" || status === "expired";
   const hasMusic =
     b.openingDanceLink || b.openingDanceFileName || b.lastSongLink || b.lastSongFileName;
   return (
@@ -94,7 +97,7 @@ export function AccountBookingDetail({
       <AccountHeading
         title={b.eventName}
         description={`${nl ? "Boeking" : "Booking"} #${b.id} · ${b.professionalName}`}
-        action={<BookingBadge status={b.status} />}
+        action={<BookingBadge status={status} />}
       />
       {(b.responseMessage || b.rejectionReason) && (
         <Alert>
@@ -162,7 +165,7 @@ export function AccountBookingDetail({
                   {detail("Dresscode", b.dressCode)}
                   {detail(
                     nl ? "Muziekgenres" : "Music genres",
-                    b.musicGenres.map((genre) => genreLabel(genre, nl)).join(", "),
+                    b.musicGenres.map((genre) => genreLabel(canonicalGenre(genre), nl)).join(", "),
                   )}
                   {detail(
                     nl ? "Apparatuur" : "Equipment",
@@ -236,9 +239,17 @@ export function AccountBookingDetail({
               <h2>{b.professionalName}</h2>
             </CardTitle>
               <CardDescription>
-                {nl
-                  ? "Stel je vragen of stem details af via de chat."
-                  : "Ask questions or align details via chat."}
+                {status === "expired"
+                  ? nl
+                    ? "De datum van deze aanvraag is verstreken. Bekijk welke andere professionals bij je evenement passen."
+                    : "The date of this request has passed. See which other professionals suit your event."
+                  : closed
+                    ? nl
+                      ? "Deze boeking gaat niet door. Bekijk welke andere professionals bij je evenement passen."
+                      : "This booking will not take place. See which other professionals suit your event."
+                    : nl
+                      ? "Stel je vragen of stem details af via de chat."
+                      : "Ask questions or align details via chat."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
@@ -252,8 +263,15 @@ export function AccountBookingDetail({
                   </Link>
                 </Button>
               )}
+              {closed && (
+                <Button asChild className="min-h-11">
+                  <Link href={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}>
+                    {nl ? "Andere professionals bekijken" : "See other professionals"}
+                  </Link>
+                </Button>
+              )}
               <MessageButton
-                variant={reviewToken ? "outline" : "default"}
+                variant={closed || reviewToken ? "outline" : "default"}
                 professionalId={b.professionalId}
                 label={nl ? "Stuur een bericht" : "Send a message"}
               />

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 
 type Mode = "idle" | "accept" | "reject"
 
-export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
+export function BookingRespondPanel({ bookingId, expired = false, photo = false }: { bookingId: number; expired?: boolean; photo?: boolean }) {
   const { t, language } = useBookingT()
   const nl = language !== "en"
   const router = useRouter()
@@ -58,11 +58,18 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
       <h2 id="respond-heading" className="text-base font-semibold text-foreground">
         {t.detail.respondTitle}
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">{t.detail.respondNote}</p>
+      <p id="respond-note" className="mt-1 text-sm text-muted-foreground">
+        {expired ? t.detail.expiredNote : t.detail.respondNote}
+      </p>
 
       {mode === "idle" ? (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <Button onClick={() => setMode("accept")} className="flex-1 bg-green-700 text-white hover:bg-green-800">
+          <Button
+            onClick={() => setMode("accept")}
+            disabled={expired}
+            aria-describedby="respond-note"
+            className="flex-1 bg-green-700 text-white hover:bg-green-800"
+          >
             <Check className="mr-2 h-4 w-4" aria-hidden />
             {t.requests.accept}
           </Button>
@@ -86,7 +93,7 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
               onChange={(event) => setMessage(event.target.value)}
               rows={4}
               required={mode === "reject"}
-              placeholder={mode === "accept" ? t.detail.acceptPlaceholder : t.detail.rejectPlaceholder}
+              placeholder={mode === "accept" ? (photo ? t.detail.acceptPlaceholderPhoto : t.detail.acceptPlaceholder) : t.detail.rejectPlaceholder}
               className="w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm font-normal text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </label>

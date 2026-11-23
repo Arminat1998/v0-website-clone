@@ -10,6 +10,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { MessageButton } from "@/components/chat/message-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -23,6 +24,7 @@ import {
   type PaymentStep,
 } from "@/lib/bookings/payments";
 import { euro } from "./account-common";
+import { displayStatus } from "@/lib/bookings/display-status";
 import { bookingVatCents } from "@/lib/bookings/pricing";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 
@@ -112,6 +114,7 @@ export function BookingPayment({
   bank: BankDetails | null;
 }) {
   const nl = useLanguage().language === "nl";
+  const supportLabel = nl ? "Bericht aan ARSI Events" : "Message ARSI Events";
   const s = paymentSummary(b, invoice);
   const quoted = b.status !== "pending" && s.active;
   const currentIndex = PAYMENT_STEPS.indexOf(s.current);
@@ -174,7 +177,8 @@ export function BookingPayment({
     return index === currentIndex ? "current" : "upcoming";
   }
 
-  if (!s.active) {
+  const expired = displayStatus(b) === "expired";
+  if (!s.active || expired) {
     return (
       <Card>
         <CardHeader>
@@ -190,11 +194,20 @@ export function BookingPayment({
                 ? nl
                   ? "Deze boeking gaat niet door. Neem contact op met ARSI Events over je betaling."
                   : "This booking will not take place. Contact ARSI Events about your payment."
-                : nl
-                  ? "Deze boeking gaat niet door. Je hoeft niets te betalen."
-                  : "This booking will not take place. You do not have to pay anything."}
+                : expired
+                  ? nl
+                    ? "De datum van deze aanvraag is verstreken. Je hoeft niets te betalen."
+                    : "The date of this request has passed. You do not have to pay anything."
+                  : nl
+                    ? "Deze boeking gaat niet door. Je hoeft niets te betalen."
+                    : "This booking will not take place. You do not have to pay anything."}
           </CardDescription>
         </CardHeader>
+        {s.depositPaid && b.paymentStatus !== "refunded" && (
+          <CardContent>
+            <MessageButton label={supportLabel} />
+          </CardContent>
+        )}
       </Card>
     );
   }
@@ -310,6 +323,7 @@ export function BookingPayment({
                     ? "De betaalgegevens staan hier nog niet. Neem contact op met ARSI Events om te betalen."
                     : "The payment details are not available here yet. Contact ARSI Events to pay."}
                 </p>
+                <MessageButton label={supportLabel} />
               </div>
             )}
           </CardContent>

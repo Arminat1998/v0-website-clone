@@ -29,6 +29,7 @@ import {
   eventDate,
 } from "./account-common";
 import { BookingRows } from "./booking-list";
+import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBooking } from "@/app/actions/bookings";
 import type { CustomerNotice } from "@/app/actions/customer";
 import { NoticeLink } from "./notifications";
@@ -70,7 +71,7 @@ export function AccountOverview({
     },
     {
       label: nl ? "Openstaande aanvragen" : "Pending requests",
-      value: bookings.filter((b) => b.status === "pending").length,
+      value: bookings.filter((b) => displayStatus(b) === "pending").length,
       icon: Clock3,
       href: "/account/boekingen?status=pending",
     },
