@@ -769,7 +769,7 @@ export default function BookingPage() {
               <img 
                 src={professional.banner || professionalImage} 
                 alt={`${professional.name} header`} 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover object-[50%_25%]" 
               />
             </div>
             
@@ -778,7 +778,7 @@ export default function BookingPage() {
                 <img 
                   src={professional.avatar || professionalImage} 
                   alt={professional.name} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover object-[50%_25%]" 
                 />
               </div>
               

@@ -53,7 +53,7 @@ export function ArtistPortfolio({ content, artistName }: ArtistPortfolioProps) {
                     src={mediaUrl(path)}
                     alt={`${artistName} photo ${index + 1}`}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-cover object-[50%_25%] transition-transform duration-300 group-hover:scale-105"
                   />
                 </button>
               </li>

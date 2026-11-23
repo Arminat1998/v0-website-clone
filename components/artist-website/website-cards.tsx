@@ -252,7 +252,7 @@ export function PhotosCard({ limit, columns = "sm:grid-cols-3" }: { limit?: numb
                   src={mediaUrl(path) || "/placeholder.svg"}
                   alt={`${artist.name} ${index + 1}`}
                   loading="lazy"
-                  className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  className="size-full object-cover object-[50%_25%] transition-transform duration-300 group-hover:scale-105"
                 />
               </button>
             </li>

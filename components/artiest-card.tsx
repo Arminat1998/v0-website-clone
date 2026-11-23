@@ -47,7 +47,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
         <img
           src={artist.banner || artist.image || `/placeholder.svg?height=200&width=400&query=${artist.category} performance`}
           alt={artist.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover object-[50%_25%] group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
 
@@ -80,7 +80,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
               <img
                 src={artist.avatar || artist.image || `/placeholder.svg?height=96&width=96&query=${artist.name} profile`}
                 alt={artist.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-[50%_25%]"
               />
             </div>
           </div>

@@ -102,13 +102,13 @@ export function ArtistProfileView({
         <div className="relative">
           {/* Hero Image */}
           <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
-            <img src={artistImage || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
+            <img src={artistImage || "/placeholder.svg"} alt="" className="h-full w-full object-cover object-[50%_25%]" />
             {heroAction}
           </div>
 
           {/* Profile Image */}
           <div className="absolute -bottom-14 left-3 z-10 size-28 overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg sm:-bottom-20 sm:left-6 sm:size-44">
-            <img src={profileImage || "/placeholder.svg"} alt={artist.name} className="h-full w-full object-cover" />
+            <img src={profileImage || "/placeholder.svg"} alt={artist.name} className="h-full w-full object-cover object-[50%_25%]" />
           </div>
         </div>
 

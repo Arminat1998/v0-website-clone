@@ -75,7 +75,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
     >
       <article className="touch-targets w-full">
         <div className="relative h-56 overflow-hidden rounded-xl bg-muted sm:h-80 lg:h-[26rem]">
-          {bannerSrc && <img src={bannerSrc || "/placeholder.svg"} alt="" className="size-full object-cover" />}
+          {bannerSrc && <img src={bannerSrc || "/placeholder.svg"} alt="" className="size-full object-cover object-[50%_25%]" />}
           {!edit && <ArtistShareButton />}
           {edit && (
             <div className="absolute bottom-4 right-4 flex gap-2">
@@ -112,7 +112,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
             <div className="relative -mt-14 size-28 shrink-0 sm:-mt-20 sm:size-44">
               <div className="size-full overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg">
-                {avatarSrc && <img src={avatarSrc || "/placeholder.svg"} alt={artist.name} className="size-full object-cover" />}
+                {avatarSrc && <img src={avatarSrc || "/placeholder.svg"} alt={artist.name} className="size-full object-cover object-[50%_25%]" />}
               </div>
               {edit && (
                 <>

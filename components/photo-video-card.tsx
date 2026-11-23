@@ -45,7 +45,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
         <img
           src={professional.banner || professional.image || `/placeholder.svg?height=200&width=400&query=${professional.category}`}
           alt={professional.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover object-[50%_25%] group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
 
@@ -78,7 +78,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
               <img
                 src={professional.avatar || professional.image || `/placeholder.svg?height=96&width=96&query=${professional.name}`}
                 alt={professional.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-[50%_25%]"
               />
             </div>
           </div>
