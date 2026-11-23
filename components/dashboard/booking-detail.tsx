@@ -36,6 +36,7 @@ import {
   shiftTime,
 } from "@/lib/bookings/format"
 import { audioDisplayName } from "@/lib/bookings/audio"
+import { MessageButton } from "@/components/chat/message-button"
 import { BookingAudio } from "@/components/booking/booking-audio"
 import { BookingStatusBadge } from "./booking-status-badge"
 import { BookingPricingCard } from "./booking-pricing-card"
@@ -96,6 +97,8 @@ function ExternalRef({ href, label }: { href: string; label: string }) {
 export function BookingDetail({ booking, invoice = null }: { booking: Booking; invoice?: Invoice | null }) {
   const { t, locale } = useBookingT()
   const isActive = isContactUnlocked(booking.status)
+  // Old bookings can be without an account, so there is nobody to write to.
+  const canMessage = Boolean(booking.customerId) && (booking.status === "pending" || isActive)
   const address = eventAddress(booking)
   const billing = billingAddress(booking)
   const notProvided = <span className="text-muted-foreground">{t.common.notProvided}</span>
@@ -401,6 +404,11 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
               </Field>
               <Field label={t.detail.paymentMethod}>{t.paymentMethod[booking.paymentMethod]}</Field>
             </dl>
+            )}
+            {canMessage && (
+              <div className="mt-4 flex">
+                <MessageButton bookingId={booking.id} label={t.detail.sendMessage} variant="outline" />
+              </div>
             )}
           </Section>
         </div>

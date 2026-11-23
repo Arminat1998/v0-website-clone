@@ -19,10 +19,13 @@ export function ChatInbox({
   initialInbox,
   initialId,
   canContactSupport = false,
+  startsFromBooking = false,
 }: {
   initialInbox: InboxItem[]
   initialId?: number
   canContactSupport?: boolean
+  /** The viewer can open a conversation from one of their bookings. */
+  startsFromBooking?: boolean
 }) {
   const nl = useLanguage().language === "nl"
   const locale = nl ? "nl-NL" : "en-GB"
@@ -119,9 +122,13 @@ export function ChatInbox({
                   ? nl
                     ? "Nog geen gesprekken. Start een gesprek vanuit een boeking, of neem contact op met support."
                     : "No conversations yet. Start one from a booking, or contact support."
-                  : nl
-                    ? "Nog geen gesprekken."
-                    : "No conversations yet."}
+                  : startsFromBooking
+                    ? nl
+                      ? "Nog geen gesprekken. Start een gesprek vanuit een boeking."
+                      : "No conversations yet. Start one from a booking."
+                    : nl
+                      ? "Nog geen gesprekken."
+                      : "No conversations yet."}
               </p>
             </li>
           )}
