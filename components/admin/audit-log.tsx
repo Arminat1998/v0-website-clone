@@ -33,7 +33,7 @@ export function AuditLog({ entries, compact = false }: { entries: AuditEntry[]; 
             </p>
             {entry.details && <p className="text-muted-foreground break-words">{entry.details}</p>}
           </div>
-          <p className="text-xs text-muted-foreground whitespace-nowrap">
+          <p className="text-xs text-muted-foreground sm:whitespace-nowrap">
             {t.by} {entry.adminName} · {formatDate(entry.createdAt, true)}
           </p>
         </li>

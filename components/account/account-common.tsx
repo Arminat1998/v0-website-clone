@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CalendarDays, ArrowUpRight, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
+import { useBookingT } from "@/lib/booking-i18n";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,32 +18,14 @@ import type { DisplayStatus } from "@/lib/bookings/display-status";
 import { statusStyles } from "@/components/dashboard/booking-status-badge";
 import { cn } from "@/lib/utils";
 
-export const statusLabels = {
-  nl: {
-    pending: "In afwachting",
-    accepted: "Geaccepteerd",
-    rejected: "Afgewezen",
-    completed: "Afgerond",
-    cancelled: "Geannuleerd",
-    expired: "Datum verstreken",
-  },
-  en: {
-    pending: "Pending",
-    accepted: "Accepted",
-    rejected: "Declined",
-    completed: "Completed",
-    cancelled: "Cancelled",
-    expired: "Date passed",
-  },
-};
 export function BookingBadge({ status }: { status: DisplayStatus }) {
-  const { language } = useLanguage();
+  const { t } = useBookingT();
   return (
     <Badge
       variant="outline"
       className={cn("border-transparent", statusStyles[status])}
     >
-      {statusLabels[language][status]}
+      {t.status[status]}
     </Badge>
   );
 }

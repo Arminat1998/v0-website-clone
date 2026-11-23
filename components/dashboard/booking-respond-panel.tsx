@@ -119,7 +119,7 @@ export function BookingRespondPanel({ bookingId, expired = false, photo = false 
                 t.detail.confirmReject
               )}
             </Button>
-            <Button type="button" variant="ghost" disabled={isPending} onClick={() => setMode("idle")} className="text-foreground">
+            <Button type="button" variant="ghost" disabled={isPending} onClick={() => { setMode("idle"); setError("") }} className="text-foreground">
               {t.detail.cancel}
             </Button>
           </div>

@@ -27,12 +27,14 @@ import { euro } from "./account-common";
 import { displayStatus } from "@/lib/bookings/display-status";
 import { bookingVatCents } from "@/lib/bookings/pricing";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
+import { BOOKING_TIME_ZONE } from "@/lib/bookings/format";
 
 function date(value: Date | string, nl: boolean) {
   return new Date(value).toLocaleDateString(nl ? "nl-NL" : "en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: BOOKING_TIME_ZONE,
   });
 }
 
