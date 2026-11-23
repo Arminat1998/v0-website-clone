@@ -21,7 +21,7 @@ import { resolveCustomerProfessional } from "@/lib/customer-catalog"
 import { createReviewInvite } from "@/lib/reviews"
 import { emailAccepted, emailNewRequest, emailRejected } from "@/lib/email"
 import { isDemoProfessional } from "@/lib/demo-professionals"
-import { logError } from "@/lib/log-error"
+import { logError, withoutValues } from "@/lib/log-error"
 
 export type CustomerBooking = Pick<
   Booking,
@@ -412,6 +412,10 @@ export async function acceptBooking(id: number, message: string): Promise<Accept
 export type RespondResult = { ok: true } | { ok: false; error: "NOT_FOUND" }
 
 export async function rejectBooking(id: number, reason: string): Promise<RespondResult> {
+  return withoutValues("Failed to reject the booking:", () => runRejectBooking(id, reason))
+}
+
+async function runRejectBooking(id: number, reason: string): Promise<RespondResult> {
   const professionalId = await getProfessionalId()
   if (!isBookingId(id)) return { ok: false, error: "NOT_FOUND" }
   const rejected = await db.transaction(async (tx) => {
