@@ -30,17 +30,23 @@ export function ChatInbox({
   const nl = useLanguage().language === "nl"
   const locale = nl ? "nl-NL" : "en-GB"
   const [selectedId, setSelectedId] = useState<number | null>(initialId ?? null)
-  const [draft, setDraft] = useState("")
-  const [error, setError] = useState("")
+  // What was typed but not sent, per conversation, so it can never end up with someone else.
+  const [drafts, setDrafts] = useState<Record<number, string>>({})
+  // The conversation the problem belongs to; null for the list.
+  const [problem, setProblem] = useState<{ id: number | null; text: string } | null>(null)
   const [pending, startTransition] = useTransition()
   const endRef = useRef<HTMLDivElement>(null)
 
   const inbox = useSWR("chat-inbox", () => getInbox(), { fallbackData: initialInbox, refreshInterval: 10000 })
-  const thread = useSWR(selectedId ? ["chat-thread", selectedId] : null, () => getThread(selectedId!), {
+  const items = inbox.data ?? []
+  // The cached list can be older than the one this page was opened with.
+  const selected = items.find((item) => item.id === selectedId) ?? initialInbox.find((item) => item.id === selectedId)
+  const thread = useSWR(selected ? ["chat-thread", selected.id] : null, () => getThread(selected!.id), {
     refreshInterval: 4000,
   })
-  const items = inbox.data ?? []
-  const selected = items.find((item) => item.id === selectedId)
+  const draft = selected ? (drafts[selected.id] ?? "") : ""
+  const error = problem && problem.id === (selected?.id ?? null) ? problem.text : ""
+  const notFound = selectedId !== null && !selected
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" })
@@ -48,45 +54,52 @@ export function ChatInbox({
 
   function select(id: number) {
     setSelectedId(id)
-    setError("")
+    // A message that did not arrive stays marked in its own conversation.
+    setProblem((current) => (current?.id ? current : null))
     inbox.mutate((list) => list?.map((item) => (item.id === id ? { ...item, unread: false } : item)), {
       revalidate: false,
     })
   }
 
   function contactSupport() {
-    setError("")
+    setProblem(null)
     startTransition(async () => {
       try {
         const id = await openConversation(null)
         await inbox.mutate()
         select(id)
       } catch {
-        setError(nl ? "Het gesprek kon niet worden geopend. Probeer opnieuw." : "Could not open the conversation. Try again.")
+        setProblem({
+          id: null,
+          text: nl ? "Het gesprek kon niet worden geopend. Probeer opnieuw." : "Could not open the conversation. Try again.",
+        })
       }
     })
   }
 
   function submit() {
-    if (!selectedId || !draft.trim() || pending) return
+    if (!selected || !draft.trim() || pending) return
+    const id = selected.id
     const body = draft
-    setError("")
+    setProblem(null)
     startTransition(async () => {
       // The text stays in the field until the server has the message.
-      const result = await sendMessage(selectedId, body).catch(() => ({ ok: false as const, error: "offline" }))
+      const result = await sendMessage(id, body).catch(() => ({ ok: false as const, error: "offline" }))
       if (!result.ok) {
-        setError(
-          result.error === "too_many"
-            ? nl
-              ? "Je hebt veel berichten achter elkaar gestuurd. Wacht een minuut en verstuur dan opnieuw."
-              : "You sent a lot of messages in a row. Wait a minute and send again."
-            : nl
-              ? "Versturen is niet gelukt. Probeer opnieuw."
-              : "Could not send. Try again.",
-        )
+        setProblem({
+          id,
+          text:
+            result.error === "too_many"
+              ? nl
+                ? "Je hebt veel berichten achter elkaar gestuurd. Wacht een minuut en verstuur dan opnieuw."
+                : "You sent a lot of messages in a row. Wait a minute and send again."
+              : nl
+                ? "Versturen is niet gelukt. Probeer opnieuw."
+                : "Could not send. Try again.",
+        })
         return
       }
-      setDraft((current) => (current === body ? "" : current))
+      setDrafts((current) => (current[id] === body ? { ...current, [id]: "" } : current))
       await Promise.all([thread.mutate(), inbox.mutate()])
     })
   }
@@ -98,7 +111,7 @@ export function ChatInbox({
 
   return (
     <div className="flex h-[calc(100vh-14rem)] min-h-[480px] overflow-hidden rounded-xl border bg-card">
-      <aside className={cn("w-full flex-col border-r md:flex md:w-80", selectedId ? "hidden" : "flex")}>
+      <aside className={cn("w-full flex-col border-r md:flex md:w-80", selected ? "hidden" : "flex")}>
         <div className="flex items-center justify-between gap-2 border-b p-4">
           <h2 className="font-semibold">{nl ? "Gesprekken" : "Conversations"}</h2>
           {canContactSupport && !hasSupport && (
@@ -108,9 +121,12 @@ export function ChatInbox({
             </Button>
           )}
         </div>
-        {error && !selected && (
+        {!selected && (error || notFound) && (
           <p role="alert" className="border-b p-4 text-sm text-red-700 dark:text-red-400">
-            {error}
+            {error ||
+              (nl
+                ? "Dit gesprek is niet gevonden. Kies een gesprek uit de lijst."
+                : "This conversation was not found. Choose one from the list.")}
           </p>
         )}
         <ul className="flex-1 overflow-y-auto">
@@ -169,7 +185,7 @@ export function ChatInbox({
         </ul>
       </aside>
 
-      <section className={cn("min-w-0 flex-1 flex-col md:flex", selectedId ? "flex" : "hidden")}>
+      <section className={cn("min-w-0 flex-1 flex-col md:flex", selected ? "flex" : "hidden")}>
         {selected ? (
           <>
             <header className="flex items-center gap-3 border-b p-4">
@@ -245,7 +261,10 @@ export function ChatInbox({
                   value={draft}
                   maxLength={2000}
                   autoComplete="off"
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    const text = e.target.value
+                    setDrafts((current) => ({ ...current, [selected.id]: text }))
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.nativeEvent.isComposing || e.keyCode === 229)) e.preventDefault()
                   }}
@@ -257,7 +276,7 @@ export function ChatInbox({
                 </Button>
               </div>
               {error && (
-                <p role="alert" className="text-sm text-destructive">
+                <p role="alert" className="text-sm text-red-700 dark:text-red-400">
                   {error}
                 </p>
               )}
