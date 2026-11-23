@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
-import { Check, Copy, ExternalLink, Loader2 } from "lucide-react"
+import { Check, Copy, ExternalLink, EyeOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ArtistWebsite } from "@/components/artist-website/artist-website"
 import type { UploadKind, WebsiteEditApi } from "@/components/artist-website/website-context"
@@ -18,6 +18,7 @@ const copy = {
     title: "Mijn website",
     subtitle: "Zo zien bezoekers je pagina. Klik op een potlood om een onderdeel te wijzigen.",
     viewPage: "Bekijk pagina",
+    visibleAfterApproval: "Zichtbaar na goedkeuring",
     copyLink: "Kopieer link",
     copied: "Gekopieerd",
     unsaved: "Je hebt niet-opgeslagen wijzigingen",
@@ -36,6 +37,7 @@ const copy = {
     title: "My website",
     subtitle: "This is how visitors see your page. Click a pencil to change a section.",
     viewPage: "View page",
+    visibleAfterApproval: "Visible after approval",
     copyLink: "Copy link",
     copied: "Copied",
     unsaved: "You have unsaved changes",
@@ -57,7 +59,8 @@ type Copy = (typeof copy)["nl"]
 interface ArtistPageEditorProps {
   initialContent: ArtistPageContent
   artist: Artist
-  artistPath: string
+  /** The page visitors see; null until the profile has been approved. */
+  artistPath: string | null
 }
 
 async function uploadImage(file: File, kind: UploadKind, t: Copy) {
@@ -147,6 +150,7 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
   }
 
   async function copyLink() {
+    if (!artistPath) return
     await navigator.clipboard.writeText(`${window.location.origin}${artistPath}`)
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
@@ -168,18 +172,25 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
           <h1 className="text-2xl font-bold text-foreground text-balance sm:text-3xl">{t.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.subtitle}</p>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={copyLink}>
-            {linkCopied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
-            {linkCopied ? t.copied : t.copyLink}
-          </Button>
-          <Button asChild size="sm">
-            <Link href={artistPath} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-4" aria-hidden="true" />
-              {t.viewPage}
-            </Link>
-          </Button>
-        </div>
+        {artistPath ? (
+          <div className="flex shrink-0 gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={copyLink}>
+              {linkCopied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+              {linkCopied ? t.copied : t.copyLink}
+            </Button>
+            <Button asChild size="sm">
+              <Link href={artistPath} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="size-4" aria-hidden="true" />
+                {t.viewPage}
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <p className="inline-flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+            <EyeOff className="size-4" aria-hidden="true" />
+            {t.visibleAfterApproval}
+          </p>
+        )}
       </header>
 
       <ArtistWebsite artist={artist} content={draft} edit={edit} />

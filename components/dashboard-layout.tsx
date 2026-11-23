@@ -9,7 +9,6 @@ import {
   CalendarCheck,
   CalendarDays,
   CheckCircle2,
-  FileText,
   Globe,
   Inbox,
   LayoutDashboard,
@@ -64,7 +63,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { label: t.reviews, href: "/dashboard/reviews", icon: Star },
     { label: nl ? "Profiel bewerken" : t.editProfile, href: "/dashboard/edit-profile", icon: UserRound },
     { label: nl ? "Mijn website" : t.myWebsite, href: "/dashboard/my-page", icon: Globe },
-    { label: t.agreement, href: "/dashboard/agreement", icon: FileText },
   ]
   const active = items.find((item) => pathname === item.href)
   const name = sessionData?.user?.name ?? ""

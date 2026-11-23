@@ -39,7 +39,10 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setSent(false)
+    if (!next) {
+      setSent(false)
+      setError(null)
+    }
     onOpenChange(next)
   }
 

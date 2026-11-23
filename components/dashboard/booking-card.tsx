@@ -5,6 +5,7 @@ import { ArrowRight, Calendar, Clock, MapPin, Users } from "lucide-react"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking } from "@/lib/db/schema"
 import type { InvoiceSummary } from "@/app/actions/bookings"
+import { displayStatus } from "@/lib/bookings/display-status"
 import { canonicalEventType, eventTypeLabel } from "@/lib/profile-options"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { clientName, daysUntil, formatEventDate, formatShortDate } from "@/lib/bookings/format"
@@ -22,7 +23,8 @@ export function BookingCard({
   const { t, locale } = useBookingT()
   const needsInvoice = booking.status === "completed" && booking.invoice === null
   const days = daysUntil(booking.eventDate)
-  const isNew = booking.status === "pending" && Date.now() - new Date(booking.createdAt).getTime() < 48 * 3600 * 1000
+  const status = displayStatus(booking)
+  const isNew = status === "pending" && Date.now() - new Date(booking.createdAt).getTime() < 48 * 3600 * 1000
 
   const countdown =
     booking.status !== "accepted"
@@ -41,7 +43,7 @@ export function BookingCard({
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <BookingStatusBadge status={booking.status} />
+            <BookingStatusBadge status={status} />
             {isNew && (
               <span className="inline-flex items-center rounded-md bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-700 dark:text-red-400">
                 {t.requests.newBadge}

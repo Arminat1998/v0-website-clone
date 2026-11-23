@@ -1,18 +1,20 @@
 "use client"
 
 import { useBookingT } from "@/lib/booking-i18n"
-import type { BookingStatus, InvoiceStatus, PaymentStatus, PayoutStatus } from "@/lib/db/schema"
+import type { DisplayStatus } from "@/lib/bookings/display-status"
+import type { InvoiceStatus, PaymentStatus, PayoutStatus } from "@/lib/db/schema"
 import { cn } from "@/lib/utils"
 
-const statusStyles: Record<BookingStatus, string> = {
+const statusStyles: Record<DisplayStatus, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
   accepted: "bg-green-500/10 text-green-800 dark:text-green-500",
   rejected: "bg-muted text-muted-foreground",
   completed: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   cancelled: "bg-muted text-muted-foreground",
+  expired: "bg-muted text-muted-foreground",
 }
 
-export function BookingStatusBadge({ status, className }: { status: BookingStatus; className?: string }) {
+export function BookingStatusBadge({ status, className }: { status: DisplayStatus; className?: string }) {
   const { t } = useBookingT()
   return (
     <span className={cn("inline-flex items-center rounded-md px-3 py-1 text-sm font-medium", statusStyles[status], className)}>

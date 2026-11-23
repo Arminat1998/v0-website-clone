@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react"
 import { Loader2 } from "lucide-react"
-import { saveBillingProfile } from "@/app/actions/invoices"
+import { saveBillingProfile, type BillingProfileErrors } from "@/app/actions/invoices"
 import { useBookingT } from "@/lib/booking-i18n"
 import type { BillingProfile, VatScheme } from "@/lib/db/schema"
 import { Button } from "@/components/ui/button"
@@ -13,24 +13,29 @@ import { digitsOnly, lettersOnly, postalCodeChars } from "@/lib/input-filters"
 interface Props {
   profile: BillingProfile
   onSaved: (profile: BillingProfile) => void
+  /** Only needed on invoices ARSI Events makes; an uploaded invoice already shows the address. */
+  addressRequired?: boolean
 }
 
-export function BillingProfileForm({ profile, onSaved }: Props) {
+export function BillingProfileForm({ profile, onSaved, addressRequired = true }: Props) {
   const { t } = useBookingT()
   const tf = t.invoice.form
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<BillingProfileErrors>({})
   const [vatScheme, setVatScheme] = useState<VatScheme>(profile.vatScheme)
   const [performanceVatRate, setPerformanceVatRate] = useState(profile.performanceVatRate)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
     const value = (key: string) => String(data.get(key) ?? "")
     setError(null)
+    setErrors({})
     startTransition(async () => {
       try {
-        const saved = await saveBillingProfile({
+        const result = await saveBillingProfile({
           businessName: value("businessName"),
           kvkNumber: value("kvkNumber"),
           vatNumber: value("vatNumber"),
@@ -45,7 +50,13 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
           invoicePrefix: value("invoicePrefix"),
           nextInvoiceNumber: Number.parseInt(value("nextInvoiceNumber"), 10),
         })
-        onSaved(saved)
+        if (result.ok) {
+          onSaved(result.profile)
+          return
+        }
+        setErrors(result.errors)
+        const first = form.elements.namedItem(result.errors.businessName ? "businessName" : "iban")
+        if (first instanceof HTMLElement) first.focus()
       } catch {
         setError(tf.error)
       }
@@ -59,7 +70,20 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className={`${field} sm:col-span-2`}>
           <Label htmlFor="businessName">{tf.businessName}</Label>
-          <Input id="businessName" name="businessName" defaultValue={profile.businessName} required autoComplete="organization" />
+          <Input
+            id="businessName"
+            name="businessName"
+            defaultValue={profile.businessName}
+            required
+            autoComplete="organization"
+            aria-invalid={Boolean(errors.businessName)}
+            aria-describedby={errors.businessName ? "businessName-error" : undefined}
+          />
+          {errors.businessName && (
+            <p id="businessName-error" role="alert" className="text-sm text-red-500">
+              {tf.errorBusinessName}
+            </p>
+          )}
         </div>
         <div className={field}>
           <Label htmlFor="kvkNumber">{tf.kvk}</Label>
@@ -67,7 +91,21 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
         </div>
         <div className={field}>
           <Label htmlFor="iban">{tf.iban}</Label>
-          <Input id="iban" name="iban" defaultValue={profile.iban ?? ""} required placeholder="NL00 BANK 0000 0000 00" className="font-mono" />
+          <Input
+            id="iban"
+            name="iban"
+            defaultValue={profile.iban ?? ""}
+            required
+            placeholder="NL00 BANK 0000 0000 00"
+            className="font-mono"
+            aria-invalid={Boolean(errors.iban)}
+            aria-describedby={errors.iban ? "iban-error" : undefined}
+          />
+          {errors.iban && (
+            <p id="iban-error" role="alert" className="text-sm text-red-500">
+              {errors.iban === "REQUIRED" ? tf.errorIbanRequired : tf.errorIbanInvalid}
+            </p>
+          )}
         </div>
       </div>
 
@@ -111,7 +149,7 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
       <div className="grid grid-cols-6 gap-4">
         <div className={`${field} col-span-4`}>
           <Label htmlFor="street">{tf.street}</Label>
-          <Input id="street" name="street" defaultValue={profile.street ?? ""} required autoComplete="address-line1" />
+          <Input id="street" name="street" defaultValue={profile.street ?? ""} required={addressRequired} autoComplete="address-line1" />
         </div>
         <div className={`${field} col-span-2`}>
           <Label htmlFor="houseNumber">{tf.houseNumber}</Label>
@@ -119,11 +157,11 @@ export function BillingProfileForm({ profile, onSaved }: Props) {
         </div>
         <div className={`${field} col-span-2`}>
           <Label htmlFor="postalCode">{tf.postalCode}</Label>
-          <Input id="postalCode" name="postalCode" onInput={(e) => (e.currentTarget.value = postalCodeChars(e.currentTarget.value))} defaultValue={profile.postalCode ?? ""} required autoComplete="postal-code" />
+          <Input id="postalCode" name="postalCode" onInput={(e) => (e.currentTarget.value = postalCodeChars(e.currentTarget.value))} defaultValue={profile.postalCode ?? ""} required={addressRequired} autoComplete="postal-code" />
         </div>
         <div className={`${field} col-span-4 sm:col-span-2`}>
           <Label htmlFor="city">{tf.city}</Label>
-          <Input id="city" name="city" onInput={(e) => (e.currentTarget.value = lettersOnly(e.currentTarget.value))} defaultValue={profile.city ?? ""} required autoComplete="address-level2" />
+          <Input id="city" name="city" onInput={(e) => (e.currentTarget.value = lettersOnly(e.currentTarget.value))} defaultValue={profile.city ?? ""} required={addressRequired} autoComplete="address-level2" />
         </div>
         <div className={`${field} col-span-6 sm:col-span-2`}>
           <Label htmlFor="country">{tf.country}</Label>

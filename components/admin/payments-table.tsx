@@ -29,8 +29,12 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
     setError(null)
     setBusyId(row.id)
     startTransition(async () => {
-      const result = await markPaymentReceived({ bookingId: row.id, part: due.part })
-      if (!result.ok) setError(result.error)
+      try {
+        const result = await markPaymentReceived({ bookingId: row.id, part: due.part })
+        if (!result.ok) setError(result.error)
+      } catch {
+        setError(nl ? "Opslaan is mislukt. Controleer je verbinding en probeer het opnieuw." : "Saving failed. Check your connection and try again.")
+      }
       setBusyId(null)
       router.refresh()
     })

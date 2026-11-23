@@ -6,6 +6,7 @@ import { getActiveWarningsForUser } from "@/lib/admin/users"
 import { db } from "@/lib/db"
 import { professionalProfiles } from "@/lib/db/schema"
 import { logError } from "@/lib/log-error"
+import { missingPoints } from "@/lib/review-points"
 import { requireProfessionalUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
@@ -13,11 +14,16 @@ export const dynamic = "force-dynamic"
 async function getProfileReview(professionalId: string): Promise<ProfileReview | undefined> {
   try {
     const [profile] = await db
-      .select({ status: professionalProfiles.reviewStatus, message: professionalProfiles.reviewMessage })
+      .select({
+        status: professionalProfiles.reviewStatus,
+        message: professionalProfiles.reviewMessage,
+        data: professionalProfiles.reviewData,
+      })
       .from(professionalProfiles)
       .where(eq(professionalProfiles.professionalId, professionalId))
       .limit(1)
-    return profile ?? null
+    // The rest of the review data (notes, reasons) is for admins and stays on the server.
+    return profile ? { status: profile.status, message: profile.message, missing: missingPoints(profile.data?.missing) } : null
   } catch (error) {
     // Without a status the banner stays hidden rather than showing a wrong one.
     logError("Failed to load review status:", error)

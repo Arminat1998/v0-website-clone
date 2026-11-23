@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useTransition } from "react"
+import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
+import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
 import { AccountEmpty, AccountHeading } from "@/components/account/account-common"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLanguage } from "@/contexts/language-context"
@@ -13,6 +13,7 @@ import { markAllNotificationsRead } from "@/app/actions/bookings"
 import type { Notification } from "@/lib/db/schema"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { clientName, daysUntil, formatDateTime, formatEventDate } from "@/lib/bookings/format"
+import { Star } from "lucide-react"
 import { BookingCard } from "./booking-card"
 
 const notificationIcon: Record<Notification["type"], typeof Bell> = {
@@ -20,6 +21,7 @@ const notificationIcon: Record<Notification["type"], typeof Bell> = {
   payment: Banknote,
   payout: Wallet,
   reminder: Clock,
+  review: Star,
 }
 
 export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
@@ -28,6 +30,7 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
   const { t: bt, locale } = useBookingT()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [markFailed, setMarkFailed] = useState(false)
 
   const stats = [
     {
@@ -206,18 +209,28 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
                 <button
                   type="button"
                   disabled={isPending}
-                  onClick={() =>
+                  onClick={() => {
+                    setMarkFailed(false)
                     startTransition(async () => {
-                      await markAllNotificationsRead()
-                      router.refresh()
+                      try {
+                        await markAllNotificationsRead()
+                        router.refresh()
+                      } catch {
+                        setMarkFailed(true)
+                      }
                     })
-                  }
+                  }}
                   className="min-h-11 px-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
                 >
                   {bt.overview.markAllRead}
                 </button>
               )}
             </div>
+            {markFailed && (
+              <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">
+                {nl ? "Dit is niet gelukt. Probeer opnieuw." : "This did not work. Try again."}
+              </p>
+            )}
             {summary.notifications.length === 0 ? (
               <AccountEmpty
                 icon={Bell}
@@ -244,7 +257,7 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
                   return (
                     <li key={notification.id}>
                       {notification.bookingId ? (
-                        <Link href={`/dashboard/bookings/${notification.bookingId}`} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent">
+                        <Link href={notification.type === "review" ? "/dashboard/reviews" : `/dashboard/bookings/${notification.bookingId}`} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent">
                           {content}
                         </Link>
                       ) : (
@@ -256,16 +269,6 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
               </ul>
             )}
           </section>
-
-          <Link href="/dashboard/agreement" className="flex items-center gap-4 rounded-xl border border-red-500/20 bg-card p-5 shadow-sm transition-colors hover:border-brand/40 focus-visible:outline-2 focus-visible:outline-ring md:p-6">
-            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-red-500/10 md:h-12 md:w-12">
-              <FileText className="h-5 w-5 text-red-700 dark:text-red-400 md:h-6 md:w-6" aria-hidden />
-            </span>
-            <div>
-              <div className="text-lg font-semibold text-red-700 dark:text-red-400">{nl ? "Actie vereist" : t.actionNeeded}</div>
-              <div className="text-sm text-muted-foreground">{t.agreementNotAccepted}</div>
-            </div>
-          </Link>
         </aside>
       </div>
     </div>

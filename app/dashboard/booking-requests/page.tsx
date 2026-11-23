@@ -5,7 +5,7 @@ import { getBookingsByStatus } from "@/app/actions/bookings"
 export const dynamic = "force-dynamic"
 
 export default async function BookingRequestsPage() {
-  const bookings = await getBookingsByStatus("pending")
+  const bookings = await getBookingsByStatus(["pending", "rejected", "cancelled"])
 
   return (
     <DashboardLayout>

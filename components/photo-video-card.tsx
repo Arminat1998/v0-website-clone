@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import { useBookGuard } from "@/hooks/use-book-guard"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
+import { CardRating } from "@/components/artist-website/profile-rating"
 
 interface PhotoVideoCardProps {
   professional: Photographer
@@ -84,7 +85,10 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
           </div>
 
           <div className="min-w-0 flex-1 mt-12">
-            <h3 className="font-bold text-lg leading-tight mb-1 text-foreground">{professional.name}</h3>
+            <div className="mb-1 flex items-start">
+              <h3 className="min-w-0 font-bold text-lg leading-tight text-foreground">{professional.name}</h3>
+              <CardRating professional={professional} />
+            </div>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
               <span>

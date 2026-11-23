@@ -16,6 +16,7 @@ import {
   isVatExclusive,
   type InvoiceAdjustments,
   formatIban,
+  hasPayoutDetails,
   invoiceFileUrl,
   isBillingProfileComplete,
   parseEuroInput,
@@ -49,7 +50,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const [declaredTotal, setDeclaredTotal] = useState("")
   const [file, setFile] = useState<UploadedInvoiceFile | null>(null)
   const [consent, setConsent] = useState(Boolean(context.profile.selfBillingAcceptedAt))
-  const [editingProfile, setEditingProfile] = useState(!context.profileComplete)
+  const [editingProfile, setEditingProfile] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -70,7 +71,9 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const costsValid =
     (adjustments.parkingCents === 0 || Boolean(adjustments.parkingReceipt)) &&
     adjustments.extras.every((extra) => extra.description.trim().length > 0 && extra.amountCents > 0 && Boolean(extra.receipt))
-  const profileComplete = isBillingProfileComplete(profile)
+  // An uploaded invoice has the address on it; for the payout only the name and the IBAN are needed.
+  const detailsReady = method === "upload" ? hasPayoutDetails(profile) : isBillingProfileComplete(profile)
+  const showDetailsForm = editingProfile || !detailsReady
   const declaredCents = parseEuroInput(declaredTotal)
   const totalMatches = declaredCents !== null && declaredCents === totals.totalCents
 
@@ -78,10 +81,13 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const invoiceLocked =
     invoice?.status === "approved" || booking.paymentStatus === "paid" || booking.payoutStatus === "paid"
 
+  const paidOutAt = booking.payoutStatus === "paid" ? booking.paidOutAt : null
+
   const canSubmit =
-    method === "self_billing"
-      ? profileComplete && !editingProfile && invoiceNumber.trim().length > 0 && invoiceDate.length > 0 && consent
-      : invoiceNumber.trim().length > 0 && invoiceDate.length > 0 && totalMatches && file !== null
+    !showDetailsForm &&
+    invoiceNumber.trim().length > 0 &&
+    invoiceDate.length > 0 &&
+    (method === "self_billing" ? consent : totalMatches && file !== null)
 
   function chooseMethod(next: InvoiceMethod) {
     setMethod(next)
@@ -250,29 +256,31 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 </div>
               </fieldset>
 
-              {method === "self_billing" && (
-                <section aria-labelledby="details-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 id="details-heading" className="text-base font-semibold text-foreground">
-                      {ti.yourDetails}
-                    </h2>
-                    {profileComplete && (
-                      <button
-                        type="button"
-                        onClick={() => setEditingProfile((v) => !v)}
-                        className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:underline"
-                      >
-                        {editingProfile ? <X className="h-3.5 w-3.5" aria-hidden /> : <Pencil className="h-3.5 w-3.5" aria-hidden />}
-                        {editingProfile ? ti.close : ti.edit}
-                      </button>
-                    )}
-                  </div>
-                  {!profileComplete && <p className="mt-2 text-sm text-amber-500">{ti.completeDetailsFirst}</p>}
-                  <div className="mt-4">
-                    {editingProfile ? <BillingProfileForm profile={profile} onSaved={handleProfileSaved} /> : <ProfileSummary profile={profile} />}
-                  </div>
-                </section>
-              )}
+              <section aria-labelledby="details-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 id="details-heading" className="text-base font-semibold text-foreground">
+                    {ti.yourDetails}
+                  </h2>
+                  {detailsReady && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingProfile((v) => !v)}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:underline"
+                    >
+                      {editingProfile ? <X className="h-3.5 w-3.5" aria-hidden /> : <Pencil className="h-3.5 w-3.5" aria-hidden />}
+                      {editingProfile ? ti.close : ti.edit}
+                    </button>
+                  )}
+                </div>
+                {!detailsReady && <p className="mt-2 text-sm text-amber-500">{method === "upload" ? ti.payoutDetailsFirst : ti.completeDetailsFirst}</p>}
+                <div className="mt-4">
+                  {showDetailsForm ? (
+                    <BillingProfileForm profile={profile} onSaved={handleProfileSaved} addressRequired={method === "self_billing"} />
+                  ) : (
+                    <ProfileSummary profile={profile} />
+                  )}
+                </div>
+              </section>
 
               <section aria-labelledby="invoice-fields-heading" className="rounded-lg border border-border bg-card p-5 md:p-6">
                 <h2 id="invoice-fields-heading" className="text-base font-semibold text-foreground">
@@ -353,12 +361,18 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                   </p>
                 )}
 
+                {showDetailsForm && (
+                  <p id="submit-blocked" className="mt-4 text-sm text-amber-500">
+                    {method === "upload" && !detailsReady ? ti.payoutDetailsBlocked : ti.detailsBlocked}
+                  </p>
+                )}
+
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <Button variant="ghost" onClick={() => setStep(0)} className="text-muted-foreground">
                     <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
                     {ti.back}
                   </Button>
-                  <Button disabled={!canSubmit || isPending} onClick={submit} className="bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground">
+                  <Button disabled={!canSubmit || isPending} onClick={submit} aria-describedby={showDetailsForm ? "submit-blocked" : undefined} className="bg-red-600 text-white hover:bg-red-700 disabled:bg-muted disabled:text-muted-foreground">
                     {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden />}
                     {isPending ? ti.submitting : ti.submit}
                   </Button>
@@ -413,9 +427,13 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
               </span>
               <div>
                 <h1 id="done-heading" className="text-2xl font-bold text-foreground md:text-3xl">
-                  {ti.doneTitle}
+                  {paidOutAt ? ti.donePaidTitle : ti.doneTitle}
                 </h1>
-                <p className="mt-2 text-pretty text-muted-foreground">{ti.doneBody(formatEuro(pricedBooking.payoutCents, locale))}</p>
+                <p className="mt-2 text-pretty text-muted-foreground">
+                  {paidOutAt
+                    ? ti.donePaidBody(formatEuro(booking.payoutCents, locale), formatDateTime(paidOutAt, locale))
+                    : ti.doneBody(formatEuro(pricedBooking.payoutCents, locale))}
+                </p>
                 {profile.iban && (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {ti.doneIban} <span className="font-mono text-foreground">{formatIban(profile.iban)}</span>
@@ -464,6 +482,19 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 )}
               </div>
             </section>
+
+            {/* Invoices uploaded before the IBAN was required: the invoice may be locked, the payout details may not be missing. */}
+            {!hasPayoutDetails(profile) && booking.payoutStatus !== "paid" && (
+              <section aria-labelledby="missing-details-heading" className="rounded-lg border border-amber-500/40 bg-card p-5 md:p-6">
+                <h2 id="missing-details-heading" className="text-base font-semibold text-foreground">
+                  {ti.yourDetails}
+                </h2>
+                <p className="mt-2 text-sm text-amber-500">{ti.payoutDetailsFirst}</p>
+                <div className="mt-4">
+                  <BillingProfileForm profile={profile} onSaved={handleProfileSaved} addressRequired={false} />
+                </div>
+              </section>
+            )}
 
             {invoice.method === "self_billing" && (
               <div className="overflow-hidden rounded-lg border border-border">

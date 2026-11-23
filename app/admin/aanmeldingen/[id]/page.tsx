@@ -19,25 +19,45 @@ import {
 import { useAdmin, type ChecklistState } from "@/contexts/admin-submissions-context"
 import { statusClasses, formatDateTime } from "@/lib/admin-status"
 import { useAdminT } from "@/lib/admin-i18n"
+import { missingLabel, rejectReasonLabel } from "@/lib/review-points"
 import { ReviewActions } from "@/components/admin/review-actions"
 import { ArtistAccountActions } from "@/components/admin/artist-account-actions"
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { getSubmission, toggleChecklist, addNote } = useAdmin()
+  const { getSubmission, saveChecklist, addNote } = useAdmin()
   const submission = getSubmission(id)
   const [noteText, setNoteText] = useState("")
-  const { t, locale } = useAdminT()
+  const [savingNote, setSavingNote] = useState(false)
+  const [noteFailed, setNoteFailed] = useState(false)
+  // The point being saved, shown as it will become.
+  const [savingCheck, setSavingCheck] = useState<{ key: keyof ChecklistState; value: boolean } | null>(null)
+  const [checkFailed, setCheckFailed] = useState(false)
+  const { t, language, locale } = useAdminT()
+  const nl = language === "nl"
   const checklistLabels = t.detail.checklistItems
 
   if (!submission) return notFound()
 
-  const handleAddNote = () => {
-    if (noteText.trim()) {
-      addNote(submission.id, noteText.trim())
-      setNoteText("")
-    }
+  const handleAddNote = async () => {
+    if (!noteText.trim() || savingNote) return
+    setSavingNote(true)
+    setNoteFailed(false)
+    const result = await addNote(submission.id, noteText.trim())
+    setSavingNote(false)
+    if (result.ok) setNoteText("")
+    else setNoteFailed(true)
   }
+
+  const handleCheck = async (key: keyof ChecklistState, value: boolean) => {
+    setSavingCheck({ key, value })
+    setCheckFailed(false)
+    const result = await saveChecklist(submission.id, key, value)
+    setSavingCheck(null)
+    if (!result.ok) setCheckFailed(true)
+  }
+
+  const title = (stored: string) => t.detail.timelineTitles[stored] ?? stored
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -243,10 +263,25 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               {submission.timeline.map((event) => (
                 <li key={event.id} className="mb-5 ml-5 last:mb-0">
                   <span className="absolute -left-1.5 w-3 h-3 rounded-full bg-red-600 border-2 border-card" />
-                  <p className="text-sm font-medium text-foreground">{event.title}</p>
-                  {event.description && <p className="text-sm text-muted-foreground mt-0.5">{event.description}</p>}
+                  <p className="text-sm font-medium text-foreground">{title(event.title)}</p>
+                  {event.description && <p className="text-sm text-muted-foreground mt-0.5">{title(event.description)}</p>}
+                  {event.missing && event.missing.length > 0 && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {t.detail.timelineMissing}: {event.missing.map((key) => missingLabel(key, nl)).join(", ")}
+                    </p>
+                  )}
+                  {event.reason && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {t.detail.timelineReason}: {rejectReasonLabel(event.reason, nl)}
+                    </p>
+                  )}
+                  {event.message && (
+                    <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap break-words">
+                      {t.detail.timelineMessage}: {event.message}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatDateTime(event.date, locale)} &middot; {event.author}
+                    {formatDateTime(event.date, locale)} &middot; {title(event.author)}
                   </p>
                 </li>
               ))}
@@ -267,8 +302,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 <label key={key} className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
-                    checked={submission.checklist[key]}
-                    onChange={() => toggleChecklist(submission.id, key)}
+                    checked={savingCheck?.key === key ? savingCheck.value : submission.checklist[key]}
+                    disabled={savingCheck !== null}
+                    onChange={(e) => handleCheck(key, e.target.checked)}
                     className="w-4 h-4 rounded border-border text-red-600 focus:ring-red-600/40 bg-background"
                   />
                   <span
@@ -281,6 +317,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 </label>
               ))}
             </div>
+            {checkFailed && (
+              <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
+                {t.detail.saveFailed}
+              </p>
+            )}
           </div>
 
           {/* Notes */}
@@ -304,15 +345,22 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
               <textarea
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
+                maxLength={2000}
+                readOnly={savingNote}
                 rows={3}
                 placeholder={t.detail.notePlaceholder}
                 aria-label={t.detail.notePlaceholder}
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-600/40"
               />
+              {noteFailed && (
+                <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+                  {t.detail.saveFailed}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleAddNote}
-                disabled={!noteText.trim()}
+                disabled={!noteText.trim() || savingNote}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-foreground text-sm font-medium hover:bg-accent/70 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <MessageSquarePlus className="w-4 h-4" />
