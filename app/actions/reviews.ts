@@ -121,7 +121,10 @@ export async function replyToReview(id: number, reply: string) {
     db
       .update(reviews)
       .set({ reply: text, repliedAt: new Date() })
-      .where(and(eq(reviews.id, id), eq(reviews.professionalId, professionalId), isNull(reviews.reply)))
+      // Only a submitted review can be answered; an open invite would otherwise show the reply to the customer first.
+      .where(
+        and(eq(reviews.id, id), eq(reviews.professionalId, professionalId), isNotNull(reviews.submittedAt), isNull(reviews.reply)),
+      )
       .returning({ id: reviews.id }),
   )
   revalidatePath("/dashboard/reviews")

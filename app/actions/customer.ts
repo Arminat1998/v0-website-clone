@@ -218,11 +218,17 @@ export async function getCustomerFavorites(): Promise<FavoriteItem[]> {
   );
 }
 
-export async function setCustomerFavorite(input: {
+type FavoriteInput = {
   professionalId: string;
   professionalType: "artist" | "photographer";
   saved: boolean;
-}) {
+};
+
+export async function setCustomerFavorite(input: FavoriteInput) {
+  return withoutValues("Failed to save the favorite:", () => runSetCustomerFavorite(input));
+}
+
+async function runSetCustomerFavorite(input: FavoriteInput) {
   const account = await customerUser();
   const parsed = z
     .object({
