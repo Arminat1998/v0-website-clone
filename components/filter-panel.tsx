@@ -48,7 +48,7 @@ export function FilterPanel({
       aria-modal={isMobileOpen ? true : undefined}
       aria-labelledby="filter-panel-title"
       className={`${
-        isMobileOpen ? "fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col" : "hidden md:block w-80"
+        isMobileOpen ? "fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col" : "hidden lg:block w-80 shrink-0"
       } bg-card border-r border-border`}
     >
       <div className={isMobileOpen ? "flex-1 overflow-y-auto p-6" : "p-6"}>

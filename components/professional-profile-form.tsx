@@ -1043,7 +1043,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         <div className="mx-auto max-w-4xl space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-600 flex-shrink-0">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-red-700 flex-shrink-0">
               {photo ? (
                 <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               ) : (
@@ -1051,7 +1051,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               )}
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--rf-red-text)]">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--rf-text)]">
                 {isEdit
                   ? L
                     ? "Bewerk je profiel"
@@ -1059,7 +1059,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                   : L
                     ? photo
                       ? "Registreer als fotograaf of videograaf"
-                      : "Registreer als Professional"
+                      : "Registreer als professional"
                     : photo
                       ? "Register as a photographer or videographer"
                       : "Register as Professional"}
@@ -1080,9 +1080,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
           <>
           <div className="relative">
             {/* Banner */}
+            {/* Without a photo the space stays low, so the form itself is in view. */}
             <div
-              className="relative w-full rounded-lg border-2 border-dashed border-border overflow-hidden cursor-pointer group"
-              style={{ aspectRatio: "1.91 / 1" }}
+              className={`relative w-full cursor-pointer overflow-hidden rounded-lg border-2 group ${
+                bannerImage ? "aspect-[1.91/1] border-transparent" : "h-40 border-dashed border-border sm:h-48"
+              }`}
               onClick={() => bannerInputRef.current?.click()}
             >
               <input
@@ -1095,30 +1097,33 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {bannerImage ? (
                 <Image src={imageSrc(bannerImage) || "/placeholder.svg"} alt="Banner" fill className="object-cover" />
               ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center p-4 bg-muted group-hover:bg-accent transition-colors">
-                  <Camera className="h-8 w-8 sm:h-10 sm:w-10 text-[var(--rf-muted)] mb-2" />
-                  <p className="text-sm sm:text-base text-[var(--rf-muted)] text-center font-medium">
-                    {L ? "Klik om banner toe te voegen" : "Click to add banner"}
-                  </p>
-                  <p className="text-xs sm:text-sm text-[var(--rf-red-text)] mt-1">Max. 15MB</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    bannerInputRef.current?.click()
+                  }}
+                  className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-md bg-muted p-4 text-[var(--rf-muted)] outline-none transition-colors group-hover:bg-accent group-hover:text-[var(--rf-text)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--rf-focus)]"
+                >
+                  <Camera className="size-7 sm:size-8" aria-hidden />
+                  <span className="text-sm font-medium sm:text-base">{L ? "Bannerfoto toevoegen" : "Add banner photo"}</span>
+                </button>
               )}
 
-              {/* Add Banner Photo Button - Top Right */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  bannerInputRef.current?.click()
-                }}
-                className="absolute top-2 right-2 sm:top-4 sm:right-4 text-[var(--rf-muted)] hover:text-[var(--rf-text)] bg-card/90 hover:bg-card text-xs sm:text-sm z-10 shadow-sm"
-              >
-                <Camera className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">{L ? "Bannerfoto toevoegen" : "Add Banner Photo"}</span>
-                <span className="sm:hidden">Banner</span>
-              </Button>
+              {bannerImage && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    bannerInputRef.current?.click()
+                  }}
+                  className="absolute right-2 top-2 z-10 min-h-11 bg-card/90 text-sm text-[var(--rf-text)] shadow-sm hover:bg-card sm:right-4 sm:top-4"
+                >
+                  <Camera className="mr-1 size-4" aria-hidden />
+                  {L ? "Andere banner" : "Change banner"}
+                </Button>
+              )}
             </div>
 
             {/* Profile Photo - Overlapping banner */}
@@ -1145,27 +1150,30 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       />
                     ) : (
                       <>
-                        <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--rf-muted)]" />
-                        <p className="text-[10px] sm:text-xs text-[var(--rf-muted)] mt-1">Upload</p>
-                        <p className="text-[9px] sm:text-xs text-[var(--rf-red-text)]">Max. 15MB</p>
+                        <Camera className="size-6 text-[var(--rf-muted)]" aria-hidden />
+                        <p className="mt-1 text-xs text-[var(--rf-muted)] sm:text-sm">{L ? "Profielfoto" : "Photo"}</p>
                       </>
                     )}
                   </div>
                 </div>
-                <div
+                <button
+                  type="button"
+                  aria-label={profileImage ? (L ? "Andere profielfoto kiezen" : "Change profile photo") : L ? "Profielfoto toevoegen" : "Add profile photo"}
                   onClick={(e) => {
                     e.stopPropagation()
                     profileInputRef.current?.click()
                   }}
-                  className="absolute bottom-0 right-0 h-7 w-7 sm:h-9 sm:w-9 rounded-full bg-foreground hover:bg-muted-foreground flex items-center justify-center z-30 cursor-pointer transition-colors shadow-lg border-2 border-card"
+                  className="absolute -bottom-1 -right-1 z-30 flex size-9 cursor-pointer items-center justify-center rounded-full border-2 border-card bg-red-700 text-white shadow-lg outline-none transition-colors hover:bg-red-600 focus-visible:ring-2 focus-visible:ring-[var(--rf-focus)]"
                 >
-                  <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
-                </div>
+                  <Camera className="size-4" aria-hidden />
+                </button>
               </div>
             </div>
           </div>
 
-          <div className="h-12 sm:h-16"></div>
+          <p className="min-h-12 pl-32 text-xs text-[var(--rf-muted)] sm:min-h-16 sm:pl-44 sm:text-sm">
+            {L ? "Foto's: maximaal 15 MB per stuk." : "Photos: at most 15 MB each."}
+          </p>
           </>
           )}
 
@@ -1903,7 +1911,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Register Button */}
               <Button
                 type="submit"
-                className="h-12 w-full rounded-[10px] bg-[var(--rf-red)] text-base font-semibold text-white hover:bg-[var(--rf-red-hover)] disabled:bg-[var(--rf-track)] disabled:text-[var(--rf-muted)] disabled:opacity-100"
+                className="h-12 w-full rounded-[10px] bg-red-700 text-base font-semibold text-white hover:bg-red-600 disabled:bg-[var(--rf-track)] disabled:text-[var(--rf-muted)] disabled:opacity-100"
                 disabled={saving || !formComplete}
                 aria-describedby={formComplete ? undefined : "missing-fields"}
               >

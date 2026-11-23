@@ -40,7 +40,7 @@ export function AccountFavorites({ favorites }: { favorites: FavoriteItem[] }) {
                   <img
                     src={favorite.banner || favorite.image || ""}
                     alt=""
-                    className="aspect-[16/10] w-full object-cover"
+                    className="aspect-[16/10] w-full object-cover object-[50%_25%]"
                   />
                 ) : (
                   <div className="flex aspect-[16/10] items-center justify-center bg-accent text-muted-foreground">
@@ -51,7 +51,7 @@ export function AccountFavorites({ favorites }: { favorites: FavoriteItem[] }) {
                   <img
                     src={favorite.avatar || favorite.image || ""}
                     alt={favorite.name}
-                    className="absolute -bottom-8 left-6 size-20 rounded-full border-4 border-card bg-card object-cover shadow-lg"
+                    className="absolute -bottom-8 left-6 size-20 rounded-full border-4 border-card bg-card object-cover object-[50%_25%] shadow-lg"
                   />
                 )}
               </div>

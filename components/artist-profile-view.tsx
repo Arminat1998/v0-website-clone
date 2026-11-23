@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Car, Clock, MapPin, Target } from "lucide-react";
 import { hoursLabel, rangeLabel } from "@/lib/artist-facts";
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Artist } from "@/lib/smart-search";
@@ -16,9 +17,7 @@ import { useLanguage } from "@/contexts/language-context";
 import {
   WebsiteProvider,
   bookingHref,
-  eventTagLabel,
   experienceLabel,
-  genreTagLabel,
   professionLabel,
   profileCopy,
 } from "@/components/artist-website/website-context";
@@ -37,8 +36,9 @@ interface ArtistProfileViewProps {
   stickyBookBar?: boolean;
 }
 
+// The same look as the tabs of the full page: plain text with a red line under the open tab.
 const tabClass =
-  "min-h-11 flex-none whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted sm:px-8 sm:py-3 sm:text-base";
+  "min-h-11 flex-none whitespace-nowrap rounded-none border-0 border-b-[3px] border-transparent bg-transparent px-2 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground data-[state=active]:border-red-600 data-[state=active]:bg-transparent data-[state=active]:text-red-700 data-[state=active]:shadow-none sm:px-4 dark:text-muted-foreground dark:hover:text-foreground dark:data-[state=active]:border-red-600 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-red-400";
 
 /** The profile in the modal. It shares its data, labels, equipment and calendar with the full page (artist-website). */
 export function ArtistProfileView({
@@ -78,6 +78,8 @@ export function ArtistProfileView({
   };
 
   const travel = rangeLabel(artist, nl);
+  const eventTags = tagLabels(artist.eventTypes, eventLabel, nl);
+  const styleTags = tagLabels(artist.musicStyles, styleLabel, nl);
   const facts = [
     { icon: Clock, label: t.duration, value: hoursLabel(artist, nl) },
     { icon: Target, label: t.experience, value: experienceLabel(artist.experience, nl) ?? notProvided },
@@ -101,20 +103,21 @@ export function ArtistProfileView({
       <div className="min-w-0 bg-background">
         <div className="relative">
           {/* Hero Image */}
-          <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
-            <img src={artistImage || "/placeholder.svg"} alt="" className="h-full w-full object-cover" />
+          <div className="relative h-40 overflow-hidden bg-muted sm:h-52 lg:h-64">
+            <img src={artistImage || "/placeholder.svg"} alt="" className="h-full w-full object-cover object-[50%_25%]" />
             {heroAction}
           </div>
 
           {/* Profile Image */}
-          <div className="absolute -bottom-14 left-3 z-10 size-28 overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg sm:-bottom-20 sm:left-6 sm:size-44">
-            <img src={profileImage || "/placeholder.svg"} alt={artist.name} className="h-full w-full object-cover" />
+          <div className="absolute -bottom-14 left-3 z-10 size-28 overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg sm:-bottom-24 sm:left-6 sm:size-40">
+            <img src={profileImage || "/placeholder.svg"} alt={artist.name} className="h-full w-full object-cover object-[50%_25%]" />
           </div>
         </div>
 
         {/* Profile Header */}
-        <div className="px-3 pb-4 pt-16 sm:px-6 sm:pb-6 sm:pt-24">
-          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="px-3 pb-4 pt-16 sm:px-6 sm:pb-6 sm:pt-4">
+          {/* From sm on the name stands next to the photo, so the facts come into view sooner. */}
+          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:min-h-24 sm:flex-row sm:items-start sm:justify-between sm:pl-44">
             <div className="min-w-0">
               {/* The modal's own (hidden) title is the heading with this name, so this is not a second one. */}
               <p className="mb-1 text-xl font-bold text-foreground sm:text-3xl">{artist.name}</p>
@@ -162,7 +165,7 @@ export function ArtistProfileView({
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4 h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0 sm:mb-6">
+            <TabsList className="mb-4 flex h-auto w-full justify-start overflow-x-auto overflow-y-hidden rounded-none border-b border-border bg-transparent p-0 [scrollbar-width:none] sm:mb-6 [&::-webkit-scrollbar]:hidden">
               <TabsTrigger value="about" className={tabClass}>
                 {nl ? "Over" : "About"}
               </TabsTrigger>
@@ -185,14 +188,14 @@ export function ArtistProfileView({
 
               <div className="mb-6 sm:mb-8">
                 <h4 className="mb-3 text-base font-bold text-foreground sm:mb-4 sm:text-xl">{t.eventTypes}</h4>
-                {artist.eventTypes?.length ? (
+                {eventTags.length ? (
                   <ul className="flex flex-wrap gap-1 sm:gap-2">
-                    {artist.eventTypes.map((tag) => (
+                    {eventTags.map((tag) => (
                       <li
                         key={tag}
                         className="rounded-full border border-foreground/60 px-3 py-1 text-xs font-medium text-foreground sm:px-4 sm:py-2 sm:text-sm"
                       >
-                        {eventTagLabel(tag, nl)}
+                        {tag}
                       </li>
                     ))}
                   </ul>
@@ -203,14 +206,14 @@ export function ArtistProfileView({
 
               <div>
                 <h4 className="mb-3 text-base font-bold text-foreground sm:mb-4 sm:text-xl">{t.genres}</h4>
-                {artist.musicStyles?.length ? (
+                {styleTags.length ? (
                   <ul className="flex flex-wrap gap-1 sm:gap-2">
-                    {artist.musicStyles.map((tag) => (
+                    {styleTags.map((tag) => (
                       <li
                         key={tag}
                         className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800 sm:px-4 sm:py-2 sm:text-sm dark:bg-red-900/30 dark:text-red-300"
                       >
-                        {genreTagLabel(tag, nl)}
+                        {tag}
                       </li>
                     ))}
                   </ul>

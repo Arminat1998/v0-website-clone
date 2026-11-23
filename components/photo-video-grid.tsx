@@ -86,7 +86,7 @@ export function PhotoVideoGrid({ search, autoStart, onAutoStartComplete }: Photo
     <div className="min-w-0 flex-1 p-4 md:p-6 bg-background">
       <div className="mb-8">
         <h1 className="mb-6 text-2xl md:text-3xl font-bold text-foreground">
-          {nl ? "Boek je fotograaf of videograaf!" : "Book your photographer or videographer!"}
+          {nl ? "Boek je fotograaf of videograaf" : "Book your photographer or videographer"}
         </h1>
 
         <div className="mb-4 flex flex-col items-stretch justify-between gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-start">
@@ -113,7 +113,7 @@ export function PhotoVideoGrid({ search, autoStart, onAutoStartComplete }: Photo
 
       <div id="photo-video-results" className="scroll-mt-24">
         {isEmpty && <NoResults search={search} count={count} kind="photo-video" suggestions={nl ? ["Fotograaf voor een bruiloft", "Videograaf voor een bedrijfsfeest", "Productlancering", "Drone"] : ["Photographer for a wedding", "Videographer for a corporate event", "Product launch", "Drone"]} />}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
           {sortedProfessionals.map((professional) => (
             <PhotoVideoCard
               key={professional.id}

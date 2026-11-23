@@ -146,7 +146,7 @@ function PhotosBody({ edit }: { edit: WebsiteEditApi }) {
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {content.gallery.map((path, index) => (
             <li key={path} className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted">
-              <img src={mediaUrl(path) || "/placeholder.svg"} alt={`${artist.name} ${index + 1}`} className="size-full object-cover" />
+              <img src={mediaUrl(path) || "/placeholder.svg"} alt={`${artist.name} ${index + 1}`} className="size-full object-cover object-[50%_25%]" />
               <button
                 type="button"
                 onClick={() => edit.update({ gallery: content.gallery.filter((item) => item !== path) })}

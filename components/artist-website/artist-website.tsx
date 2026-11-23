@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { ArtistShareButton } from "@/components/artist-share-button"
 import { useLanguage } from "@/contexts/language-context"
-import { IMAGE_TYPES, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
+import { IMAGE_TYPES, getVideoEmbed, mediaUrl, type ArtistPageContent } from "@/lib/artist-page-types"
 import type { Artist } from "@/lib/smart-search"
 import {
   WebsiteProvider,
@@ -36,7 +36,7 @@ import { ProfileRating } from "@/components/artist-website/profile-rating"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
 
-const TABS: TabKey[] = ["overview", "info", "photos", "videos", "equipment", "availability"]
+const ALL_TABS: TabKey[] = ["overview", "info", "photos", "videos", "equipment", "availability"]
 
 interface ArtistWebsiteProps {
   artist: Artist
@@ -59,6 +59,13 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
   const bannerSrc = content.bannerPath ? mediaUrl(content.bannerPath) : artist.image
   const avatarSrc = content.avatarPath ? mediaUrl(content.avatarPath) : artist.image
   const tagline = content.tagline || (edit ? "" : professionLabel(artist.specialty, lang === "nl"))
+  // Visitors do not get empty photo and video sections; the owner does, to fill them.
+  const tabs = ALL_TABS.filter((key) => {
+    if (edit) return true
+    if (key === "photos") return content.gallery.length > 0
+    if (key === "videos") return content.videos.some((video) => getVideoEmbed(video.url))
+    return true
+  })
   const activePhoto = photoIndex !== null ? content.gallery[photoIndex] : null
 
   return (
@@ -75,7 +82,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
     >
       <article className="touch-targets w-full">
         <div className="relative h-56 overflow-hidden rounded-xl bg-muted sm:h-80 lg:h-[26rem]">
-          {bannerSrc && <img src={bannerSrc || "/placeholder.svg"} alt="" className="size-full object-cover" />}
+          {bannerSrc && <img src={bannerSrc || "/placeholder.svg"} alt="" className="size-full object-cover object-[50%_25%]" />}
           {!edit && <ArtistShareButton />}
           {edit && (
             <div className="absolute bottom-4 right-4 flex gap-2">
@@ -112,7 +119,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
             <div className="relative -mt-14 size-28 shrink-0 sm:-mt-20 sm:size-44">
               <div className="size-full overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg">
-                {avatarSrc && <img src={avatarSrc || "/placeholder.svg"} alt={artist.name} className="size-full object-cover" />}
+                {avatarSrc && <img src={avatarSrc || "/placeholder.svg"} alt={artist.name} className="size-full object-cover object-[50%_25%]" />}
               </div>
               {edit && (
                 <>
@@ -145,7 +152,7 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
               )}
             </div>
 
-            <div className="pb-1">
+            <div className="pb-1 sm:pt-4">
               <h1 className="text-3xl font-bold text-foreground text-balance sm:text-4xl">{artist.name}</h1>
               <div className="mt-1 flex items-center gap-2">
                 {tagline ? (
@@ -197,9 +204,9 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
           </div>
         </header>
 
-        <nav aria-label={t.tabsLabel} className="mt-5 border-t border-border px-2 sm:px-6">
+        <nav aria-label={t.tabsLabel} className="mt-4 border-b border-border px-2 sm:px-6">
           <div role="tablist" className="-mx-2 -mb-px flex gap-0 overflow-x-auto px-2 [scrollbar-width:none] sm:mx-0 sm:gap-1 sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {TABS.map((key) => (
+            {tabs.map((key) => (
               <button
                 key={key}
                 type="button"
@@ -222,18 +229,18 @@ export function ArtistWebsite({ artist, content, edit }: ArtistWebsiteProps) {
           role="tabpanel"
           id="profile-tabpanel"
           aria-labelledby={`profile-tab-${tab}`}
-          className="mt-4 border-t border-border bg-muted/20 pt-4"
+          className="pt-4"
         >
           {tab === "overview" && (
             <div className="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
               <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
                 {!edit && <BookingCard />}
                 <DetailsCard />
-                <TagsCard />
                 <SocialsCard />
               </aside>
               <div className="space-y-4">
                 <AboutCard />
+                <TagsCard />
                 <PhotosCard limit={6} />
                 <VideosCard limit={2} />
               </div>
