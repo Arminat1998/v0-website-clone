@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { clearBookingDrafts } from "@/hooks/use-booking-draft"
 import { authClient } from "@/lib/auth-client"
 import { LoginModal } from "@/components/login-modal"
 import { SignupModal } from "@/components/signup-modal"
@@ -38,7 +39,7 @@ const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
 }
 
 /** A path on this site, so a link can never send someone elsewhere after logging in. */
-const isOwnPath = (path: string) => path.startsWith("/") && !path.startsWith("//") && !/[\\\u0000-\u0020]/.test(path)
+const isOwnPath = (path: string) => path.startsWith("/") && !path.startsWith("//") && !/[\\\u0000-\u0020]/.test(path) && !new URL(path, window.location.origin).pathname.startsWith("//")
 
 export function Header() {
   const [loginModalOpen, setLoginModalOpen] = useState(false)
@@ -93,6 +94,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     await authClient.signOut()
+    clearBookingDrafts()
     router.push("/")
     router.refresh()
   }

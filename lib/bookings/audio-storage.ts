@@ -48,7 +48,8 @@ export async function tidyLooseAudio(customerId: string): Promise<boolean> {
     const used = new Set(rows.flatMap((row) => [row.openingDance, row.lastSong]))
     const loose = blobs.filter((blob) => !used.has(blob.pathname))
     const old = loose.filter((blob) => Date.now() - blob.uploadedAt.getTime() > CLEANUP_MS)
-    if (old.length) await del(old.map((blob) => blob.pathname), { abortSignal: AbortSignal.timeout(5000) })
+    // Same reason as below: only production knows which files belong to a booking.
+    if (old.length && process.env.VERCEL_ENV === "production") await del(old.map((blob) => blob.pathname), { abortSignal: AbortSignal.timeout(5000) })
     return loose.length - old.length < MAX_LOOSE_FILES
   } catch (error) {
     logError("Failed to tidy booking audio:", error)
@@ -64,10 +65,18 @@ let lastSweep = 0
  * booked. There is no scheduled job, so an upload starts it. Files of a booking are never removed.
  */
 export async function sweepLooseAudio() {
+  // A preview can share the file store but not the database, and would then see every file as unused.
+  if (process.env.VERCEL_ENV !== "production") return
   if (Date.now() - lastSweep < SWEEP_EVERY_MS) return
   lastSweep = Date.now()
   try {
-    const { blobs } = await list({ prefix: BOOKING_AUDIO_PREFIX, limit: 1000, abortSignal: AbortSignal.timeout(10_000) })
+    const blobs: { pathname: string; uploadedAt: Date }[] = []
+    let cursor: string | undefined
+    do {
+      const page = await list({ prefix: BOOKING_AUDIO_PREFIX, limit: 1000, cursor, abortSignal: AbortSignal.timeout(10_000) })
+      blobs.push(...page.blobs)
+      cursor = page.hasMore ? page.cursor : undefined
+    } while (cursor && blobs.length < 10_000)
     const old = blobs.filter((blob) => Date.now() - blob.uploadedAt.getTime() > CLEANUP_MS).map((blob) => blob.pathname)
     if (old.length === 0) return
     const rows = await db
