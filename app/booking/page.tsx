@@ -722,6 +722,29 @@ export default function BookingPage() {
     )
   }
 
+  // Only organiser accounts can send a request; the server refuses other roles as well.
+  if (sessionData.user.role !== "user") {
+    return (
+      <div className="min-h-screen bg-background transition-colors">
+        <Header />
+        <div className="max-w-xl mx-auto px-3 sm:px-4 py-10 sm:py-16">
+          <div className="bg-card rounded-lg shadow border border-border p-6 sm:p-8 text-center">
+            <LockKeyhole className="mx-auto h-10 w-10 text-red-500" />
+            <h1 className="mt-4 text-xl sm:text-2xl font-bold text-foreground">
+              {tr("Boeken kan alleen met een organisatoraccount", "Booking needs an organiser account")}
+            </h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {tr(
+                `Je bent ingelogd met een account voor professionals of beheer. Wil je ${professional.name} boeken, log dan in met een organisatoraccount.`,
+                `You are logged in with a professional or admin account. To book ${professional.name}, log in with an organiser account.`,
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background transition-colors">
       <Header />
