@@ -26,6 +26,7 @@ import { EquipmentSection } from "@/components/artist-website/equipment-section"
 import { ProfileRating } from "@/components/artist-website/profile-rating";
 import { isDemoProfessional } from "@/lib/demo-professionals";
 import { DemoBookButton } from "@/components/demo-book-button";
+import { PaymentMoments } from "@/components/booking/payment-moments";
 
 interface ArtistProfileViewProps {
   artist: Artist;
@@ -247,6 +248,7 @@ export function ArtistProfileView({
               <AvailabilitySection />
             </TabsContent>
           </Tabs>
+          {!demo && <PaymentMoments className="mt-6 rounded-lg border border-border bg-muted/40 p-3" />}
         </div>
 
         {stickyBookBar && (

@@ -11,6 +11,7 @@ import { bookingHref, experienceLabel, professionLabel, useWebsite } from "@/com
 import { hoursLabel, rangeLabel } from "@/lib/artist-facts"
 import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { isDemoProfessional } from "@/lib/demo-professionals"
+import { PaymentMoments } from "@/components/booking/payment-moments"
 
 export function EditPencil({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
   const className =
@@ -73,6 +74,7 @@ export function BookingCard() {
           {t.checkAvailability}
         </Button>
       </div>
+      {!demo && <PaymentMoments className="mt-4 border-t border-border pt-4" />}
     </section>
   )
 }
