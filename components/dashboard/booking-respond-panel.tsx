@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 
 type Mode = "idle" | "accept" | "reject"
 
-export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
+export function BookingRespondPanel({ bookingId, expired = false }: { bookingId: number; expired?: boolean }) {
   const { t, language } = useBookingT()
   const nl = language !== "en"
   const router = useRouter()
@@ -58,11 +58,18 @@ export function BookingRespondPanel({ bookingId }: { bookingId: number }) {
       <h2 id="respond-heading" className="text-base font-semibold text-foreground">
         {t.detail.respondTitle}
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">{t.detail.respondNote}</p>
+      <p id="respond-note" className="mt-1 text-sm text-muted-foreground">
+        {expired ? t.detail.expiredNote : t.detail.respondNote}
+      </p>
 
       {mode === "idle" ? (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <Button onClick={() => setMode("accept")} className="flex-1 bg-green-700 text-white hover:bg-green-800">
+          <Button
+            onClick={() => setMode("accept")}
+            disabled={expired}
+            aria-describedby="respond-note"
+            className="flex-1 bg-green-700 text-white hover:bg-green-800"
+          >
             <Check className="mr-2 h-4 w-4" aria-hidden />
             {t.requests.accept}
           </Button>

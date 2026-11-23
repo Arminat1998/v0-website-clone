@@ -24,6 +24,7 @@ import {
   type PaymentStep,
 } from "@/lib/bookings/payments";
 import { euro } from "./account-common";
+import { displayStatus } from "@/lib/bookings/display-status";
 import { bookingVatCents } from "@/lib/bookings/pricing";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 
@@ -176,7 +177,8 @@ export function BookingPayment({
     return index === currentIndex ? "current" : "upcoming";
   }
 
-  if (!s.active) {
+  const expired = displayStatus(b) === "expired";
+  if (!s.active || expired) {
     return (
       <Card>
         <CardHeader>
@@ -192,7 +194,11 @@ export function BookingPayment({
                 ? nl
                   ? "Deze boeking gaat niet door. Neem contact op met ARSI Events over je betaling."
                   : "This booking will not take place. Contact ARSI Events about your payment."
-                : nl
+                : expired
+                  ? nl
+                    ? "De datum van deze aanvraag is verstreken. Je hoeft niets te betalen."
+                    : "The date of this request has passed. You do not have to pay anything."
+                  : nl
                   ? "Deze boeking gaat niet door. Je hoeft niets te betalen."
                   : "This booking will not take place. You do not have to pay anything."}
           </CardDescription>

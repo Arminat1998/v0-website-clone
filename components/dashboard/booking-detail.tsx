@@ -24,6 +24,7 @@ import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking, Invoice } from "@/lib/db/schema"
 import { canonicalEventType, eventTypeLabel } from "@/lib/profile-options"
 import { EQUIPMENT_OPTIONS, equipmentLabel, formatEuro } from "@/lib/bookings/pricing"
+import { displayStatus } from "@/lib/bookings/display-status"
 import { isContactUnlocked } from "@/lib/bookings/privacy"
 import {
   billingAddress,
@@ -96,6 +97,7 @@ function ExternalRef({ href, label }: { href: string; label: string }) {
 
 export function BookingDetail({ booking, invoice = null }: { booking: Booking; invoice?: Invoice | null }) {
   const { t, locale } = useBookingT()
+  const status = displayStatus(booking)
   const isActive = isContactUnlocked(booking.status)
   // Old bookings can be without an account, so there is nobody to write to.
   const canMessage = Boolean(booking.customerId) && (booking.status === "pending" || isActive)
@@ -121,7 +123,15 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
   return (
     <div className="p-4 sm:p-8 lg:p-10">
       <Link
-        href={booking.status === "pending" ? "/dashboard/booking-requests" : booking.status === "accepted" ? "/dashboard/accepted-bookings" : "/dashboard/completed-bookings"}
+        href={
+          status === "accepted"
+            ? "/dashboard/accepted-bookings"
+            : status === "completed"
+              ? "/dashboard/completed-bookings"
+              : status === "pending"
+                ? "/dashboard/booking-requests"
+                : "/dashboard/booking-requests#closed"
+        }
         className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
@@ -131,7 +141,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
       <header className="mt-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <BookingStatusBadge status={booking.status} />
+            <BookingStatusBadge status={status} />
             <span className="font-mono text-sm text-muted-foreground">{bookingNumber(booking.id)}</span>
           </div>
           <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{booking.eventName}</h1>
@@ -360,7 +370,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                   <div className="text-sm">
                     <p className="font-medium text-foreground">{t.detail.contactLockedTitle}</p>
                     <p className="mt-0.5 text-muted-foreground">
-                      {booking.status === "pending" ? t.detail.contactLockedPending : t.detail.contactLockedClosed}
+                      {status === "pending" ? t.detail.contactLockedPending : t.detail.contactLockedClosed}
                     </p>
                   </div>
                 </div>
@@ -416,7 +426,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
         <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
           <BookingPricingCard booking={booking} />
 
-          {booking.status === "pending" && <BookingRespondPanel bookingId={booking.id} />}
+          {booking.status === "pending" && <BookingRespondPanel bookingId={booking.id} expired={status === "expired"} />}
           {booking.status === "accepted" && <BookingCompletePanel booking={booking} />}
           {booking.status === "completed" && <BookingInvoicePanel booking={booking} invoice={invoice} />}
 

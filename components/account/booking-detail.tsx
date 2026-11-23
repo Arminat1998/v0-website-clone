@@ -21,6 +21,7 @@ import { BookingAudio } from "@/components/booking/booking-audio";
 import { audioDisplayName, hasAudioFile, type AudioKind } from "@/lib/bookings/audio";
 import { equipmentLabel } from "@/lib/bookings/pricing";
 import { canonicalEventType, eventTypeLabel, genreLabel } from "@/lib/profile-options";
+import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
 
@@ -81,7 +82,8 @@ export function AccountBookingDetail({
       </div>
     );
   }
-  const closed = b.status === "rejected" || b.status === "cancelled";
+  const status = displayStatus(b);
+  const closed = status === "rejected" || status === "cancelled" || status === "expired";
   const hasMusic =
     b.openingDanceLink || b.openingDanceFileName || b.lastSongLink || b.lastSongFileName;
   return (
@@ -95,7 +97,7 @@ export function AccountBookingDetail({
       <AccountHeading
         title={b.eventName}
         description={`${nl ? "Boeking" : "Booking"} #${b.id} · ${b.professionalName}`}
-        action={<BookingBadge status={b.status} />}
+        action={<BookingBadge status={status} />}
       />
       {(b.responseMessage || b.rejectionReason) && (
         <Alert>
@@ -237,7 +239,11 @@ export function AccountBookingDetail({
               <h2>{b.professionalName}</h2>
             </CardTitle>
               <CardDescription>
-                {closed
+                {status === "expired"
+                  ? nl
+                    ? "De datum van deze aanvraag is verstreken. Bekijk welke andere professionals bij je evenement passen."
+                    : "The date of this request has passed. See which other professionals suit your event."
+                  : closed
                   ? nl
                     ? "Deze boeking gaat niet door. Bekijk welke andere professionals bij je evenement passen."
                     : "This booking will not take place. See which other professionals suit your event."

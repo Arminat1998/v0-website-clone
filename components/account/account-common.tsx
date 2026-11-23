@@ -13,7 +13,7 @@ import {
   EmptyMedia,
   EmptyContent,
 } from "@/components/ui/empty";
-import type { BookingStatus } from "@/lib/db/schema";
+import type { DisplayStatus } from "@/lib/bookings/display-status";
 
 export const statusLabels = {
   nl: {
@@ -22,6 +22,7 @@ export const statusLabels = {
     rejected: "Afgewezen",
     completed: "Afgerond",
     cancelled: "Geannuleerd",
+    expired: "Datum verstreken",
   },
   en: {
     pending: "Pending",
@@ -29,9 +30,10 @@ export const statusLabels = {
     rejected: "Declined",
     completed: "Completed",
     cancelled: "Cancelled",
+    expired: "Date passed",
   },
 };
-export function BookingBadge({ status }: { status: BookingStatus }) {
+export function BookingBadge({ status }: { status: DisplayStatus }) {
   const { language } = useLanguage();
   return (
     <Badge variant={status === "accepted" ? "default" : "secondary"}>
