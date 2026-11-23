@@ -14,6 +14,8 @@ import {
   EmptyContent,
 } from "@/components/ui/empty";
 import type { DisplayStatus } from "@/lib/bookings/display-status";
+import { statusStyles } from "@/components/dashboard/booking-status-badge";
+import { cn } from "@/lib/utils";
 
 export const statusLabels = {
   nl: {
@@ -36,7 +38,10 @@ export const statusLabels = {
 export function BookingBadge({ status }: { status: DisplayStatus }) {
   const { language } = useLanguage();
   return (
-    <Badge variant={status === "accepted" ? "default" : "secondary"}>
+    <Badge
+      variant="outline"
+      className={cn("border-transparent", statusStyles[status])}
+    >
       {statusLabels[language][status]}
     </Badge>
   );
