@@ -6,7 +6,8 @@ import { db } from "@/lib/db"
 import { artistPages, billingProfiles, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
 import { isPhotoVideo } from "@/lib/profile-options"
-import { MEDIA_PREFIX, SOCIAL_KEYS, mediaUrl, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
+import { MEDIA_PREFIX, mediaUrl } from "@/lib/artist-page-types"
+import { socialsForPage, syncPageWithProfile, type SyncedField } from "@/lib/profile-page-sync"
 import { httpUrl } from "@/lib/http-url"
 import { isSafeBlobPath } from "@/lib/blob-paths"
 import type {
@@ -21,7 +22,8 @@ export type SaveProfessionalProfileInput = Omit<ProfessionalProfileData, "email"
   genreLabels: string[]
 }
 
-export type SaveProfessionalProfileResult = { ok: true } | { ok: false; error: "invalid" | "failed" }
+/** `kept`: parts of "My website" that were edited there, so this change did not reach them. */
+export type SaveProfessionalProfileResult = { ok: true; kept: SyncedField[] } | { ok: false; error: "invalid" | "failed" }
 
 const text = (value: unknown, max: number) => String(value ?? "").trim().slice(0, max)
 const int = (value: unknown, min: number, max: number, fallback: number) => {
@@ -126,99 +128,106 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
     updatedAt: new Date(),
   }
 
+  let kept: SyncedField[] = []
   try {
-    const [existingProfile] = await db
-      .select({
-        avatarPath: professionalProfiles.avatarPath,
-        bannerPath: professionalProfiles.bannerPath,
-        reviewStatus: professionalProfiles.reviewStatus,
-        reviewData: professionalProfiles.reviewData,
-      })
-      .from(professionalProfiles)
-      .where(eq(professionalProfiles.professionalId, professionalId))
-      .limit(1)
+    // Together, so a failure halfway or a second save at the same time never leaves the page behind on the profile.
+    kept = await db.transaction(async (tx) => {
+      const [existingProfile] = await tx
+        .select({
+          avatarPath: professionalProfiles.avatarPath,
+          bannerPath: professionalProfiles.bannerPath,
+          reviewStatus: professionalProfiles.reviewStatus,
+          reviewData: professionalProfiles.reviewData,
+          bio: professionalProfiles.bio,
+          genres: professionalProfiles.genres,
+          eventTypes: professionalProfiles.eventTypes,
+          socials: professionalProfiles.socials,
+        })
+        .from(professionalProfiles)
+        .where(eq(professionalProfiles.professionalId, professionalId))
+        .limit(1)
+        .for("update")
 
-    const profileAvatar = avatarPath ?? existingProfile?.avatarPath ?? null
-    const profileBanner = bannerPath ?? existingProfile?.bannerPath ?? null
+      const profileAvatar = avatarPath ?? existingProfile?.avatarPath ?? null
+      const profileBanner = bannerPath ?? existingProfile?.bannerPath ?? null
 
-    // New profiles enter the admin screening queue; a profile that was asked for more info goes back to the queue.
-    const now = new Date().toISOString()
-    const timeline = existingProfile?.reviewData?.timeline ?? []
-    const entry = (title: string) => ({ id: crypto.randomUUID(), type: "aanmelding", date: now, title, author: "Systeem" })
-    const review: Partial<typeof professionalProfiles.$inferInsert> = {}
-    if (!existingProfile) {
-      review.reviewStatus = "nieuw"
-      review.reviewData = { timeline: [entry("Aanmelding ontvangen")] }
-    } else if (existingProfile.reviewStatus === "wacht-op-aanvulling") {
-      review.reviewStatus = "nieuw"
-      review.submittedAt = new Date()
-      review.reviewData = { ...existingProfile.reviewData, timeline: [...timeline, entry("Aanvulling ontvangen")] }
-    }
+      // New profiles enter the admin screening queue; a profile that was asked for more info goes back to the queue.
+      const now = new Date().toISOString()
+      const timeline = existingProfile?.reviewData?.timeline ?? []
+      const entry = (title: string) => ({ id: crypto.randomUUID(), type: "aanmelding", date: now, title, author: "Systeem" })
+      const review: Partial<typeof professionalProfiles.$inferInsert> = {}
+      if (!existingProfile) {
+        review.reviewStatus = "nieuw"
+        review.reviewData = { timeline: [entry("Aanmelding ontvangen")] }
+      } else if (existingProfile.reviewStatus === "wacht-op-aanvulling") {
+        review.reviewStatus = "nieuw"
+        review.submittedAt = new Date()
+        review.reviewData = { ...existingProfile.reviewData, timeline: [...timeline, entry("Aanvulling ontvangen")] }
+      }
 
-    await db
-      .insert(professionalProfiles)
-      .values({ professionalId, ...values, avatarPath: profileAvatar, bannerPath: profileBanner, ...review })
-      .onConflictDoUpdate({
-        target: professionalProfiles.professionalId,
-        set: { ...values, avatarPath: profileAvatar, bannerPath: profileBanner, ...review },
-      })
+      await tx
+        .insert(professionalProfiles)
+        .values({ professionalId, ...values, avatarPath: profileAvatar, bannerPath: profileBanner, ...review })
+        .onConflictDoUpdate({
+          target: professionalProfiles.professionalId,
+          set: { ...values, avatarPath: profileAvatar, bannerPath: profileBanner, ...review },
+        })
 
-    await db
-      .update(userTable)
-      .set({ name: stageName, phone: phone || null, ...(profileAvatar ? { image: mediaUrl(profileAvatar) } : {}) })
-      .where(eq(userTable.id, professionalId))
+      await tx
+        .update(userTable)
+        .set({ name: stageName, phone: phone || null, ...(profileAvatar ? { image: mediaUrl(profileAvatar) } : {}) })
+        .where(eq(userTable.id, professionalId))
 
-    const billing = {
-      businessName: values.companyName || stageName,
-      kvkNumber: values.kvkNumber || null,
-      vatNumber: values.vatNumber || null,
-      city: values.city || null,
-    }
-    // The invoice details are kept in the invoice step: the profile only fills in what is still empty there.
-    await db
-      .insert(billingProfiles)
-      .values({ professionalId, ...billing })
-      .onConflictDoUpdate({
-        target: billingProfiles.professionalId,
-        set: {
-          businessName: sql`coalesce(nullif(${billingProfiles.businessName}, ''), excluded.business_name)`,
-          kvkNumber: sql`coalesce(nullif(${billingProfiles.kvkNumber}, ''), excluded.kvk_number)`,
-          vatNumber: sql`coalesce(nullif(${billingProfiles.vatNumber}, ''), excluded.vat_number)`,
-          city: sql`coalesce(nullif(${billingProfiles.city}, ''), excluded.city)`,
-          updatedAt: new Date(),
-        },
-      })
+      const billing = {
+        businessName: values.companyName || stageName,
+        kvkNumber: values.kvkNumber || null,
+        vatNumber: values.vatNumber || null,
+        city: values.city || null,
+      }
+      // The invoice details are kept in the invoice step: the profile only fills in what is still empty there.
+      await tx
+        .insert(billingProfiles)
+        .values({ professionalId, ...billing })
+        .onConflictDoUpdate({
+          target: billingProfiles.professionalId,
+          set: {
+            businessName: sql`coalesce(nullif(${billingProfiles.businessName}, ''), excluded.business_name)`,
+            kvkNumber: sql`coalesce(nullif(${billingProfiles.kvkNumber}, ''), excluded.kvk_number)`,
+            vatNumber: sql`coalesce(nullif(${billingProfiles.vatNumber}, ''), excluded.vat_number)`,
+            city: sql`coalesce(nullif(${billingProfiles.city}, ''), excluded.city)`,
+            updatedAt: new Date(),
+          },
+        })
 
-    const pageSocials: ArtistPageSocials = {}
-    for (const link of socials) {
-      if ((SOCIAL_KEYS as readonly string[]).includes(link.platform)) pageSocials[link.platform as SocialKey] = link.url
-    }
-
-    const [page] = await db.select().from(artistPages).where(eq(artistPages.professionalId, professionalId)).limit(1)
-    if (!page) {
-      await db.insert(artistPages).values({
-        professionalId,
-        avatarPath: profileAvatar,
-        bannerPath: profileBanner,
-        about: values.bio,
-        eventTypes,
-        musicGenres: genreLabels,
-        socials: pageSocials,
-      })
-    } else {
-      await db
+      const [page] = await tx.select().from(artistPages).where(eq(artistPages.professionalId, professionalId)).limit(1).for("update")
+      if (!page) {
+        await tx.insert(artistPages).values({
+          professionalId,
+          avatarPath: profileAvatar,
+          bannerPath: profileBanner,
+          about: values.bio,
+          eventTypes,
+          musicGenres: genreLabels,
+          socials: socialsForPage(socials),
+        })
+        return []
+      }
+      const synced = syncPageWithProfile(
+        { about: page.about ?? "", eventTypes: page.eventTypes, musicGenres: page.musicGenres, socials: page.socials },
+        existingProfile ?? null,
+        { bio: values.bio, eventTypes, genres, genreLabels, socials },
+      )
+      await tx
         .update(artistPages)
         .set({
+          ...synced.page,
           avatarPath: avatarPath ?? page.avatarPath ?? profileAvatar,
           bannerPath: bannerPath ?? page.bannerPath ?? profileBanner,
-          about: page.about?.trim() ? page.about : values.bio,
-          eventTypes: page.eventTypes.length ? page.eventTypes : eventTypes,
-          musicGenres: page.musicGenres.length ? page.musicGenres : genreLabels,
-          socials: { ...pageSocials, ...page.socials },
           updatedAt: new Date(),
         })
         .where(eq(artistPages.professionalId, professionalId))
-    }
+      return synced.kept
+    })
   } catch (error) {
     logError("Failed to save professional profile:", error)
     return { ok: false, error: "failed" }
@@ -227,5 +236,5 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
   revalidatePath("/dashboard", "layout")
   revalidatePath("/artiest/[slug]", "page")
   revalidatePath("/foto-video/[slug]", "page")
-  return { ok: true }
+  return { ok: true, kept }
 }

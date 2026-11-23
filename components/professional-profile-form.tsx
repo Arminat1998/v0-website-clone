@@ -22,6 +22,7 @@ import { useImageCrop } from "@/hooks/use-image-crop"
 import { fileToDataUrl } from "@/lib/crop-image"
 import { AdditionalEquipment, type AdditionalCategory } from "@/components/additional-equipment"
 import { saveProfessionalProfile } from "@/app/actions/professional-profile"
+import type { SyncedField } from "@/lib/profile-page-sync"
 import { EquipmentFields } from "@/components/equipment-fields"
 import { NumericInput } from "@/components/numeric-input"
 import { clearPendingPassword, getPendingPassword } from "@/lib/pending-signup"
@@ -88,6 +89,19 @@ interface EquipmentConfig {
   placeholder: string
 }
 
+/** Tells which parts of the public page did not follow the profile, because they were edited there. */
+function keptOnPageText(fields: SyncedField[], photo: boolean, nl: boolean) {
+  const names: Record<SyncedField, string> = nl
+    ? { bio: "bio", eventTypes: "evenementtypes", genres: photo ? "specialisaties" : "muziekgenres", socials: "sociale media" }
+    : { bio: "bio", eventTypes: "event types", genres: photo ? "specialities" : "music genres", socials: "social media" }
+  const list = new Intl.ListFormat(nl ? "nl" : "en").format(fields.map((field) => names[field]))
+  const label = list.charAt(0).toUpperCase() + list.slice(1)
+  const plural = fields.length > 1 || fields[0] !== "bio"
+  return nl
+    ? `${label} op Mijn website ${plural ? "zijn" : "is"} apart aangepast en niet gewijzigd.`
+    : `${label} on My website ${plural ? "were" : "was"} edited separately and not changed.`
+}
+
 interface ProfessionalProfileFormProps {
   mode?: "register" | "edit"
   initialProfile?: ProfessionalProfileData | null
@@ -111,6 +125,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const isEdit = mode === "edit"
   const router = useRouter()
   const [saved, setSaved] = useState(false)
+  const [keptOnPage, setKeptOnPage] = useState<SyncedField[]>([])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState("")
 
@@ -851,6 +866,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     setSaving(true)
     setSaveError("")
     setSaved(false)
+    setKeptOnPage([])
     try {
       if (needsAccount) {
         trackUserTest("signup_submitted", { account_type: "professional" })
@@ -933,6 +949,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
       if (isEdit) {
         setSaved(true)
+        setKeptOnPage(result.kept)
         router.refresh()
       } else {
         sessionStorage.removeItem("professionalSignupData")
@@ -1924,6 +1941,14 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {isEdit && saved && (
                 <p role="status" className="text-center text-sm text-green-600">
                   {L ? "Je profiel is opgeslagen" : "Your profile has been saved"}
+                </p>
+              )}
+              {isEdit && saved && keptOnPage.length > 0 && (
+                <p role="status" className="text-center text-sm text-[var(--rf-muted)]">
+                  {keptOnPageText(keptOnPage, photo, L)}{" "}
+                  <Link href="/dashboard/my-page" className="text-[var(--rf-text)] underline underline-offset-4">
+                    {L ? "Open Mijn website" : "Open My website"}
+                  </Link>
                 </p>
               )}
             </form>
