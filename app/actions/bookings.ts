@@ -182,6 +182,9 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
 async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResult> {
   const session = await getSession()
   if (!session?.user) throw new BookingError("UNAUTHORIZED")
+  // Only organiser accounts can follow, pay and discuss a request (/account); a professional or admin account
+  // would create a booking that nobody on the customer side ever sees.
+  if (session.user.role !== "user") throw new BookingError("UNAUTHORIZED")
   const customerId = session.user.id
   const input = parseBookingInput(raw)
 
@@ -365,6 +368,10 @@ export type AcceptBookingResult =
   | { ok: false; error: "NOT_FOUND" | "DATE_PASSED" | "DATE_TAKEN"; blocked?: boolean }
 
 export async function acceptBooking(id: number, message: string): Promise<AcceptBookingResult> {
+  return withoutValues("Failed to accept the booking:", () => runAcceptBooking(id, message))
+}
+
+async function runAcceptBooking(id: number, message: string): Promise<AcceptBookingResult> {
   const professionalId = await getProfessionalId()
   if (!isBookingId(id)) return { ok: false, error: "NOT_FOUND" }
   const hasTable = await hasUnavailableDatesTable()
@@ -447,6 +454,10 @@ async function runRejectBooking(id: number, reason: string): Promise<RespondResu
 export type CompleteBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "TOO_EARLY" }
 
 export async function completeBooking(id: number): Promise<CompleteBookingResult> {
+  return withoutValues("Failed to complete the booking:", () => runCompleteBooking(id))
+}
+
+async function runCompleteBooking(id: number): Promise<CompleteBookingResult> {
   const professionalId = await getProfessionalId()
   const booking = await getBooking(id)
   if (!booking || booking.status !== "accepted") return { ok: false, error: "NOT_FOUND" }

@@ -86,7 +86,7 @@ export function DetailsCard() {
     {
       icon: Wallet,
       label: t.rate,
-      value: artist.price,
+      value: artist.price.replace("€", "€ "),
       note: t.rateNote,
     },
     ...(artist.location ? [{ icon: MapPin, label: t.city, value: artist.location }] : []),

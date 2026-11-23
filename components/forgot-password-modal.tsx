@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { X, Mail, ArrowLeft, Loader2 } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { authClient } from "@/lib/auth-client"
@@ -90,19 +91,23 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
 
           {!sent && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <Input
-                  id="forgot-email"
-                  aria-label={nl ? "Je e-mailadres" : "Your email address"}
-                  type="email"
-                  autoComplete="email"
-                  placeholder={nl ? "Je e-mailadres" : "Your email address"}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 pl-10"
-                  required
-                />
+              <div>
+                <Label htmlFor="forgot-email" className="mb-1.5 block">
+                  {nl ? "E-mail" : "Email"}
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder={nl ? "Je e-mailadres" : "Your email address"}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 border-gray-300 dark:border-gray-600 dark:bg-gray-800 pl-10"
+                    required
+                  />
+                </div>
               </div>
 
               {error && (
@@ -122,9 +127,9 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
           <button
             type="button"
             onClick={onBackToLogin}
-            className="w-full text-center text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center justify-center gap-1 mt-6"
+            className="mt-6 flex min-h-11 w-full items-center justify-center gap-1 text-sm font-medium text-red-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-red-400"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" aria-hidden />
             {nl ? "Terug naar inloggen" : "Back to login"}
           </button>
         </div>

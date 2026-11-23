@@ -18,7 +18,7 @@ export function ArtistBackLink({ artistId, photo = false }: { artistId: number; 
   return (
     <Link
       href={photo ? "/photo-video" : "/artiesten"}
-      className="mb-3 ml-3 sm:ml-0 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      className="mb-1 ml-3 inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring sm:ml-0"
     >
       <ArrowLeft className="h-4 w-4" aria-hidden />
       {photo ? (nl ? "Alle fotografen en videografen" : "All photographers and videographers") : nl ? "Alle artiesten" : "All artists"}

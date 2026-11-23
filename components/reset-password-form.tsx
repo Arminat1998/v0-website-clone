@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useLanguage } from "@/contexts/language-context"
 import { authClient } from "@/lib/auth-client"
 
@@ -46,18 +47,27 @@ export function ResetPasswordForm({ token, invalid }: { token?: string; invalid:
         </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <Input
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            placeholder={nl ? "Nieuw wachtwoord (min. 8 tekens)" : "New password (min. 8 characters)"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-12"
-            required
-          />
+          <div>
+            <Label htmlFor="reset-password" className="mb-1.5 block">
+              {nl ? "Nieuw wachtwoord" : "New password"}
+            </Label>
+            <Input
+              id="reset-password"
+              aria-describedby="reset-password-hint"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-12"
+              required
+            />
+            <p id="reset-password-hint" className="mt-1.5 text-sm text-muted-foreground">
+              {nl ? "Minimaal 8 tekens." : "At least 8 characters."}
+            </p>
+          </div>
           {error && (
-            <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            <p role="alert" className="text-sm text-red-700 dark:text-red-400">
               {error}
             </p>
           )}
@@ -67,7 +77,7 @@ export function ResetPasswordForm({ token, invalid }: { token?: string; invalid:
         </form>
       )}
 
-      <Link href="/?login=1" className="mt-6 block text-center text-sm text-blue-600 dark:text-blue-400 hover:underline">
+      <Link href="/?login=1" className="mt-6 flex min-h-11 items-center justify-center text-sm font-medium text-red-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring dark:text-red-400">
         {nl ? "Naar inloggen" : "Go to login"}
       </Link>
     </div>

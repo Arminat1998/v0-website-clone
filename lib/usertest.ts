@@ -88,6 +88,8 @@ function load(state: UserTestState) {
       session_recording: { maskAllInputs: true, maskTextSelector: "[data-private], [data-private] *" },
       before_send: (event) => {
         if (!event) return event
+        // Nothing at all from admin or password pages, also after navigating there within the site.
+        if (PRIVATE_PATHS.test(window.location.pathname)) return null
         for (const key of URL_PROPERTIES) if (key in event.properties) event.properties[key] = withoutTokens(event.properties[key])
         return event
       },

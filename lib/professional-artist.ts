@@ -7,7 +7,7 @@ import { mediaUrl } from "@/lib/artist-page-types"
 import { slugify } from "@/lib/artist-slug"
 import { loadUnavailableDates } from "@/lib/bookings/availability"
 import { getRestriction } from "@/lib/moderation"
-import { digitsOnlyPrice } from "@/lib/professional-profile-types"
+import { digitsOnlyPrice, formatRentalPrice } from "@/lib/professional-profile-types"
 import { canonicalEventType, genreLabel, isPhotoVideo } from "@/lib/profile-options"
 import type { Artist, EquipmentDetail, Photographer } from "@/lib/smart-search"
 import { logError } from "@/lib/log-error"
@@ -54,7 +54,8 @@ export interface ProfessionalProfileSummary {
 function packagePrice(items: EquipmentDetail[]) {
   const total = items.reduce((sum, item) => sum + (Number(digitsOnlyPrice(item.price)) || 0), 0)
   if (total <= 0) return undefined
-  return `€${Number.isInteger(total) ? total : total.toFixed(2).replace(".", ",")}`
+  // Shown only, never parsed again: "€2.245" like the other amounts on the site.
+  return formatRentalPrice(Number.isInteger(total) ? String(total) : total.toFixed(2), "")
 }
 
 export function buildProfessionalArtist(

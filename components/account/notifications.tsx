@@ -14,6 +14,7 @@ import {
   type CustomerNotice,
 } from "@/app/actions/customer";
 import { cn } from "@/lib/utils";
+import { BOOKING_TIME_ZONE } from "@/lib/bookings/format";
 
 /** What happened, in one sentence what it means, and where to go next. */
 function noticeText(notice: CustomerNotice, nl: boolean) {
@@ -136,6 +137,7 @@ export function NoticeLink({ notice, className }: { notice: CustomerNotice; clas
         {new Date(notice.createdAt).toLocaleString(nl ? "nl-NL" : "en-GB", {
           dateStyle: "medium",
           timeStyle: "short",
+          timeZone: BOOKING_TIME_ZONE,
         })}
       </p>
     </Link>

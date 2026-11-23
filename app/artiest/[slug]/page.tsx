@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { ArtistBackLink } from "@/components/artist-back-link"
 import { ArtistWebsite } from "@/components/artist-website/artist-website"
 import { getArtistBySlug } from "@/lib/artist-slug"
@@ -52,6 +53,7 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
         <ArtistBackLink artistId={artist.id} />
         <ArtistWebsite artist={artist} content={content ?? emptyPageContent()} />
       </main>
+      <Footer />
     </div>
   )
 }

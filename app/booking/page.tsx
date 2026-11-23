@@ -722,6 +722,29 @@ export default function BookingPage() {
     )
   }
 
+  // Only organiser accounts can send a request; the server refuses other roles as well.
+  if (sessionData.user.role !== "user") {
+    return (
+      <div className="min-h-screen bg-background transition-colors">
+        <Header />
+        <div className="max-w-xl mx-auto px-3 sm:px-4 py-10 sm:py-16">
+          <div className="bg-card rounded-lg shadow border border-border p-6 sm:p-8 text-center">
+            <LockKeyhole className="mx-auto h-10 w-10 text-red-500" />
+            <h1 className="mt-4 text-xl sm:text-2xl font-bold text-foreground">
+              {tr("Boeken kan alleen met een organisatoraccount", "Booking needs an organiser account")}
+            </h1>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {tr(
+                `Je bent ingelogd met een account voor professionals of beheer. Wil je ${professional.name} boeken, log dan in met een organisatoraccount.`,
+                `You are logged in with a professional or admin account. To book ${professional.name}, log in with an organiser account.`,
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background transition-colors">
       <Header />
@@ -986,14 +1009,14 @@ export default function BookingPage() {
                 </div>
 
                 {distanceError && (
-                  <p role="alert" className="mt-3 text-sm text-red-500">{distanceError}</p>
+                  <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">{distanceError}</p>
                 )}
                 {distance !== null && (
                   <div className="mt-4 p-4 bg-muted border border-border rounded-lg">
                     <p className="text-sm font-medium text-foreground">
                       {t.distanceFromTo} {professional.location} {tr("naar", "to")} {eventLocation}:
                     </p>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{distance} km</p>
+                    <p className="mt-1 text-2xl font-bold text-foreground">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
                       {t.estimatedTravelCost} {formatEuro(travelCents(distance))} {tr("excl. btw", "excl. VAT")} ({tr("retour", "round trip")}: {distance * 2} km)
                     </p>
@@ -1036,7 +1059,7 @@ export default function BookingPage() {
                     className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                   />
                   {eventName.length < 3 && eventName.length > 0 && (
-                    <p className="text-xs text-red-500 mt-1">{tr("De naam moet minimaal 3 tekens hebben.", "The name must be at least 3 characters.")}</p>
+                    <p className="mt-1 text-xs text-red-700 dark:text-red-400">{tr("De naam moet minimaal 3 tekens hebben.", "The name must be at least 3 characters.")}</p>
                   )}
                 </div>
                 
@@ -1088,12 +1111,12 @@ export default function BookingPage() {
                   </p>
                 )}
                 {sameTime && (
-                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
+                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-700 dark:text-red-400">
                     {tr("De start- en eindtijd zijn gelijk. Kies een andere eindtijd.", "The start and end time are the same. Choose another end time.")}
                   </p>
                 )}
                 {hoursIssue && bookingOptions && (
-                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-500">
+                  <p role="alert" className="-mt-2 mb-4 text-sm text-red-700 dark:text-red-400">
                     {hoursIssue === "min"
                       ? tr(`${professional.name} ${artist ? "speelt" : "werkt"} minimaal ${bookingOptions.minHours} uur. Kies een latere eindtijd.`, `${professional.name} ${artist ? "plays" : "works"} at least ${bookingOptions.minHours} ${bookingOptions.minHours === 1 ? "hour" : "hours"}. Choose a later end time.`)
                       : tr(`${professional.name} ${artist ? "speelt" : "werkt"} maximaal ${bookingOptions.maxHours} uur. Kies een eerdere eindtijd.`, `${professional.name} ${artist ? "plays" : "works"} at most ${bookingOptions.maxHours} ${bookingOptions.maxHours === 1 ? "hour" : "hours"}. Choose an earlier end time.`)}
@@ -1560,7 +1583,7 @@ export default function BookingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
                   <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw", "VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
-                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-500">{formatEuro(shownTotal)}</span></div>
+                  <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-700 dark:text-red-400">{formatEuro(shownTotal)}</span></div>
                   </>}
                   <p className="text-xs text-muted-foreground">{tr("De professional bevestigt dit bedrag als je aanvraag wordt geaccepteerd. Je betaalt pas daarna.", "The professional confirms this amount when your request is accepted. You only pay after that.")}</p>
                 </div>
@@ -1583,12 +1606,12 @@ export default function BookingPage() {
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground"><LockKeyhole className="h-4 w-4" />{tr("Je gegevens worden veilig verwerkt.", "Your details are processed securely.")}</div>
               </div>
               {submitError && (
-                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600 dark:text-red-400">
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-400">
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                   <div className="space-y-2">
                     <p>{submitError.text}</p>
                     {submitError.step && (
-                      <button type="button" onClick={() => goToStep(submitError.step!)} className="min-h-9 font-medium underline underline-offset-4">
+                      <button type="button" onClick={() => goToStep(submitError.step!)} className="inline-flex min-h-11 items-center font-medium underline underline-offset-4">
                         {tr(`Naar stap ${submitError.step}`, `Go to step ${submitError.step}`)}
                       </button>
                     )}

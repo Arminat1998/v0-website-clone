@@ -16,8 +16,8 @@ import {
   BookingBadge,
   euro,
   eventDate,
-  statusLabels,
 } from "./account-common";
+import { useBookingT } from "@/lib/booking-i18n";
 import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBooking } from "@/app/actions/bookings";
 
@@ -79,7 +79,7 @@ export function AccountBookingList({
 }: {
   bookings: CustomerBooking[];
 }) {
-  const { language } = useLanguage();
+  const { t, language } = useBookingT();
   const nl = language === "nl";
   const searchParams = useSearchParams();
   const [status, setStatus] = useState(searchParams.get("status") || "all");
@@ -133,7 +133,7 @@ export function AccountBookingList({
                   <TabsTrigger value="all" className="min-h-11 flex-none px-3">
                     {nl ? "Alles" : "All"} ({bookings.length})
                   </TabsTrigger>
-                  {Object.entries(statusLabels[language]).map(
+                  {Object.entries(t.status).map(
                     ([key, label]) => (
                       <TabsTrigger
                         key={key}

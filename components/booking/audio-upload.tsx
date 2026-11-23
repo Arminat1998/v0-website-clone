@@ -72,7 +72,7 @@ export function AudioUpload({ label, file, onChange }: { label: string; file: Fi
         </>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="mt-2 text-sm text-red-500">
+        <p id={`${id}-error`} role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       )}

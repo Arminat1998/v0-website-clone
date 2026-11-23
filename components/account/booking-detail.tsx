@@ -24,6 +24,7 @@ import { canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "
 import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
+import { BOOKING_TIME_ZONE } from "@/lib/bookings/format";
 
 export function AccountBookingDetail({
   booking: b,
@@ -290,7 +291,9 @@ export function AccountBookingDetail({
           </Card>
           <p className="text-sm text-muted-foreground">
             {nl ? "Aangevraagd op" : "Requested on"}{" "}
-            {new Date(b.createdAt).toLocaleDateString(nl ? "nl-NL" : "en-GB")}
+            {new Date(b.createdAt).toLocaleDateString(nl ? "nl-NL" : "en-GB", {
+              timeZone: BOOKING_TIME_ZONE,
+            })}
           </p>
         </div>
       </div>
