@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { markPaymentReceived, type AdminPaymentRow } from "@/app/actions/admin-payments"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { paymentReference } from "@/lib/bookings/payments"
+import { BOOKING_TIME_ZONE } from "@/lib/bookings/format"
 
 export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
   const nl = useLanguage().language === "nl"
@@ -71,7 +72,7 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
                   <td className="px-4 py-3">
                     <p className="font-medium">#{row.id} · {row.eventName}</p>
                     <p className="text-muted-foreground">
-                      {new Date(row.eventDate).toLocaleDateString(nl ? "nl-NL" : "en-GB")}
+                      {new Date(row.eventDate).toLocaleDateString(nl ? "nl-NL" : "en-GB", { timeZone: BOOKING_TIME_ZONE })}
                       {row.invoiceNumber && ` · ${nl ? "factuur" : "invoice"} ${row.invoiceNumber}`}
                     </p>
                   </td>

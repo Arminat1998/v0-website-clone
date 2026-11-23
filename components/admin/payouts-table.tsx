@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { markPayoutPaid, type AdminPayoutRow } from "@/app/actions/admin-payments"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { formatIban } from "@/lib/bookings/invoicing"
+import { BOOKING_TIME_ZONE } from "@/lib/bookings/format"
 
 /** Registers payouts made by bank transfer outside the platform; nothing is transferred from here. */
 export function PayoutsTable({ rows }: { rows: AdminPayoutRow[] }) {
@@ -71,7 +72,7 @@ export function PayoutsTable({ rows }: { rows: AdminPayoutRow[] }) {
               <tr key={row.id} className="border-b border-border align-top last:border-0">
                 <td className="px-4 py-3">
                   <p className="font-medium">#{row.id} · {row.eventName}</p>
-                  <p className="text-muted-foreground">{new Date(row.eventDate).toLocaleDateString(locale)}</p>
+                  <p className="text-muted-foreground">{new Date(row.eventDate).toLocaleDateString(locale, { timeZone: BOOKING_TIME_ZONE })}</p>
                 </td>
                 <td className="px-4 py-3">
                   <p>{row.professionalName}</p>
@@ -125,7 +126,7 @@ export function PayoutsTable({ rows }: { rows: AdminPayoutRow[] }) {
                       {busyId === row.id ? (nl ? "Bezig…" : "Saving…") : nl ? "Uitbetaald" : "Paid out"}
                     </Button>
                   ) : (
-                    row.paidOutAt && new Date(row.paidOutAt).toLocaleDateString(locale)
+                    row.paidOutAt && new Date(row.paidOutAt).toLocaleDateString(locale, { timeZone: BOOKING_TIME_ZONE })
                   )}
                 </td>
               </tr>

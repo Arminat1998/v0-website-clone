@@ -6,6 +6,7 @@ import { useLanguage } from "@/contexts/language-context"
 import { Button } from "@/components/ui/button"
 import type { ReviewInvite } from "@/app/actions/reviews"
 import { cn } from "@/lib/utils"
+import { BOOKING_TIME_ZONE } from "@/lib/bookings/format"
 
 export function Stars({ rating, className }: { rating: number; className?: string }) {
   return (
@@ -21,7 +22,7 @@ export function AccountReviews({ reviews }: { reviews: ReviewInvite[] }) {
   const nl = useLanguage().language === "nl"
   const pending = reviews.filter((r) => !r.submittedAt)
   const done = reviews.filter((r) => r.submittedAt)
-  const date = (d: string) => new Date(d).toLocaleDateString(nl ? "nl-NL" : "en-GB", { day: "numeric", month: "long", year: "numeric" })
+  const date = (d: string) => new Date(d).toLocaleDateString(nl ? "nl-NL" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: BOOKING_TIME_ZONE })
 
   return (
     <div className="flex flex-col gap-8">
