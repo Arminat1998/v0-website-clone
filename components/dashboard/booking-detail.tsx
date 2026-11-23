@@ -23,7 +23,7 @@ import {
 import { useBookingT } from "@/lib/booking-i18n"
 import type { Booking, Invoice } from "@/lib/db/schema"
 import { canonicalEventType, eventTypeLabel } from "@/lib/profile-options"
-import { EQUIPMENT_OPTIONS, formatEuro } from "@/lib/bookings/pricing"
+import { EQUIPMENT_OPTIONS, equipmentLabel, formatEuro } from "@/lib/bookings/pricing"
 import { isContactUnlocked } from "@/lib/bookings/privacy"
 import {
   billingAddress,
@@ -205,7 +205,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                   {booking.equipment.length > 0 && (
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
-                      {t.detail.reminderEquipment}: {booking.equipment.map((id) => EQUIPMENT_OPTIONS.find((o) => o.id === id)?.label ?? id).join(", ")}
+                      {t.detail.reminderEquipment}: {booking.equipment.map(equipmentLabel).join(", ")}
                     </li>
                   )}
                   <li className="flex items-start gap-2">
@@ -326,11 +326,12 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
               ) : (
                 <ul className="flex flex-col gap-2 text-sm">
                   {booking.equipment.map((id) => {
-                    const option = EQUIPMENT_OPTIONS.find((o) => o.id === id)
+                    // Only old bookings store an id with a fixed price; newer ones store the label and keep the amount in the price card.
+                    const oldOption = EQUIPMENT_OPTIONS.find((o) => o.id === id)
                     return (
                       <li key={id} className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0">
-                        <span className="text-foreground">{option?.label ?? id}</span>
-                        <span className="font-medium text-muted-foreground">{formatEuro(option?.priceCents ?? 0, locale)}</span>
+                        <span className="text-foreground">{equipmentLabel(id)}</span>
+                        {oldOption && <span className="font-medium text-muted-foreground">{formatEuro(oldOption.priceCents, locale)}</span>}
                       </li>
                     )
                   })}
