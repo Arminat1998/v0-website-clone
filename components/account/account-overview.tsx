@@ -98,7 +98,7 @@ export function AccountOverview({
             : "Your next memorable moment starts here. Everything for your event, in one place."
         }
         action={
-          <Button asChild>
+          <Button variant="brand" asChild>
             <Link href="/">
               <Plus data-icon="inline-start" />
               {nl ? "Nieuwe boeking" : "New booking"}

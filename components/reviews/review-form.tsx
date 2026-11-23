@@ -137,7 +137,7 @@ export function ReviewForm({ invite }: { invite: ReviewInvite }) {
                 {error}
               </p>
             )}
-            <Button type="submit" size="lg" disabled={pending}>
+            <Button type="submit" variant="brand" size="lg" disabled={pending}>
               {pending ? (nl ? "Bezig..." : "Submitting...") : nl ? "Review plaatsen" : "Submit review"}
             </Button>
           </form>

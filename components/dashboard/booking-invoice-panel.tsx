@@ -83,7 +83,7 @@ export function BookingInvoicePanel({ booking, invoice }: { booking: Booking; in
             )}
           </>
         ) : (
-          <Button asChild className="w-full bg-red-700 text-white hover:bg-red-600">
+          <Button variant="brand" asChild className="w-full">
             <Link href={`/dashboard/bookings/${booking.id}/invoice`}>
               <FileText className="mr-2 h-4 w-4" aria-hidden />
               {ti.panelCta}

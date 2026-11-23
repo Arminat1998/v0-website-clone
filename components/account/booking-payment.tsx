@@ -323,7 +323,7 @@ export function BookingPayment({
                     ? "De betaalgegevens staan hier nog niet. Neem contact op met ARSI Events om te betalen."
                     : "The payment details are not available here yet. Contact ARSI Events to pay."}
                 </p>
-                <MessageButton label={supportLabel} />
+                <MessageButton variant="brand" label={supportLabel} />
               </div>
             )}
           </CardContent>

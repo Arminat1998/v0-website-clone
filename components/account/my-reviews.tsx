@@ -51,7 +51,7 @@ export function AccountReviews({ reviews }: { reviews: ReviewInvite[] }) {
                   {r.eventName} · {date(r.eventDate)}
                 </p>
               </div>
-              <Button asChild>
+              <Button variant="brand" asChild>
                 <Link href={`/review/${r.token}`}>{nl ? "Review schrijven" : "Write review"}</Link>
               </Button>
             </article>

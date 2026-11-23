@@ -94,7 +94,7 @@ export function AccountFavorites({ favorites }: { favorites: FavoriteItem[] }) {
                   initialSaved
                 />
                 {favorite.available && (
-                  <Button asChild>
+                  <Button variant="brand" asChild>
                     <Link href={favorite.href}>
                       {favorite.professionalType === "photographer"
                         ? nl

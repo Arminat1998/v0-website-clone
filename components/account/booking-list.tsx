@@ -101,7 +101,7 @@ export function AccountBookingList({
             : "From your first request to an unforgettable event."
         }
         action={
-          <Button asChild>
+          <Button variant="brand" asChild>
             <Link href="/">
               {nl ? "Nieuwe boeking" : "New booking"}
               <ArrowUpRight data-icon="inline-end" />

@@ -92,7 +92,7 @@ export function AccountEmpty({
       </EmptyHeader>
       {discover && (
         <EmptyContent>
-          <Button asChild>
+          <Button variant="brand" asChild>
             <Link href="/">
               {nl ? "Ontdek professionals" : "Discover professionals"}
               <ArrowUpRight data-icon="inline-end" />

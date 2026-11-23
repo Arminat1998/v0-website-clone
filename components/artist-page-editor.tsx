@@ -178,7 +178,7 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
               {linkCopied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
               {linkCopied ? t.copied : t.copyLink}
             </Button>
-            <Button asChild size="sm">
+            <Button variant="brand" asChild size="sm">
               <Link href={artistPath} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="size-4" aria-hidden="true" />
                 {t.viewPage}

@@ -17,7 +17,7 @@ export function MessageButton({
   label: string
   professionalId?: string
   bookingId?: number
-  variant?: "default" | "outline"
+  variant?: "default" | "outline" | "brand"
 }) {
   const router = useRouter()
   const nl = useLanguage().language === "nl"

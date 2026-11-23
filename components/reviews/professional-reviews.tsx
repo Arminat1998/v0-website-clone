@@ -103,7 +103,7 @@ function ReviewItem({ review: r, nl, locale }: { review: ProfessionalReview; nl:
             className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-          <Button type="submit" size="sm" className="self-end" disabled={pending || !reply.trim()}>
+          <Button type="submit" variant="brand" size="sm" className="self-end" disabled={pending || !reply.trim()}>
             {nl ? "Reageren" : "Reply"}
           </Button>
         </form>

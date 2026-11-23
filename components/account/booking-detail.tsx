@@ -256,7 +256,7 @@ export function AccountBookingDetail({
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {reviewToken && (
-                <Button asChild>
+                <Button variant="brand" asChild>
                   <Link href={`/review/${reviewToken}`}>
                     <Star />
                     {reviewDone
@@ -266,14 +266,15 @@ export function AccountBookingDetail({
                 </Button>
               )}
               {closed && (
-                <Button asChild className="min-h-11">
+                <Button variant="brand" asChild className="min-h-11">
                   <Link href={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}>
                     {nl ? "Andere professionals bekijken" : "See other professionals"}
                   </Link>
                 </Button>
               )}
               <MessageButton
-                variant={closed || reviewToken ? "outline" : "default"}
+                // While the customer still has to pay, the payment card holds the main action
+                variant={closed || reviewToken || b.status === "accepted" ? "outline" : "brand"}
                 professionalId={b.professionalId}
                 label={nl ? "Stuur een bericht" : "Send a message"}
               />
