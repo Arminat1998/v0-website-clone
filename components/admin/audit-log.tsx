@@ -22,7 +22,7 @@ export function AuditLog({ entries, compact = false }: { entries: AuditEntry[]; 
                 <>
                   {" · "}
                   {entry.targetUserId ? (
-                    <Link href={`/admin/gebruikers/${entry.targetUserId}`} className="text-red-500 hover:text-red-400">
+                    <Link href={`/admin/gebruikers/${entry.targetUserId}`} className="text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
                       {entry.targetLabel}
                     </Link>
                   ) : (

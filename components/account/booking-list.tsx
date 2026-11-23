@@ -31,7 +31,7 @@ export function BookingRows({ bookings }: { bookings: CustomerBooking[] }) {
           key={booking.id}
           className="block rounded-lg py-4 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-ring"
         >
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-center gap-4">
               <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border bg-background">
                 <span className="text-sm text-muted-foreground">
@@ -57,14 +57,14 @@ export function BookingRows({ bookings }: { bookings: CustomerBooking[] }) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end gap-2">
+            <div className="flex w-full items-center justify-between gap-4 pl-16 sm:w-auto sm:pl-0">
+              <div className="flex flex-1 items-center justify-between gap-2 sm:flex-col sm:items-end">
                 <BookingBadge status={displayStatus(booking)} />
-                <span className="text-sm font-medium">
+                <span className="whitespace-nowrap text-sm font-medium tabular-nums">
                   {euro(booking.totalCents, nl)}
                 </span>
               </div>
-              <ArrowUpRight className="size-4 text-muted-foreground" />
+              <ArrowUpRight className="hidden size-4 text-muted-foreground sm:block" />
             </div>
           </div>
           <span className="sr-only">{eventDate(booking.eventDate, nl)}</span>
@@ -101,7 +101,7 @@ export function AccountBookingList({
             : "From your first request to an unforgettable event."
         }
         action={
-          <Button asChild>
+          <Button variant="brand" asChild>
             <Link href="/">
               {nl ? "Nieuwe boeking" : "New booking"}
               <ArrowUpRight data-icon="inline-end" />
@@ -128,14 +128,18 @@ export function AccountBookingList({
               />
             </Field>
             <Tabs value={status} onValueChange={setStatus}>
-              <div className="overflow-x-auto">
-                <TabsList className="h-auto flex-wrap justify-start">
-                  <TabsTrigger value="all">
+              <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none]">
+                <TabsList className="flex h-auto w-max justify-start gap-1">
+                  <TabsTrigger value="all" className="min-h-11 flex-none px-3">
                     {nl ? "Alles" : "All"} ({bookings.length})
                   </TabsTrigger>
                   {Object.entries(statusLabels[language]).map(
                     ([key, label]) => (
-                      <TabsTrigger key={key} value={key}>
+                      <TabsTrigger
+                        key={key}
+                        value={key}
+                        className="min-h-11 flex-none px-3"
+                      >
                         {label}
                       </TabsTrigger>
                     ),

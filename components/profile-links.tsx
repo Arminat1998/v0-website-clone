@@ -16,7 +16,7 @@ const linkClass =
 export function ProfileLinks({ current, publicPath = null }: ProfileLinksProps) {
   const nl = useLanguage().language === "nl"
   return (
-    <nav aria-label={nl ? "Gerelateerde pagina's" : "Related pages"} className="mx-auto flex max-w-4xl flex-wrap gap-2">
+    <nav aria-label={nl ? "Gerelateerde pagina's" : "Related pages"} className={`flex flex-wrap gap-2 ${current === "profile" ? "mx-auto max-w-4xl" : ""}`}>
       {current === "profile" ? (
         <Link href="/dashboard/my-page" className={linkClass}>
           <Globe className="h-4 w-4" aria-hidden />

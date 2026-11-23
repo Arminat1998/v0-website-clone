@@ -5,7 +5,7 @@ import type { DisplayStatus } from "@/lib/bookings/display-status"
 import type { InvoiceStatus, PaymentStatus, PayoutStatus } from "@/lib/db/schema"
 import { cn } from "@/lib/utils"
 
-const statusStyles: Record<DisplayStatus, string> = {
+export const statusStyles: Record<DisplayStatus, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
   accepted: "bg-green-500/10 text-green-800 dark:text-green-500",
   rejected: "bg-muted text-muted-foreground",

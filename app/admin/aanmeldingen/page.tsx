@@ -134,7 +134,7 @@ function AanmeldingenContent() {
               <button
                 type="button"
                 onClick={() => setFilters(defaultFilters)}
-                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-red-500 hover:text-red-400 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 text-sm text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors"
               >
                 <X className="w-4 h-4" />
                 {t.list.clear}

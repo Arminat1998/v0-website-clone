@@ -220,7 +220,7 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
                       }
                     })
                   }}
-                  className="min-h-11 px-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+                  className="min-h-11 shrink-0 whitespace-nowrap px-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50 sm:text-sm"
                 >
                   {bt.overview.markAllRead}
                 </button>

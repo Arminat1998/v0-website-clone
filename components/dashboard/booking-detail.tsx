@@ -171,7 +171,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
         <div className="flex flex-wrap items-center gap-3 text-sm text-foreground">
           <span className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
             <Calendar className="h-4 w-4 text-red-700 dark:text-red-400" aria-hidden />
-            <span className="capitalize">{formatEventDate(booking.eventDate, locale)}</span>
+            <span className="inline-block first-letter:uppercase">{formatEventDate(booking.eventDate, locale)}</span>
           </span>
           <span className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2">
             <Clock className="h-4 w-4 text-red-700 dark:text-red-400" aria-hidden />
@@ -201,8 +201,8 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex min-w-0 flex-col gap-6">
           {isActive && (
             <Section id="runsheet" title={t.accepted.runSheet} icon={<Clock className="h-4 w-4" aria-hidden />}>
               <p className="text-sm text-muted-foreground">{t.accepted.runSheetSubtitle}</p>
@@ -451,7 +451,11 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
         <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
           <BookingPricingCard booking={booking} />
 
-          {booking.status === "pending" && <BookingRespondPanel bookingId={booking.id} photo={photo} expired={status === "expired"} />}
+          {booking.status === "pending" && (
+            <div id="reageren" className="scroll-mt-20">
+              <BookingRespondPanel bookingId={booking.id} photo={photo} expired={status === "expired"} />
+            </div>
+          )}
           {booking.status === "accepted" && <BookingCompletePanel booking={booking} />}
           {booking.status === "completed" && <BookingInvoicePanel booking={booking} invoice={invoice} />}
 
@@ -492,6 +496,22 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
           </section>
         </aside>
       </div>
+
+      {/* Mobile: the decision buttons sit below all details, so keep a shortcut in view */}
+      {booking.status === "pending" && (
+        <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex items-center justify-between gap-4 border-t border-border bg-background/95 p-3 backdrop-blur sm:-mx-8 sm:px-8 lg:hidden">
+          <div className="min-w-0">
+            <p className="truncate text-xs text-muted-foreground">{t.detail.payout}</p>
+            <p className="whitespace-nowrap text-lg font-semibold tabular-nums text-foreground">{formatEuro(booking.payoutCents, locale)}</p>
+          </div>
+          <a
+            href="#reageren"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-red-700 px-5 text-sm font-medium text-white transition-colors hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {nl ? "Reageren" : "Respond"}
+          </a>
+        </div>
+      )}
     </div>
   )
 }

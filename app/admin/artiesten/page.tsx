@@ -49,7 +49,7 @@ export default function ArtiestenPage() {
                 />
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-semibold text-foreground truncate">{s.name}</h3>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 flex-shrink-0">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-800 dark:text-green-400 flex-shrink-0">
                     {t.artists.live}
                   </span>
                 </div>

@@ -158,7 +158,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
           ? "bg-blue-600/40 text-white/70 font-medium"
           : "bg-blue-600 text-white font-medium hover:bg-blue-700"
       } else if (isPast || isTooFar) {
-        classes += "bg-zinc-500 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-500 cursor-not-allowed line-through"
+        classes += "cursor-not-allowed bg-muted/40 text-muted-foreground/60 line-through"
       } else if (isDisabledByMode) {
         classes += unavailable ? "bg-red-600/50 text-white/50 font-medium cursor-not-allowed" : "text-zinc-700/50 dark:text-zinc-400/50 bg-zinc-200/50 dark:bg-zinc-700/50 cursor-not-allowed"
       } else if (unavailable && isSelected) {
@@ -217,11 +217,12 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
     { swatch: "bg-red-600", label: tr("Niet beschikbaar", "Unavailable") },
     { swatch: "bg-green-600", label: tr("Geselecteerd", "Selected") },
     { swatch: "bg-zinc-200 dark:bg-zinc-700", label: tr("Beschikbaar", "Available") },
+    { swatch: "border border-border bg-muted/40", label: tr("Voorbij", "Past") },
   ]
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 md:p-8 lg:p-10">
-      <h1 className="mb-1 text-xl font-bold text-foreground sm:mb-2 sm:text-2xl md:text-3xl">{t.calendarTitle}</h1>
+      <h1 className="mb-2 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t.calendarTitle}</h1>
       <p className="mb-4 text-sm text-muted-foreground sm:mb-6 sm:text-base md:mb-8">
         {t.selectDates}. {bt.calendar.blockedNote}
       </p>
@@ -251,8 +252,8 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
             </div>
 
             <div className="mb-2 grid grid-cols-7 gap-0.5 sm:gap-1">
-              {tr("M D W D V Z Z", "M T W T F S S").split(" ").map((day, index) => (
-                <div key={index} className="flex h-6 items-center justify-center text-center text-[10px] font-semibold text-muted-foreground sm:h-8 sm:text-xs">
+              {tr("ma di wo do vr za zo", "Mo Tu We Th Fr Sa Su").split(" ").map((day, index) => (
+                <div key={index} className="flex h-6 items-center justify-center text-center text-xs font-semibold text-muted-foreground sm:h-8">
                   {day}
                 </div>
               ))}
@@ -293,7 +294,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
           </div>
 
           <div>
-            <h2 className="mb-3 text-base font-semibold text-red-500 sm:mb-4 sm:text-lg md:text-xl">{bt.overview.upcoming}</h2>
+            <h2 className="mb-3 text-lg font-semibold text-foreground sm:mb-4">{bt.overview.upcoming}</h2>
             {upcoming.length === 0 ? (
               <p className="text-sm text-muted-foreground">{bt.overview.noNextEvent}</p>
             ) : (
@@ -307,7 +308,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
                       <h3 className="mb-1 text-sm font-semibold text-foreground">{event.eventName}</h3>
                       <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3 flex-shrink-0" aria-hidden />
-                        <span className="truncate capitalize">{formatEventDate(event.eventDate, locale)}</span>
+                        <span className="block truncate first-letter:uppercase">{formatEventDate(event.eventDate, locale)}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5">

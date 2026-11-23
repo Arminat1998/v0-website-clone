@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { addUserNote, deleteUserNote, revokeWarning, updateWarning } from "@/app/actions/admin-users"
 import { useUsersT } from "@/lib/admin-users-i18n"
+import { useLanguage } from "@/contexts/language-context"
 import type { AdminNote, AdminUserRow, AdminWarning, AuditEntry } from "@/lib/admin/users"
 import { UserAvatar, UserStatusBadge } from "@/components/admin/moderation-ui"
 import { AuditLog } from "@/components/admin/audit-log"
@@ -28,6 +29,10 @@ const selectClass =
 
 export function UserDetail({ account, warnings, notes, audit }: UserDetailProps) {
   const { t, formatDate } = useUsersT()
+  const nl = useLanguage().language !== "en"
+  // The stored category is a code ("artist", "photo-video"); show it in the current language
+  const categoryText = (code: string) =>
+    code === "artist" ? (nl ? "Artiest" : "Artist") : code === "photo-video" ? (nl ? "Foto en video" : "Photo and video") : code
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [action, setAction] = useState<ActionKind | null>(null)
@@ -82,7 +87,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
 
   return (
     <div className="space-y-8">
-      <Link href="/admin/gebruikers" className="inline-flex items-center gap-2 text-sm text-red-500 hover:text-red-400">
+      <Link href="/admin/gebruikers" className="inline-flex items-center gap-2 text-sm text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         {t.back}
       </Link>
@@ -110,12 +115,12 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
             {account.category && (
               <div>
                 <dt className="inline">{t.category}: </dt>
-                <dd className="inline text-foreground">{account.category}</dd>
+                <dd className="inline text-foreground">{categoryText(account.category)}</dd>
               </div>
             )}
           </dl>
           {restricted && (
-            <p className="mt-3 text-sm text-amber-500">
+            <p className="mt-3 text-sm text-amber-800 dark:text-amber-400">
               {account.status === "suspended" && account.suspendedUntil
                 ? `${t.suspendedUntil(formatDate(account.suspendedUntil))}. `
                 : ""}
@@ -143,7 +148,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
               {warnings.map((w) => (
                 <li key={w.id} className="rounded-lg border border-border bg-card p-4 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-amber-500">{t.severities[w.severity] ?? w.severity}</span>
+                    <span className="font-medium text-amber-800 dark:text-amber-400">{t.severities[w.severity] ?? w.severity}</span>
                     <span className="text-xs text-muted-foreground">{formatDate(w.createdAt, true)}</span>
                   </div>
                   <p className="mt-1 whitespace-pre-wrap break-words text-foreground">{w.message}</p>
@@ -255,7 +260,7 @@ export function UserDetail({ account, warnings, notes, audit }: UserDetailProps)
           )}
 
           {error && (
-            <p role="alert" className="text-sm text-red-500">
+            <p role="alert" className="text-sm text-red-700 dark:text-red-400">
               {error}
             </p>
           )}

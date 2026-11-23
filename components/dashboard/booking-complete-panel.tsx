@@ -34,6 +34,7 @@ export function BookingCompletePanel({ booking }: { booking: Booking }) {
           {canComplete ? t.accepted.completeNote : t.accepted.completeNotYet}
         </p>
         <Button
+          variant="brand"
           disabled={!canComplete || isPending}
           onClick={() =>
             startTransition(async () => {

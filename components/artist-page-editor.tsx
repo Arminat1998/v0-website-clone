@@ -169,7 +169,7 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
       {cropDialog}
       <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-foreground text-balance sm:text-3xl">{t.title}</h1>
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.subtitle}</p>
         </div>
         {artistPath ? (
@@ -178,7 +178,7 @@ export function ArtistPageEditor({ initialContent, artist, artistPath }: ArtistP
               {linkCopied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
               {linkCopied ? t.copied : t.copyLink}
             </Button>
-            <Button asChild size="sm">
+            <Button variant="brand" asChild size="sm">
               <Link href={artistPath} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="size-4" aria-hidden="true" />
                 {t.viewPage}

@@ -165,8 +165,8 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-20 border-b border-border bg-background/95 px-6 py-3 backdrop-blur md:px-8 lg:px-10">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 pl-12 lg:pl-0">
+      <div className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur sm:px-6 md:px-8 lg:px-10">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href={`/dashboard/bookings/${booking.id}`}
@@ -193,7 +193,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 <li key={label} className="flex items-center gap-1 sm:gap-2" aria-current={state === "current" ? "step" : undefined}>
                   <span
                     className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                      state === "done" ? "bg-green-500/15 text-green-500" : state === "current" ? "bg-red-600 text-white" : "border border-border text-muted-foreground"
+                      state === "done" ? "bg-green-500/15 text-green-800 dark:text-green-500" : state === "current" ? "bg-red-600 text-white" : "border border-border text-muted-foreground"
                     }`}
                   >
                     {state === "done" ? <Check className="h-3.5 w-3.5" aria-hidden /> : index + 1}
@@ -207,10 +207,10 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
         </div>
       </div>
 
-      <div className="p-6 md:p-8 lg:p-10">
+      <div className="px-4 py-6 sm:px-6 md:p-8 lg:p-10">
         {step < 2 && (
           <header className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground md:text-3xl">{ti.title}</h1>
+            <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{ti.title}</h1>
             <p className="mt-1 max-w-2xl text-pretty text-muted-foreground">{ti.subtitle}</p>
           </header>
         )}
@@ -265,7 +265,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                     <button
                       type="button"
                       onClick={() => setEditingProfile((v) => !v)}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:underline"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:underline"
                     >
                       {editingProfile ? <X className="h-3.5 w-3.5" aria-hidden /> : <Pencil className="h-3.5 w-3.5" aria-hidden />}
                       {editingProfile ? ti.close : ti.edit}
@@ -314,7 +314,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                           />
                         </div>
                         {declaredCents !== null && (
-                          <p id="declaredTotal-status" className={`flex items-start gap-1.5 text-sm ${totalMatches ? "text-green-500" : "text-red-500"}`} aria-live="polite">
+                          <p id="declaredTotal-status" className={`flex items-start gap-1.5 text-sm ${totalMatches ? "text-green-800 dark:text-green-500" : "text-red-700 dark:text-red-400"}`} aria-live="polite">
                             {totalMatches ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden /> : <X className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />}
                             {totalMatches ? ti.totalMatches : ti.totalMismatch(formatEuro(totals.totalCents, locale))}
                           </p>
@@ -332,7 +332,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                     <button
                       type="button"
                       onClick={() => setShowPreview((v) => !v)}
-                      className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-red-500 hover:underline"
+                      className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-red-700 dark:text-red-400 hover:underline"
                     >
                       <FileText className="h-4 w-4" aria-hidden />
                       {showPreview ? ti.hidePreview : ti.showPreview}
@@ -356,7 +356,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 )}
 
                 {error && (
-                  <p role="alert" className="mt-4 text-sm text-red-500">
+                  <p role="alert" className="mt-4 text-sm text-red-700 dark:text-red-400">
                     {error}
                   </p>
                 )}
@@ -406,7 +406,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                   </div>
                   <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
                     <dt className="font-semibold text-foreground">{ti.payout}</dt>
-                    <dd className="text-2xl font-bold tabular-nums text-green-500">{formatEuro(pricedBooking.payoutCents, locale)}</dd>
+                    <dd className="text-2xl font-bold tabular-nums text-green-800 dark:text-green-500">{formatEuro(pricedBooking.payoutCents, locale)}</dd>
                   </div>
                 </dl>
                 {profile.iban && (
@@ -426,7 +426,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 <Check className="h-7 w-7" aria-hidden />
               </span>
               <div>
-                <h1 id="done-heading" className="text-2xl font-bold text-foreground md:text-3xl">
+                <h1 id="done-heading" className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   {paidOutAt ? ti.donePaidTitle : ti.doneTitle}
                 </h1>
                 <p className="mt-2 text-pretty text-muted-foreground">
@@ -530,7 +530,7 @@ function MethodCard({
       <input type="radio" name="invoice-method" checked={active} onChange={onSelect} className="sr-only" />
       <div className="flex items-start justify-between gap-3">
         <span className={`flex h-10 w-10 items-center justify-center rounded-md ${active ? "bg-red-600 text-white" : "bg-red-500/10 text-red-500"}`}>{icon}</span>
-        {badge && <span className="rounded-md bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-500">{badge}</span>}
+        {badge && <span className="rounded-md bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-800 dark:text-green-500">{badge}</span>}
       </div>
       <div>
         <div className="font-semibold text-foreground">{title}</div>

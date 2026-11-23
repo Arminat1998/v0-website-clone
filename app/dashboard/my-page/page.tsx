@@ -46,7 +46,7 @@ export default async function MyPageDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 p-4 pt-16 sm:p-6 lg:p-8">
+      <div className="space-y-4 p-4 sm:p-6 sm:pt-8 lg:p-8">
         <ProfileLinks current="website" />
         <ArtistPageEditor initialContent={content} artist={artist} artistPath={isLive ? artistPath : null} />
       </div>

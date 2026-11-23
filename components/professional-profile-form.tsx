@@ -1051,7 +1051,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               )}
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[var(--rf-text)]">
+              <h1 className="text-balance text-2xl font-semibold tracking-tight text-[var(--rf-text)] sm:text-3xl">
                 {isEdit
                   ? L
                     ? "Bewerk je profiel"

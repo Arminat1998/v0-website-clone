@@ -14,6 +14,8 @@ import {
   EmptyContent,
 } from "@/components/ui/empty";
 import type { DisplayStatus } from "@/lib/bookings/display-status";
+import { statusStyles } from "@/components/dashboard/booking-status-badge";
+import { cn } from "@/lib/utils";
 
 export const statusLabels = {
   nl: {
@@ -36,7 +38,10 @@ export const statusLabels = {
 export function BookingBadge({ status }: { status: DisplayStatus }) {
   const { language } = useLanguage();
   return (
-    <Badge variant={status === "accepted" ? "default" : "secondary"}>
+    <Badge
+      variant="outline"
+      className={cn("border-transparent", statusStyles[status])}
+    >
       {statusLabels[language][status]}
     </Badge>
   );
@@ -53,7 +58,7 @@ export function AccountHeading({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-2">
-        <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           {title}
         </h1>
         <p className="text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -87,7 +92,7 @@ export function AccountEmpty({
       </EmptyHeader>
       {discover && (
         <EmptyContent>
-          <Button asChild>
+          <Button variant="brand" asChild>
             <Link href="/">
               {nl ? "Ontdek professionals" : "Discover professionals"}
               <ArrowUpRight data-icon="inline-end" />

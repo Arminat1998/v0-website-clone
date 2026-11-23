@@ -83,7 +83,7 @@ export function LoginModal({
           </DialogClose>
 
           <div className="mb-4 sm:mb-6">
-            <DialogTitle className="mb-2 pr-10 text-xl font-bold text-red-700 sm:text-2xl dark:text-red-400">
+            <DialogTitle className="mb-2 pr-10 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
               {language === "nl" ? "Inloggen" : "Log in"}
             </DialogTitle>
             <DialogDescription className="text-sm">{t.loginSubtitle}</DialogDescription>

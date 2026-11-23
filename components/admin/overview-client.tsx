@@ -8,11 +8,11 @@ import { statusClasses, formatDate } from "@/lib/admin-status"
 import { useAdminT } from "@/lib/admin-i18n"
 
 const statCards: { status: SubmissionStatus; icon: typeof Inbox; color: string; bg: string }[] = [
-  { status: "nieuw", icon: Inbox, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { status: "in-beoordeling", icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { status: "wacht-op-aanvulling", icon: HelpCircle, color: "text-orange-500", bg: "bg-orange-500/10" },
-  { status: "goedgekeurd", icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10" },
-  { status: "afgewezen", icon: XCircle, color: "text-red-500", bg: "bg-red-500/10" },
+  { status: "nieuw", icon: Inbox, color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-500/10" },
+  { status: "in-beoordeling", icon: Clock, color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-500/10" },
+  { status: "wacht-op-aanvulling", icon: HelpCircle, color: "text-orange-700 dark:text-orange-400", bg: "bg-orange-500/10" },
+  { status: "goedgekeurd", icon: CheckCircle2, color: "text-green-700 dark:text-green-400", bg: "bg-green-500/10" },
+  { status: "afgewezen", icon: XCircle, color: "text-red-700 dark:text-red-400", bg: "bg-red-500/10" },
 ]
 
 export function AdminOverview() {
@@ -60,7 +60,7 @@ export function AdminOverview() {
           </div>
           <Link
             href="/admin/aanmeldingen"
-            className="hidden sm:inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-400 transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 text-sm text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors"
           >
             {t.overview.allSubmissions}
             <ArrowRight className="w-4 h-4" />

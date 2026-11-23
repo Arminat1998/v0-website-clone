@@ -123,7 +123,7 @@ export function AdminShell({ children, adminName }: { children: ReactNode; admin
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 text-red-500 hover:text-red-400 transition-colors px-4 py-2 text-sm"
+            className="flex items-center gap-2 text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors px-4 py-2 text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t.nav.backToSite}</span>
@@ -144,7 +144,7 @@ export function AdminShell({ children, adminName }: { children: ReactNode; admin
         </div>
       </aside>
 
-      <main className="flex-1 min-h-screen bg-background">
+      <main className="min-w-0 flex-1 min-h-screen bg-background">
         <div className="pt-16 lg:pt-0">{children}</div>
       </main>
     </div>
