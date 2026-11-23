@@ -182,6 +182,9 @@ export async function createBooking(input: CreateBookingInput): Promise<CreateBo
 async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResult> {
   const session = await getSession()
   if (!session?.user) throw new BookingError("UNAUTHORIZED")
+  // Only organiser accounts can follow, pay and discuss a request (/account); a professional or admin account
+  // would create a booking that nobody on the customer side ever sees.
+  if (session.user.role !== "user") throw new BookingError("UNAUTHORIZED")
   const customerId = session.user.id
   const input = parseBookingInput(raw)
 
