@@ -51,7 +51,11 @@ export function digitsOnlyPrice(value: string | null | undefined) {
 
 export function formatRentalPrice(value: string | null | undefined, daySuffix = "/dag") {
   const amount = digitsOnlyPrice(value)
-  return amount ? `€${amount.replace(".", ",")}${daySuffix}` : ""
+  if (!amount) return ""
+  const [whole, cents] = amount.split(".")
+  // 2245 → 2.245, as with the other amounts on the site.
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+  return `€${grouped}${cents ? `,${cents}` : ""}${daySuffix}`
 }
 
 /** Images are either a fresh in-browser data URL or a stored blob pathname. */
