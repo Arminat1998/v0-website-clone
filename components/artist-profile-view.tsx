@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Car, Clock, MapPin, Target } from "lucide-react";
 import { hoursLabel, rangeLabel } from "@/lib/artist-facts";
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Artist } from "@/lib/smart-search";
@@ -16,9 +17,7 @@ import { useLanguage } from "@/contexts/language-context";
 import {
   WebsiteProvider,
   bookingHref,
-  eventTagLabel,
   experienceLabel,
-  genreTagLabel,
   professionLabel,
   profileCopy,
 } from "@/components/artist-website/website-context";
@@ -79,6 +78,8 @@ export function ArtistProfileView({
   };
 
   const travel = rangeLabel(artist, nl);
+  const eventTags = tagLabels(artist.eventTypes, eventLabel, nl);
+  const styleTags = tagLabels(artist.musicStyles, styleLabel, nl);
   const facts = [
     { icon: Clock, label: t.duration, value: hoursLabel(artist, nl) },
     { icon: Target, label: t.experience, value: experienceLabel(artist.experience, nl) ?? notProvided },
@@ -187,14 +188,14 @@ export function ArtistProfileView({
 
               <div className="mb-6 sm:mb-8">
                 <h4 className="mb-3 text-base font-bold text-foreground sm:mb-4 sm:text-xl">{t.eventTypes}</h4>
-                {artist.eventTypes?.length ? (
+                {eventTags.length ? (
                   <ul className="flex flex-wrap gap-1 sm:gap-2">
-                    {artist.eventTypes.map((tag) => (
+                    {eventTags.map((tag) => (
                       <li
                         key={tag}
                         className="rounded-full border border-foreground/60 px-3 py-1 text-xs font-medium text-foreground sm:px-4 sm:py-2 sm:text-sm"
                       >
-                        {eventTagLabel(tag, nl)}
+                        {tag}
                       </li>
                     ))}
                   </ul>
@@ -205,14 +206,14 @@ export function ArtistProfileView({
 
               <div>
                 <h4 className="mb-3 text-base font-bold text-foreground sm:mb-4 sm:text-xl">{t.genres}</h4>
-                {artist.musicStyles?.length ? (
+                {styleTags.length ? (
                   <ul className="flex flex-wrap gap-1 sm:gap-2">
-                    {artist.musicStyles.map((tag) => (
+                    {styleTags.map((tag) => (
                       <li
                         key={tag}
                         className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800 sm:px-4 sm:py-2 sm:text-sm dark:bg-red-900/30 dark:text-red-300"
                       >
-                        {genreTagLabel(tag, nl)}
+                        {tag}
                       </li>
                     ))}
                   </ul>

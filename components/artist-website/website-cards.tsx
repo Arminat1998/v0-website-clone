@@ -7,8 +7,9 @@ import { Car, Clock, MapPin, Pencil, Plus, Target, Wallet, Music2 } from "lucide
 import { Button } from "@/components/ui/button"
 import { SOCIAL_META } from "@/components/artist-portfolio"
 import { SOCIAL_KEYS, getVideoEmbed, mediaUrl } from "@/lib/artist-page-types"
-import { bookingHref, eventTagLabel, experienceLabel, genreTagLabel, professionLabel, useWebsite } from "@/components/artist-website/website-context"
+import { bookingHref, experienceLabel, professionLabel, useWebsite } from "@/components/artist-website/website-context"
 import { hoursLabel, rangeLabel } from "@/lib/artist-facts"
+import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { DemoBookButton } from "@/components/demo-book-button"
 
@@ -135,9 +136,9 @@ export function AboutCard() {
 
 export function TagsCard() {
   const { artist, content, edit, t, openDialog } = useWebsite()
-  const eventTypes = edit ? content.eventTypes : content.eventTypes.length ? content.eventTypes : (artist.eventTypes ?? [])
-  const genres = edit ? content.musicGenres : content.musicGenres.length ? content.musicGenres : (artist.musicStyles ?? [])
   const nl = t.locale.startsWith("nl")
+  const eventTypes = tagLabels(edit || content.eventTypes.length ? content.eventTypes : artist.eventTypes, eventLabel, nl)
+  const genres = tagLabels(edit || content.musicGenres.length ? content.musicGenres : artist.musicStyles, styleLabel, nl)
   const empty = eventTypes.length === 0 && genres.length === 0
 
   return (
@@ -156,7 +157,7 @@ export function TagsCard() {
               <ul className="flex flex-wrap gap-2">
                 {eventTypes.map((tag) => (
                   <li key={tag} className="rounded-full border border-foreground/60 px-3 py-1 text-sm text-foreground">
-                    {eventTagLabel(tag, nl)}
+                    {tag}
                   </li>
                 ))}
               </ul>
@@ -168,7 +169,7 @@ export function TagsCard() {
               <ul className="flex flex-wrap gap-2">
                 {genres.map((tag) => (
                   <li key={tag} className="rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                    {genreTagLabel(tag, nl)}
+                    {tag}
                   </li>
                 ))}
               </ul>

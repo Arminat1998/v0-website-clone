@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react"
 import type { Artist } from "@/lib/smart-search"
 import type { ArtistPageContent } from "@/lib/artist-page-types"
-import { ARTIST_TYPES, PHOTO_VIDEO_TYPES, canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "@/lib/profile-options"
+import { ARTIST_TYPES, PHOTO_VIDEO_TYPES } from "@/lib/profile-options"
 
 export type DialogKey = "tagline" | "about" | "tags" | "photos" | "videos" | "socials"
 export type TabKey = "overview" | "info" | "photos" | "videos" | "equipment" | "availability"
@@ -232,10 +232,6 @@ export function professionLabel(specialty: string, nl: boolean) {
   const type = [...ARTIST_TYPES, ...PHOTO_VIDEO_TYPES].find((item) => item.value === specialty)
   return type ? (nl ? type.nl : type.en) : specialty
 }
-
-export const eventTagLabel = (tag: string, nl: boolean) => eventTypeLabel(canonicalEventType(tag), nl)
-
-export const genreTagLabel = (tag: string, nl: boolean) => genreLabel(canonicalGenre(tag), nl)
 
 /** Real profiles hold a number ("12"), sample profiles a sentence ("10+ years of ..."): both become "12 jaar", "10+ jaar". */
 export function experienceLabel(experience: string | undefined, nl: boolean) {

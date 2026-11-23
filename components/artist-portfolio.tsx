@@ -47,11 +47,11 @@ export function ArtistPortfolio({ content, artistName }: ArtistPortfolioProps) {
                   type="button"
                   onClick={() => setOpenIndex(index)}
                   className="group block aspect-[4/3] w-full overflow-hidden rounded-lg border border-border bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Open photo ${index + 1} of ${artistName}`}
+                  aria-label={nl ? `Foto ${index + 1} van ${artistName} openen` : `Open photo ${index + 1} of ${artistName}`}
                 >
                   <img
                     src={mediaUrl(path)}
-                    alt={`${artistName} photo ${index + 1}`}
+                    alt={`${artistName}, ${nl ? "foto" : "photo"} ${index + 1}`}
                     loading="lazy"
                     className="h-full w-full object-cover object-[50%_25%] transition-transform duration-300 group-hover:scale-105"
                   />
@@ -95,7 +95,7 @@ export function ArtistPortfolio({ content, artistName }: ArtistPortfolioProps) {
 
       {socials.length > 0 && (
         <section>
-          <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">Connect</h3>
+          <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-foreground">Online</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {socials.map((key) => {
               const { label, icon: Icon } = SOCIAL_META[key]
