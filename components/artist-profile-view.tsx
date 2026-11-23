@@ -102,20 +102,21 @@ export function ArtistProfileView({
       <div className="min-w-0 bg-background">
         <div className="relative">
           {/* Hero Image */}
-          <div className="relative h-56 overflow-hidden bg-muted sm:h-80 lg:h-[26rem]">
+          <div className="relative h-40 overflow-hidden bg-muted sm:h-52 lg:h-64">
             <img src={artistImage || "/placeholder.svg"} alt="" className="h-full w-full object-cover object-[50%_25%]" />
             {heroAction}
           </div>
 
           {/* Profile Image */}
-          <div className="absolute -bottom-14 left-3 z-10 size-28 overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg sm:-bottom-20 sm:left-6 sm:size-44">
+          <div className="absolute -bottom-14 left-3 z-10 size-28 overflow-hidden rounded-full border-4 border-background bg-muted shadow-lg sm:-bottom-24 sm:left-6 sm:size-40">
             <img src={profileImage || "/placeholder.svg"} alt={artist.name} className="h-full w-full object-cover object-[50%_25%]" />
           </div>
         </div>
 
         {/* Profile Header */}
-        <div className="px-3 pb-4 pt-16 sm:px-6 sm:pb-6 sm:pt-24">
-          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="px-3 pb-4 pt-16 sm:px-6 sm:pb-6 sm:pt-4">
+          {/* From sm on the name stands next to the photo, so the facts come into view sooner. */}
+          <div className="mb-4 flex flex-col gap-4 sm:mb-6 sm:min-h-24 sm:flex-row sm:items-start sm:justify-between sm:pl-44">
             <div className="min-w-0">
               {/* The modal's own (hidden) title is the heading with this name, so this is not a second one. */}
               <p className="mb-1 text-xl font-bold text-foreground sm:text-3xl">{artist.name}</p>
