@@ -210,7 +210,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
       <div className="p-6 md:p-8 lg:p-10">
         {step < 2 && (
           <header className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground md:text-3xl">{ti.title}</h1>
+            <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{ti.title}</h1>
             <p className="mt-1 max-w-2xl text-pretty text-muted-foreground">{ti.subtitle}</p>
           </header>
         )}
@@ -426,7 +426,7 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
                 <Check className="h-7 w-7" aria-hidden />
               </span>
               <div>
-                <h1 id="done-heading" className="text-2xl font-bold text-foreground md:text-3xl">
+                <h1 id="done-heading" className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   {paidOutAt ? ti.donePaidTitle : ti.doneTitle}
                 </h1>
                 <p className="mt-2 text-pretty text-muted-foreground">

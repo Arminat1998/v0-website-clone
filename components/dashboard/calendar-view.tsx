@@ -221,7 +221,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 md:p-8 lg:p-10">
-      <h1 className="mb-1 text-xl font-bold text-foreground sm:mb-2 sm:text-2xl md:text-3xl">{t.calendarTitle}</h1>
+      <h1 className="mb-2 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t.calendarTitle}</h1>
       <p className="mb-4 text-sm text-muted-foreground sm:mb-6 sm:text-base md:mb-8">
         {t.selectDates}. {bt.calendar.blockedNote}
       </p>
@@ -293,7 +293,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
           </div>
 
           <div>
-            <h2 className="mb-3 text-base font-semibold text-red-500 sm:mb-4 sm:text-lg md:text-xl">{bt.overview.upcoming}</h2>
+            <h2 className="mb-3 text-lg font-semibold text-foreground sm:mb-4">{bt.overview.upcoming}</h2>
             {upcoming.length === 0 ? (
               <p className="text-sm text-muted-foreground">{bt.overview.noNextEvent}</p>
             ) : (

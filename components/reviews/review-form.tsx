@@ -61,7 +61,7 @@ export function ReviewForm({ invite }: { invite: ReviewInvite }) {
           <p className="text-sm text-muted-foreground">
             {invite.eventName} · {date}
           </p>
-          <h1 className="text-2xl font-semibold text-balance">
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {nl ? `Hoe was ${invite.professionalName}?` : `How was ${invite.professionalName}?`}
           </h1>
         </header>

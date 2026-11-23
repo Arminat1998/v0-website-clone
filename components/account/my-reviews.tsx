@@ -26,7 +26,7 @@ export function AccountReviews({ reviews }: { reviews: ReviewInvite[] }) {
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-balance">{nl ? "Mijn reviews" : "My reviews"}</h1>
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{nl ? "Mijn reviews" : "My reviews"}</h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {nl
             ? "Na elk afgerond evenement vragen we je om een review. Zo helpen je andere klanten bij hun keuze."

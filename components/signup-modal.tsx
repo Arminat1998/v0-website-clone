@@ -155,7 +155,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
 
           <div className="space-y-4 sm:space-y-6">
             <div>
-              <DialogTitle className="pr-10 text-xl font-bold text-red-700 sm:text-2xl dark:text-red-400">{t.createAccount}</DialogTitle>
+              <DialogTitle className="pr-10 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{t.createAccount}</DialogTitle>
               <DialogDescription className="mt-2 text-sm">{t.createAccountSubtitle}</DialogDescription>
             </div>
 

@@ -19,7 +19,7 @@ export function ProfessionalReviews({ reviews }: { reviews: ProfessionalReview[]
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold">Reviews</h1>
+          <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Reviews</h1>
           <p className="text-sm text-muted-foreground">
             {nl
               ? "Klanten ontvangen na afloop van een voltooide boeking automatisch een reviewlink."

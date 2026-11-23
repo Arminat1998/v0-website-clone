@@ -32,7 +32,7 @@ export function ResetPasswordForm({ token, invalid }: { token?: string; invalid:
 
   return (
     <div className="w-full rounded-xl border border-border bg-card p-6 sm:p-8">
-      <h1 className="text-2xl font-bold text-red-600 dark:text-red-500 mb-2">
+      <h1 className="mb-2 text-2xl font-semibold tracking-tight text-foreground">
         {nl ? "Nieuw wachtwoord" : "New password"}
       </h1>
 

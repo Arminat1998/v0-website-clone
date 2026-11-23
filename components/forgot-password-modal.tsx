@@ -67,7 +67,7 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
           </button>
 
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-red-600 dark:text-red-500 mb-2">
+            <h2 className="mb-2 text-2xl font-semibold tracking-tight text-foreground">
               {nl ? "Wachtwoord vergeten" : "Forgot password"}
             </h2>
             <DialogDescription className="text-sm text-pretty">

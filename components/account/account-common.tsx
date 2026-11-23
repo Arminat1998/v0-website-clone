@@ -58,7 +58,7 @@ export function AccountHeading({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-2">
-        <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           {title}
         </h1>
         <p className="text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
