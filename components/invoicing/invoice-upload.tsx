@@ -60,7 +60,7 @@ export function InvoiceUpload({ bookingId, file, onChange }: Props) {
   if (file) {
     return (
       <div className="flex items-center gap-3 rounded-md border border-green-500/30 bg-green-500/10 p-3">
-        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-card text-green-500">
+        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-card text-green-800 dark:text-green-500">
           <FileText className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -102,13 +102,13 @@ export function InvoiceUpload({ bookingId, file, onChange }: Props) {
           dragging ? "border-red-500 bg-red-500/5" : "border-border hover:border-red-500/50 hover:bg-accent"
         }`}
       >
-        {uploading ? <Loader2 className="h-6 w-6 animate-spin text-red-500" aria-hidden /> : <UploadCloud className="h-6 w-6 text-red-500" aria-hidden />}
+        {uploading ? <Loader2 className="h-6 w-6 animate-spin text-red-700 dark:text-red-400" aria-hidden /> : <UploadCloud className="h-6 w-6 text-red-700 dark:text-red-400" aria-hidden />}
         <p className="text-sm font-medium text-foreground">{uploading ? ti.uploading : ti.dropTitle}</p>
         <p className="text-xs text-muted-foreground">{ti.dropHint}</p>
         <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" className="sr-only" onChange={handleSelect} />
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       )}

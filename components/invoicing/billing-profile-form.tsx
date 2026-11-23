@@ -80,7 +80,7 @@ export function BillingProfileForm({ profile, onSaved, addressRequired = true }:
             aria-describedby={errors.businessName ? "businessName-error" : undefined}
           />
           {errors.businessName && (
-            <p id="businessName-error" role="alert" className="text-sm text-red-500">
+            <p id="businessName-error" role="alert" className="text-sm text-red-700 dark:text-red-400">
               {tf.errorBusinessName}
             </p>
           )}
@@ -102,7 +102,7 @@ export function BillingProfileForm({ profile, onSaved, addressRequired = true }:
             aria-describedby={errors.iban ? "iban-error" : undefined}
           />
           {errors.iban && (
-            <p id="iban-error" role="alert" className="text-sm text-red-500">
+            <p id="iban-error" role="alert" className="text-sm text-red-700 dark:text-red-400">
               {errors.iban === "REQUIRED" ? tf.errorIbanRequired : tf.errorIbanInvalid}
             </p>
           )}
@@ -182,7 +182,7 @@ export function BillingProfileForm({ profile, onSaved, addressRequired = true }:
       </div>
 
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
           {error}
         </p>
       )}

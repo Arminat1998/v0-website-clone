@@ -54,12 +54,30 @@ export function InvoiceSpecification({ lines, totals, booking, profile }: Props)
           onClick={copySpecification}
           className="inline-flex flex-shrink-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >
-          {copied ? <Check className="h-4 w-4 text-green-500" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
+          {copied ? <Check className="h-4 w-4 text-green-800 dark:text-green-500" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
           {copied ? ti.copied : ti.copySpec}
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Phone: one block per line instead of a table that has to scroll sideways */}
+      <ul className="divide-y divide-border sm:hidden">
+        {lines.map((line, index) => (
+          <li key={`${line.key}-${index}`} className="flex items-start justify-between gap-4 px-5 py-3 text-sm">
+            <div className="min-w-0">
+              <p className="text-foreground">{line.description}</p>
+              <p className="mt-0.5 tabular-nums text-muted-foreground">
+                {line.quantity} {ti.unit[line.unitLabel] ?? line.unitLabel} × {formatEuro(line.unitCents, locale)} · {ti.colVat} {line.vatRate}%
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="whitespace-nowrap font-medium tabular-nums text-foreground">{formatEuro(line.grossCents, locale)}</p>
+              <p className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{ti.colGross}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -118,11 +136,11 @@ export function InvoiceSpecification({ lines, totals, booking, profile }: Props)
             <dt className="text-muted-foreground">
               {ti.serviceFee} <span className="hidden sm:inline">· {ti.serviceFeeNote}</span>
             </dt>
-            <dd className="tabular-nums text-muted-foreground">- {formatEuro(booking.platformFeeCents, locale)}</dd>
+            <dd className="whitespace-nowrap tabular-nums text-muted-foreground">− {formatEuro(booking.platformFeeCents, locale)}</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4">
             <dt className="text-sm font-medium text-foreground">{ti.payout}</dt>
-            <dd className="text-xl font-bold tabular-nums text-green-500">{formatEuro(booking.payoutCents, locale)}</dd>
+            <dd className="text-xl font-bold tabular-nums text-green-800 dark:text-green-500">{formatEuro(booking.payoutCents, locale)}</dd>
           </div>
         </dl>
       </div>

@@ -41,7 +41,7 @@ function ReceiptPicker({ bookingId, receipt, onChange, nl }: { bookingId: number
   if (receipt) {
     return (
       <div className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-sm">
-        <FileCheck2 className="h-4 w-4 flex-shrink-0 text-green-500" aria-hidden />
+        <FileCheck2 className="h-4 w-4 flex-shrink-0 text-green-800 dark:text-green-500" aria-hidden />
         <span className="min-w-0 flex-1 truncate text-foreground">{receipt.name}</span>
         <button type="button" onClick={() => onChange(null)} className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label={nl ? "Bon verwijderen" : "Remove receipt"}>
           <X className="h-4 w-4" aria-hidden />
@@ -53,7 +53,7 @@ function ReceiptPicker({ bookingId, receipt, onChange, nl }: { bookingId: number
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} aria-busy={uploading} className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-red-500/60 px-3 py-2 text-sm text-foreground hover:bg-accent focus-within:outline-2 focus-within:outline-ring">
-        {uploading ? <Loader2 className="h-4 w-4 animate-spin text-red-500" aria-hidden /> : <Paperclip className="h-4 w-4 text-red-500" aria-hidden />}
+        {uploading ? <Loader2 className="h-4 w-4 animate-spin text-red-700 dark:text-red-400" aria-hidden /> : <Paperclip className="h-4 w-4 text-red-700 dark:text-red-400" aria-hidden />}
         {uploading ? (nl ? "Uploaden..." : "Uploading...") : nl ? "Bon of factuur uploaden (verplicht)" : "Upload receipt or invoice (required)"}
         <input
           id={id}
@@ -68,7 +68,7 @@ function ReceiptPicker({ bookingId, receipt, onChange, nl }: { bookingId: number
           }}
         />
       </label>
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-700 dark:text-red-400">{error}</p>}
     </div>
   )
 }
