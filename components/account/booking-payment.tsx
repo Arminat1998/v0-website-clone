@@ -199,8 +199,8 @@ export function BookingPayment({
                     ? "De datum van deze aanvraag is verstreken. Je hoeft niets te betalen."
                     : "The date of this request has passed. You do not have to pay anything."
                   : nl
-                  ? "Deze boeking gaat niet door. Je hoeft niets te betalen."
-                  : "This booking will not take place. You do not have to pay anything."}
+                    ? "Deze boeking gaat niet door. Je hoeft niets te betalen."
+                    : "This booking will not take place. You do not have to pay anything."}
           </CardDescription>
         </CardHeader>
         {s.depositPaid && b.paymentStatus !== "refunded" && (

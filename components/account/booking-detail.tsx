@@ -244,12 +244,12 @@ export function AccountBookingDetail({
                     ? "De datum van deze aanvraag is verstreken. Bekijk welke andere professionals bij je evenement passen."
                     : "The date of this request has passed. See which other professionals suit your event."
                   : closed
-                  ? nl
-                    ? "Deze boeking gaat niet door. Bekijk welke andere professionals bij je evenement passen."
-                    : "This booking will not take place. See which other professionals suit your event."
-                  : nl
-                    ? "Stel je vragen of stem details af via de chat."
-                    : "Ask questions or align details via chat."}
+                    ? nl
+                      ? "Deze boeking gaat niet door. Bekijk welke andere professionals bij je evenement passen."
+                      : "This booking will not take place. See which other professionals suit your event."
+                    : nl
+                      ? "Stel je vragen of stem details af via de chat."
+                      : "Ask questions or align details via chat."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
