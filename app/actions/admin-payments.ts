@@ -3,7 +3,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { billingProfiles, bookings, invoices, notifications } from "@/lib/db/schema"
+import { billingProfiles, bookings, customerNotifications, invoices, notifications } from "@/lib/db/schema"
 import { logError } from "@/lib/log-error"
 import { isBookingId } from "@/lib/bookings/booking-input"
 import { invoiceFileUrl, isValidIban } from "@/lib/bookings/invoicing"
@@ -51,41 +51,59 @@ export type AdminPaymentRow = Awaited<ReturnType<typeof listPayments>>[number]
 /** Registers a bank transfer ARSI Events received from the client for this booking. */
 export async function markPaymentReceived(input: { bookingId: number; part: "deposit" | "balance" }): Promise<Result> {
   const admin = await requireAdmin()
-  if (!Number.isSafeInteger(input.bookingId) || input.bookingId < 1) return { ok: false, error: "Boeking niet gevonden." }
-  const row = (await listPayments()).find((r) => r.id === input.bookingId)
-  if (!row) return { ok: false, error: "Boeking niet gevonden." }
-  if (row.summary.due?.part !== input.part) return { ok: false, error: "Deze betaling staat niet open." }
+  if (!isBookingId(input?.bookingId)) return { ok: false, error: "Boeking niet gevonden." }
+  try {
+    const row = (await listPayments()).find((r) => r.id === input.bookingId)
+    if (!row) return { ok: false, error: "Boeking niet gevonden." }
+    const due = row.summary.due
+    if (due?.part !== input.part) return { ok: false, error: "Deze betaling staat niet open." }
 
-  const balance = input.part === "balance"
-  // Guard on the status we just read, so two admins cannot register the same transfer twice.
-  const updated = await db
-    .update(bookings)
-    .set(balance ? { paymentStatus: "paid", paidAt: new Date() } : { paymentStatus: "deposit_paid" })
-    .where(and(eq(bookings.id, row.id), eq(bookings.paymentStatus, row.paymentStatus)))
-    .returning({ professionalId: bookings.professionalId })
-  if (updated.length === 0) return { ok: false, error: "Deze betaling is al verwerkt." }
+    const balance = due.part === "balance"
+    // The payment, both notifications and the audit entry: everything is stored or nothing is.
+    const stored = await db.transaction(async (tx) => {
+      // Guard on the status we just read, so two admins cannot register the same transfer twice.
+      const [updated] = await tx
+        .update(bookings)
+        .set(balance ? { paymentStatus: "paid", paidAt: new Date() } : { paymentStatus: "deposit_paid" })
+        .where(and(eq(bookings.id, row.id), eq(bookings.paymentStatus, row.paymentStatus)))
+        .returning({ professionalId: bookings.professionalId, customerId: bookings.customerId })
+      if (!updated) return false
 
-  const amount = formatEuro(row.summary.due.cents)
-  await db.insert(notifications).values({
-    professionalId: updated[0].professionalId,
-    bookingId: row.id,
-    type: "payment",
-    title: balance ? "Factuur betaald" : "Aanbetaling ontvangen",
-    body: balance
-      ? `De klant heeft de factuur voor ${row.eventName} betaald.`
-      : `De klant heeft de aanbetaling voor ${row.eventName} betaald. De boeking is definitief.`,
-  })
-  await logAdminAction({
-    adminId: admin.id,
-    adminName: admin.name,
-    action: balance ? "payment_balance" : "payment_deposit",
-    targetLabel: `Boeking #${row.id} · ${row.eventName}`,
-    details: `${amount} ontvangen (${paymentReference(row.id, input.part)})`,
-  })
+      await tx.insert(notifications).values({
+        professionalId: updated.professionalId,
+        bookingId: row.id,
+        type: "payment",
+        title: balance ? "Factuur betaald" : "Aanbetaling ontvangen",
+        body: balance
+          ? `De klant heeft de factuur voor ${row.eventName} betaald.`
+          : `De klant heeft de aanbetaling voor ${row.eventName} betaald. De boeking is definitief.`,
+      })
+      if (updated.customerId) {
+        await tx
+          .insert(customerNotifications)
+          .values({ userId: updated.customerId, bookingId: row.id, status: balance ? "payment_received" : "deposit_received" })
+      }
+      await logAdminAction(
+        {
+          adminId: admin.id,
+          adminName: admin.name,
+          action: balance ? "payment_balance" : "payment_deposit",
+          targetLabel: `Boeking #${row.id} · ${row.eventName}`,
+          details: `${formatEuro(due.cents)} ontvangen (${paymentReference(row.id, due.part)})`,
+        },
+        tx,
+      )
+      return true
+    })
+    if (!stored) return { ok: false, error: "Deze betaling is al verwerkt." }
+  } catch (error) {
+    logError("Failed to register the payment:", error)
+    return { ok: false, error: "Opslaan is mislukt. Probeer het opnieuw." }
+  }
   revalidatePath("/admin/betalingen")
   revalidatePath("/admin/activiteit")
-  revalidatePath(`/account/boekingen/${row.id}`)
-  revalidatePath("/dashboard")
+  revalidatePath("/account", "layout")
+  revalidatePath("/dashboard", "layout")
   return { ok: true }
 }
 

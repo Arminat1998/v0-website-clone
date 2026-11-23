@@ -1,7 +1,7 @@
 "use server";
 
 import { withoutValues } from "@/lib/log-error";
-import { and, desc, eq, count } from "drizzle-orm";
+import { and, desc, eq, count, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -12,7 +12,7 @@ import {
   customerNotifications,
   invoices,
 } from "@/lib/db/schema";
-import type { CustomerInvoice } from "@/lib/bookings/payments";
+import { paymentSummary, type CustomerInvoice } from "@/lib/bookings/payments";
 import { isBookingId } from "@/lib/bookings/booking-input";
 import { getSession } from "@/lib/session";
 import {
@@ -257,15 +257,25 @@ export async function setCustomerFavorite(input: {
 
 export async function getCustomerNotifications() {
   const account = await customerUser();
-  return db
+  const rows = await db
     .select({
       id: customerNotifications.id,
       bookingId: customerNotifications.bookingId,
-      status: customerNotifications.status,
+      kind: customerNotifications.status,
       read: customerNotifications.read,
       createdAt: customerNotifications.createdAt,
       eventName: bookings.eventName,
       professionalName: bookings.professionalName,
+      booking: {
+        status: bookings.status,
+        totalCents: bookings.totalCents,
+        paymentStatus: bookings.paymentStatus,
+      },
+      // The oldest invoice of a booking is the one in use.
+      invoiceTotalCents: sql<number | null>`(
+        select ${invoices.totalCents} from ${invoices}
+        where ${invoices.bookingId} = ${bookings.id}
+        order by ${invoices.id} limit 1)`,
     })
     .from(customerNotifications)
     .innerJoin(
@@ -278,6 +288,17 @@ export async function getCustomerNotifications() {
     .where(eq(customerNotifications.userId, account.id))
     .orderBy(desc(customerNotifications.createdAt))
     .limit(100);
+  // What is still open is worked out now, so an old notice never asks for an amount that is paid.
+  return rows.map(({ booking, invoiceTotalCents, ...row }) => ({
+    ...row,
+    dueCents:
+      paymentSummary(
+        booking,
+        booking.status === "completed" && invoiceTotalCents !== null
+          ? { totalCents: invoiceTotalCents }
+          : null,
+      ).due?.cents ?? 0,
+  }));
 }
 export type CustomerNotice = Awaited<
   ReturnType<typeof getCustomerNotifications>
@@ -301,7 +322,7 @@ export async function markCustomerNotificationsRead(id?: number) {
   const account = await customerUser();
   if (id !== undefined && !isBookingId(id))
     throw new Error("Invalid notification");
-  await db
+  await withoutValues("Failed to mark notifications read:", () => db
     .update(customerNotifications)
     .set({ read: true })
     .where(
@@ -310,6 +331,6 @@ export async function markCustomerNotificationsRead(id?: number) {
         eq(customerNotifications.read, false),
         id === undefined ? undefined : eq(customerNotifications.id, id),
       ),
-    );
+    ));
   revalidatePath("/account", "layout");
 }

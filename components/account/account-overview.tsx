@@ -31,6 +31,7 @@ import {
 import { BookingRows } from "./booking-list";
 import type { CustomerBooking } from "@/app/actions/bookings";
 import type { CustomerNotice } from "@/app/actions/customer";
+import { NoticeLink } from "./notifications";
 
 export function AccountOverview({
   name,
@@ -311,25 +312,7 @@ export function AccountOverview({
             {notices.length ? (
               <div className="flex flex-col gap-5">
                 {notices.slice(0, 3).map((notice) => (
-                  <Link
-                    key={notice.id}
-                    href={`/account/boekingen/${notice.bookingId}`}
-                    className="flex flex-col gap-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <BookingBadge status={notice.status} />
-                      {!notice.read && (
-                        <span
-                          className="size-2 rounded-full bg-brand"
-                          aria-label={nl ? "Ongelezen" : "Unread"}
-                        />
-                      )}
-                    </div>
-                    <p className="text-sm font-medium">{notice.eventName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {notice.professionalName}
-                    </p>
-                  </Link>
+                  <NoticeLink key={notice.id} notice={notice} />
                 ))}
               </div>
             ) : (

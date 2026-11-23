@@ -7,6 +7,7 @@ import { logError, withoutValues } from "@/lib/log-error"
 import {
   billingProfiles,
   bookings,
+  customerNotifications,
   invoices,
   notifications,
   type BillingProfile,
@@ -301,9 +302,28 @@ async function storeInvoice({ professionalId, bookingId, invoiceDate, upload, ..
       title: "Factuur ontvangen",
       body: `Factuur ${invoiceNumber} voor ${booking.eventName} is ontvangen. Je uitbetaling van ${formatEuro(payout.payoutCents)} volgt. Je krijgt een melding zodra die is gedaan.`,
     })
+    if (booking.customerId) {
+      // A corrected invoice renews the unread notice; its amount is read from the invoice when it is shown.
+      const renewed = await tx
+        .update(customerNotifications)
+        .set({ createdAt: new Date() })
+        .where(
+          and(
+            eq(customerNotifications.userId, booking.customerId),
+            eq(customerNotifications.bookingId, bookingId),
+            eq(customerNotifications.status, "invoice_ready"),
+            eq(customerNotifications.read, false),
+          ),
+        )
+        .returning({ id: customerNotifications.id })
+      if (renewed.length === 0) {
+        await tx.insert(customerNotifications).values({ userId: booking.customerId, bookingId, status: "invoice_ready" })
+      }
+    }
     return stored
   })
   revalidateInvoicePaths(bookingId)
+  revalidatePath("/account", "layout")
   return invoice
 }
 
