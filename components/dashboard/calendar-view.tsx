@@ -308,7 +308,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
                       <h3 className="mb-1 text-sm font-semibold text-foreground">{event.eventName}</h3>
                       <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3 flex-shrink-0" aria-hidden />
-                        <span className="truncate capitalize">{formatEventDate(event.eventDate, locale)}</span>
+                        <span className="block truncate first-letter:uppercase">{formatEventDate(event.eventDate, locale)}</span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5">

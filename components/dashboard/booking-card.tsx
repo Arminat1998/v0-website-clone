@@ -63,7 +63,7 @@ export function BookingCard({
           <dl className="mt-4 grid grid-cols-1 gap-2 text-sm text-muted-foreground sm:grid-cols-2">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 flex-shrink-0" aria-hidden />
-              <dd className="capitalize">{formatEventDate(booking.eventDate, locale)}</dd>
+              <dd className="first-letter:uppercase">{formatEventDate(booking.eventDate, locale)}</dd>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 flex-shrink-0" aria-hidden />
@@ -99,9 +99,9 @@ export function BookingCard({
           )}
         </div>
 
-        <div className="flex flex-row items-end justify-between gap-4 md:flex-col md:items-end md:text-right">
+        <div className="flex flex-row flex-wrap items-end justify-between gap-4 md:flex-col md:flex-nowrap md:items-end md:text-right">
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            <div className="text-xs font-medium text-muted-foreground">
               {t.requests.yourEarnings}
               {booking.status === "pending" ? ` (${t.requests.indicative})` : ""}
             </div>
@@ -117,7 +117,7 @@ export function BookingCard({
               </div>
             )}
           </div>
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-red-700 dark:text-red-400 group-hover:underline">
+          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium text-red-700 dark:text-red-400 group-hover:underline">
             {booking.status === "completed"
               ? needsInvoice
                 ? (locale.startsWith("nl") ? "Factuur uploaden / indienen" : "Upload / submit invoice")
