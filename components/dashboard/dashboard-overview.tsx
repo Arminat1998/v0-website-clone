@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Star, Wallet } from "lucide-react"
+import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
 import { AccountEmpty, AccountHeading } from "@/components/account/account-common"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLanguage } from "@/contexts/language-context"
@@ -13,6 +13,7 @@ import { markAllNotificationsRead } from "@/app/actions/bookings"
 import type { Notification } from "@/lib/db/schema"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { clientName, daysUntil, formatDateTime, formatEventDate } from "@/lib/bookings/format"
+import { Star } from "lucide-react"
 import { BookingCard } from "./booking-card"
 
 const notificationIcon: Record<Notification["type"], typeof Bell> = {
