@@ -38,7 +38,7 @@ export function HowItWorks() {
           <div className="bg-muted p-8 rounded-lg">
             <div className="mb-4 text-4xl font-bold text-red-600" aria-hidden>3</div>
             <h3 className="text-xl font-semibold text-foreground mb-4">{nl ? "Boek je favoriete professional" : t.step3Title}</h3>
-            <p className="text-muted-foreground">{nl ? "Heb je je perfecte match gevonden? Klik op 'Boek Nu' en verstuur je aanvraag." : t.step3Description}</p>
+            <p className="text-muted-foreground">{nl ? "Heb je je perfecte match gevonden? Klik op 'Boek nu' en verstuur je aanvraag." : t.step3Description}</p>
           </div>
         </div>
       </div>

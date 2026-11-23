@@ -86,7 +86,7 @@ export function PhotoVideoGrid({ search, autoStart, onAutoStartComplete }: Photo
     <div className="min-w-0 flex-1 p-4 md:p-6 bg-background">
       <div className="mb-8">
         <h1 className="mb-6 text-2xl md:text-3xl font-bold text-foreground">
-          {nl ? "Boek je fotograaf of videograaf!" : "Book your photographer or videographer!"}
+          {nl ? "Boek je fotograaf of videograaf" : "Book your photographer or videographer"}
         </h1>
 
         <div className="mb-4 flex flex-col items-stretch justify-between gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:items-start">
