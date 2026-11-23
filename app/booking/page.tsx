@@ -15,7 +15,8 @@ import { artists, photographers } from "@/lib/smart-search"
 import { isDemoProfessional } from "@/lib/demo-professionals"
 import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
-import { DEPOSIT_PERCENT, depositCents } from "@/lib/bookings/payments"
+import { depositCents } from "@/lib/bookings/payments"
+import { PaymentMoments, paymentMoments } from "@/components/booking/payment-moments"
 import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
 import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import { bookingErrorMessage, readBookingResult } from "./submit-result"
@@ -724,6 +725,7 @@ export default function BookingPage() {
                   {tr("Account aanmaken", "Create account")}
                 </Button>
               </div>
+              <PaymentMoments className="mt-6 rounded-md border border-border bg-muted/40 p-3" />
             </div>
           )}
         </div>
@@ -1599,11 +1601,10 @@ export default function BookingPage() {
                 <div className="mt-5">
                   <h3 className="font-semibold text-foreground mb-3">{tr("Zo betaal je", "How you pay")}</h3>
                   <ol className="space-y-3 text-sm">
-                    {[
-                      [tr("Nu", "Now"), tr("Je verstuurt je aanvraag en betaalt nog niets.", "You send your request and pay nothing yet.")],
-                      [`${tr("Na goedkeuring", "After approval")}: ${formatEuro(depositCents(shownTotal))}`, tr(`Je krijgt een offerte en betaalt ${DEPOSIT_PERCENT}% aan. Daarmee is je boeking definitief.`, `You receive a quote and pay a ${DEPOSIT_PERCENT}% deposit. That makes your booking final.`)],
-                      [`${tr("Na het evenement", "After the event")}: ${formatEuro(shownTotal - depositCents(shownTotal))}`, tr("Je betaalt het restant met de eindfactuur. Extra kosten, zoals een extra uur of parkeren, staan daar apart op.", "You pay the rest with the final invoice. Extra costs, such as an extra hour or parking, are listed there separately.")],
-                    ].map(([title, text], index) => (
+                    {paymentMoments(language === "nl").map(({ title, text }, index) => [
+                      index === 1 ? `${title}: ${formatEuro(depositCents(shownTotal))}` : index === 2 ? `${title}: ${formatEuro(shownTotal - depositCents(shownTotal))}` : title,
+                      text,
+                    ]).map(([title, text], index) => (
                       <li key={title} className="flex gap-3">
                         <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-muted-foreground" aria-hidden="true">{index + 1}</span>
                         <div><p className="font-medium text-foreground">{title}</p><p className="text-muted-foreground">{text}</p></div>
