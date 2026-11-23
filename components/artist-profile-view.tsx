@@ -37,8 +37,9 @@ interface ArtistProfileViewProps {
   stickyBookBar?: boolean;
 }
 
+// The same look as the tabs of the full page: plain text with a red line under the open tab.
 const tabClass =
-  "min-h-11 flex-none whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=inactive]:bg-muted sm:px-8 sm:py-3 sm:text-base";
+  "min-h-11 flex-none whitespace-nowrap rounded-none border-0 border-b-[3px] border-transparent bg-transparent px-2 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground data-[state=active]:border-red-600 data-[state=active]:bg-transparent data-[state=active]:text-red-700 data-[state=active]:shadow-none sm:px-4 dark:text-muted-foreground dark:hover:text-foreground dark:data-[state=active]:border-red-600 dark:data-[state=active]:bg-transparent dark:data-[state=active]:text-red-400";
 
 /** The profile in the modal. It shares its data, labels, equipment and calendar with the full page (artist-website). */
 export function ArtistProfileView({
@@ -162,7 +163,7 @@ export function ArtistProfileView({
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4 h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0 sm:mb-6">
+            <TabsList className="mb-4 flex h-auto w-full justify-start overflow-x-auto overflow-y-hidden rounded-none border-b border-border bg-transparent p-0 [scrollbar-width:none] sm:mb-6 [&::-webkit-scrollbar]:hidden">
               <TabsTrigger value="about" className={tabClass}>
                 {nl ? "Over" : "About"}
               </TabsTrigger>
