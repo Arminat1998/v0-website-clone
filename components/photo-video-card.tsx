@@ -165,7 +165,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
             <DemoBookButton className="flex-1 h-11 whitespace-normal text-xs leading-tight" />
           ) : (
             <Button
-              className="flex-1 bg-red-700 hover:bg-red-800 text-white font-medium h-11"
+              className="flex-1 bg-red-700 hover:bg-red-600 text-white font-medium h-11"
               onClick={(e) => {
                 e.stopPropagation()
                 const href = `/booking?professionalId=${encodeURIComponent(String(professional.id))}&type=photographer`

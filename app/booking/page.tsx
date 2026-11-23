@@ -708,7 +708,7 @@ export default function BookingPage() {
                 )}
               </p>
               <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={() => window.dispatchEvent(new Event("arsi:open-login"))} className="bg-red-600 hover:bg-red-700 text-white px-8">
+                <Button onClick={() => window.dispatchEvent(new Event("arsi:open-login"))} className="bg-red-700 hover:bg-red-600 text-white px-8">
                   {tr("Inloggen", "Log in")}
                 </Button>
                 <Button onClick={() => window.dispatchEvent(new Event("arsi:open-signup"))} className="bg-accent text-foreground hover:bg-muted px-8">
@@ -735,7 +735,7 @@ export default function BookingPage() {
               // Nothing can be changed any more once the request has been sent.
               const canReturn = done && currentStep < 5 && !submitting
               const circle = `w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base font-bold transition-colors ${
-                current ? "bg-red-600 text-white" : done ? "bg-green-700 text-white" : "bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white"
+                current ? "bg-red-700 text-white" : done ? "bg-green-700 text-white" : "bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white"
               }`
               const content = (
                 <>
@@ -979,7 +979,7 @@ export default function BookingPage() {
                   <Button
                     onClick={calculateDistance}
                     disabled={!eventLocation.trim() || calculating}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base whitespace-nowrap"
+                    className="bg-red-700 hover:bg-red-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base whitespace-nowrap"
                   >
                     {calculating ? t.calculating : t.checkDistance}
                   </Button>
@@ -1006,7 +1006,7 @@ export default function BookingPage() {
                 <Button
                   onClick={() => goToStep(2)}
                   disabled={!eventDate || !eventLocation.trim() || distance === null}
-                  className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  className="w-full py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
                 </Button>
@@ -1493,7 +1493,7 @@ export default function BookingPage() {
                 <Button
                   onClick={() => goToStep(3)}
                   disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions}
-                  className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  className="flex-1 py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
                 </Button>
@@ -1538,7 +1538,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-700 hover:bg-red-600 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
               {missingHint(missingStep3)}
             </div>
           )}
@@ -1606,13 +1606,13 @@ export default function BookingPage() {
                   </p>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => goToStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : changedTotal !== null ? tr(`Akkoord met ${formatEuro(changedTotal)}, verstuur`, `Agree to ${formatEuro(changedTotal)}, send`) : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-700 hover:bg-red-600 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : changedTotal !== null ? tr(`Akkoord met ${formatEuro(changedTotal)}, verstuur`, `Agree to ${formatEuro(changedTotal)}, send`) : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div data-private className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
+            <div data-private className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-700 hover:bg-red-600 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
           )}
         </div>
       </div>

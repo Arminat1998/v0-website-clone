@@ -1882,7 +1882,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
               {/* Register Button */}
               <Button
                 type="submit"
-                className="h-12 w-full rounded-[10px] bg-[var(--rf-red)] text-base font-semibold text-white hover:bg-[var(--rf-red-hover)] disabled:bg-[var(--rf-track)] disabled:text-[var(--rf-muted)] disabled:opacity-100"
+                className="h-12 w-full rounded-[10px] bg-red-700 text-base font-semibold text-white hover:bg-red-600 disabled:bg-[var(--rf-track)] disabled:text-[var(--rf-muted)] disabled:opacity-100"
                 disabled={saving || !formComplete}
                 aria-describedby={formComplete ? undefined : "missing-fields"}
               >
