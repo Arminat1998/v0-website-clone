@@ -99,7 +99,7 @@ function ReviewItem({ review: r, nl, locale }: { review: ProfessionalReview; nl:
             onChange={(e) => setReply(e.target.value)}
             maxLength={1000}
             rows={2}
-            placeholder={nl ? "Schrijf een openbare reactie…" : "Write a public reply…"}
+            placeholder={nl ? "Schrijf een reactie aan de klant…" : "Write a reply to the client…"}
             className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}

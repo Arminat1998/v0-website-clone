@@ -1,11 +1,12 @@
 "use server"
 
 import { withoutValues } from "@/lib/log-error"
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm"
+import { and, asc, desc, eq, exists, inArray, isNull, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 import { db } from "@/lib/db"
 import { bookings, conversations, messages, professionalProfiles, user, type MessageRole } from "@/lib/db/schema"
 import { isBookingId } from "@/lib/bookings/booking-input"
+import { abbreviateName, CONTACT_UNLOCKED_STATUSES } from "@/lib/bookings/privacy"
 import { takeToken } from "@/lib/rate-limit"
 import { getSession } from "@/lib/session"
 
@@ -57,6 +58,19 @@ export async function getInbox(): Promise<InboxItem[]> {
       id: conversations.id,
       professionalId: conversations.professionalId,
       customerName: customer.name,
+      // Until a booking is accepted the professional sees the client as on the request: without the full last name.
+      nameUnlocked: exists(
+        db
+          .select({ id: bookings.id })
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.customerId, conversations.customerId),
+              eq(bookings.professionalId, conversations.professionalId),
+              inArray(bookings.status, CONTACT_UNLOCKED_STATUSES),
+            ),
+          ),
+      ).mapWith(Boolean),
       proName: sql<string | null>`coalesce(nullif(${professionalProfiles.stageName}, ''), ${pro.name})`,
       lastAt: conversations.lastMessageAt,
       lastBody: sql<string | null>`(select m.body from messages m where m.conversation_id = ${conversations.id} order by m.created_at desc limit 1)`,
@@ -69,9 +83,14 @@ export async function getInbox(): Promise<InboxItem[]> {
     .where(scope(v))
     .orderBy(desc(conversations.lastMessageAt))
 
+  const customerLabel = (name: string | null, unlocked: boolean) => {
+    if (!name) return "Klant"
+    return v.role === "professional" && !unlocked ? abbreviateName(name) : name
+  }
+
   return rows.map((r) => ({
     id: r.id,
-    name: v.role === "customer" ? (r.professionalId ? r.proName ?? "Professional" : "ARSI support") : r.customerName ?? "Klant",
+    name: v.role === "customer" ? (r.professionalId ? r.proName ?? "Professional" : "ARSI support") : customerLabel(r.customerName, r.nameUnlocked),
     kind: v.role === "customer" ? (r.professionalId ? "professional" : "support") : "customer",
     lastBody: r.lastBody,
     lastAt: r.lastAt.toISOString(),

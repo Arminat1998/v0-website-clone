@@ -16,7 +16,7 @@ export default async function InvoicePrintPage({ params }: { params: Promise<{ i
 
   return (
     <div className="min-h-screen bg-paper-border print:bg-paper">
-      <PrintToolbar bookingId={bookingId} />
+      <PrintToolbar backHref={`/dashboard/bookings/${bookingId}`} />
       <main className="mx-auto max-w-[210mm] bg-paper shadow-lg print:shadow-none">
         <InvoiceDocument
           booking={booking}

@@ -62,7 +62,7 @@ export function AccountReviews({ reviews }: { reviews: ReviewInvite[] }) {
       {done.length > 0 && (
         <section className="flex flex-col gap-3" aria-labelledby="reviews-done">
           <h2 id="reviews-done" className="font-semibold">
-            {nl ? "Geplaatst" : "Published"} ({done.length})
+            {nl ? "Verstuurd" : "Sent"} ({done.length})
           </h2>
           {done.map((r) => (
             <article key={r.token} className="flex flex-col gap-3 rounded-xl border bg-card p-5">

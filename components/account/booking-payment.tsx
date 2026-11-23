@@ -262,7 +262,7 @@ export function BookingPayment({
       </Card>
 
       {s.due && (
-        <Card className="border-brand">
+        <Card id="betaling" className="scroll-mt-24 border-brand">
           <CardHeader>
             <CardTitle>
             <h2>{s.due.part === "deposit"

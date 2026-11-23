@@ -13,6 +13,7 @@ import { markAllNotificationsRead } from "@/app/actions/bookings"
 import type { Notification } from "@/lib/db/schema"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { clientName, daysUntil, formatDateTime, formatEventDate } from "@/lib/bookings/format"
+import { Star } from "lucide-react"
 import { BookingCard } from "./booking-card"
 
 const notificationIcon: Record<Notification["type"], typeof Bell> = {
@@ -20,6 +21,7 @@ const notificationIcon: Record<Notification["type"], typeof Bell> = {
   payment: Banknote,
   payout: Wallet,
   reminder: Clock,
+  review: Star,
 }
 
 export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
@@ -244,7 +246,7 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
                   return (
                     <li key={notification.id}>
                       {notification.bookingId ? (
-                        <Link href={`/dashboard/bookings/${notification.bookingId}`} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent">
+                        <Link href={notification.type === "review" ? "/dashboard/reviews" : `/dashboard/bookings/${notification.bookingId}`} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent">
                           {content}
                         </Link>
                       ) : (

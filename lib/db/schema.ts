@@ -201,7 +201,7 @@ export const professionalUnavailableDates = pgTable(
   (table) => [primaryKey({ columns: [table.professionalId, table.date] })],
 )
 
-export const NOTIFICATION_TYPES = ["new_request", "payment", "payout", "reminder"] as const
+export const NOTIFICATION_TYPES = ["new_request", "payment", "payout", "reminder", "review"] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 
 export const notifications = pgTable("notifications", {
@@ -410,11 +410,15 @@ export const reviews = pgTable("reviews", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+/** What a client is told: a new booking status, or a step in the payment. */
+export const CUSTOMER_NOTICE_KINDS = [...BOOKING_STATUSES, "deposit_received", "invoice_ready", "payment_received"] as const
+export type CustomerNoticeKind = (typeof CUSTOMER_NOTICE_KINDS)[number]
+
 export const customerNotifications = pgTable("customer_notifications", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
   bookingId: integer("booking_id").notNull(),
-  status: text("status").$type<BookingStatus>().notNull(),
+  status: text("status").$type<CustomerNoticeKind>().notNull(),
   read: boolean("read").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })

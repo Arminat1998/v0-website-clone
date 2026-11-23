@@ -1,14 +1,23 @@
 import type { Booking } from "@/lib/db/schema"
 
+/** The booking statuses in which the professional has committed to the booking. */
+export const CONTACT_UNLOCKED_STATUSES = ["accepted", "completed"] as const satisfies readonly Booking["status"][]
+
 /** Contact details are only shared once the professional has committed to the booking. */
 export function isContactUnlocked(status: Booking["status"]) {
-  return status === "accepted" || status === "completed"
+  return (CONTACT_UNLOCKED_STATUSES as readonly Booking["status"][]).includes(status)
 }
 
 /** "Sanne de Vries" -> "Sanne d." */
 export function abbreviateLastName(lastName: string) {
   const initial = lastName.trim().charAt(0)
   return initial ? `${initial}.` : ""
+}
+
+/** "Sanne Jansen" -> "Sanne J." */
+export function abbreviateName(name: string) {
+  const [firstName, ...rest] = name.trim().split(/\s+/)
+  return [firstName, abbreviateLastName(rest.join(" "))].filter(Boolean).join(" ")
 }
 
 /**
