@@ -606,7 +606,7 @@ export default function BookingPage() {
       let dayClasses = "aspect-square w-full text-sm rounded-md flex items-center justify-center transition-colors "
 
       if (isPast) {
-        dayClasses += "bg-zinc-500 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-500 cursor-not-allowed line-through"
+        dayClasses += "cursor-not-allowed bg-muted/40 text-muted-foreground/60 line-through"
       } else if (unavailable) {
         dayClasses += "bg-red-600 dark:bg-red-500 text-white font-medium cursor-not-allowed"
       } else if (isSelected) {
@@ -708,7 +708,7 @@ export default function BookingPage() {
                 )}
               </p>
               <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={() => window.dispatchEvent(new Event("arsi:open-login"))} className="bg-red-600 hover:bg-red-700 text-white px-8">
+                <Button onClick={() => window.dispatchEvent(new Event("arsi:open-login"))} className="bg-red-700 hover:bg-red-600 text-white px-8">
                   {tr("Inloggen", "Log in")}
                 </Button>
                 <Button onClick={() => window.dispatchEvent(new Event("arsi:open-signup"))} className="bg-accent text-foreground hover:bg-muted px-8">
@@ -728,66 +728,81 @@ export default function BookingPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Progress Steps: finished steps lead back, the current one is marked for screen readers too */}
         <nav aria-label={tr("Stappen", "Steps")} className="mb-4 sm:mb-8 bg-card rounded-lg p-3 sm:p-6 shadow border border-border">
-          <ol className="flex items-center justify-between max-w-4xl mx-auto overflow-x-auto p-1">
+          <ol className="mx-auto flex max-w-4xl items-start">
             {steps.map((step, index) => {
               const current = currentStep === step.number
               const done = currentStep > step.number
               // Nothing can be changed any more once the request has been sent.
               const canReturn = done && currentStep < 5 && !submitting
               const circle = `w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base font-bold transition-colors ${
-                current ? "bg-red-600 text-white" : done ? "bg-green-700 text-white" : "bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white"
+                current ? "bg-red-700 text-white" : done ? "bg-green-700 text-white" : "bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-white"
               }`
               const content = (
                 <>
                   <span className={circle}>{done ? <Check className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden /> : step.number}</span>
-                  <span className={`text-[10px] sm:text-xs mt-1 sm:mt-2 text-foreground text-center max-w-[60px] sm:max-w-none leading-tight ${current ? "font-bold" : "font-medium"}`}>{step.label}</span>
+                  {/* On a phone only the circles fit; the line below them names the current step. */}
+                  <span className={`sr-only text-center text-xs leading-tight text-foreground sm:not-sr-only sm:mt-2 sm:max-w-24 ${current ? "font-bold" : "font-medium"}`}>{step.label}</span>
                   {done && <span className="sr-only">({tr("afgerond", "completed")})</span>}
                 </>
               )
               return (
-                <li key={step.number} aria-current={current ? "step" : undefined} className="flex items-center flex-shrink-0">
+                <li key={step.number} aria-current={current ? "step" : undefined} className={`flex min-w-0 items-start ${index < steps.length - 1 ? "flex-1" : ""}`}>
                   {canReturn ? (
-                    <button type="button" onClick={() => goToStep(step.number)} className="flex flex-col items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+                    <button type="button" onClick={() => goToStep(step.number)} className="flex flex-col items-center rounded-md p-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                       {content}
                     </button>
                   ) : (
-                    <div className="flex flex-col items-center">{content}</div>
+                    <div className="flex flex-col items-center p-1.5">{content}</div>
                   )}
                   {index < steps.length - 1 && (
-                    <div aria-hidden className={`w-4 sm:w-8 md:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0 ${done ? "bg-green-700" : "bg-border"}`} />
+                    <div aria-hidden className={`mt-[21px] h-0.5 min-w-2 flex-1 sm:mx-1 sm:mt-[25px] ${done ? "bg-green-700" : "bg-border"}`} />
                   )}
                 </li>
               )
             })}
           </ol>
+          <p aria-hidden className="mt-1 text-center text-sm text-muted-foreground sm:hidden">
+            {tr("Stap", "Step")} {currentStep} {tr("van", "of")} {steps.length}:{" "}
+            <span className="font-semibold text-foreground">{steps[currentStep - 1]?.label}</span>
+          </p>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-4 sm:gap-6">
           {/* Left Column - Professional Card */}
-          <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
-            <div className="relative h-32 sm:h-48 bg-gradient-to-br from-red-600 to-red-800">
+          {/* Below lg one compact row, so the form itself starts at the top of the screen. */}
+          <div className="bg-card rounded-lg shadow border border-border overflow-hidden lg:sticky lg:top-4 lg:self-start">
+            <div className="relative hidden h-48 lg:block bg-gradient-to-br from-red-600 to-red-800">
               <img 
                 src={professional.banner || professionalImage} 
                 alt={`${professional.name} header`} 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover object-[50%_25%]" 
               />
             </div>
             
-            <div className="p-4 sm:p-6 -mt-12 sm:-mt-16 relative">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-card bg-card overflow-hidden mx-auto mb-3 sm:mb-4">
+            <div className="relative p-3 sm:p-4 lg:-mt-16 lg:p-6">
+              <div className="flex items-center gap-3 lg:block">
+              <div className="size-14 shrink-0 rounded-full bg-card overflow-hidden lg:mx-auto lg:mb-4 lg:size-24 lg:border-4 lg:border-card">
                 <img 
                   src={professional.avatar || professionalImage} 
                   alt={professional.name} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-cover object-[50%_25%]" 
                 />
               </div>
               
-              <h2 className="text-lg sm:text-xl font-bold text-center text-foreground mb-1">{professional.name}</h2>
-              <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>{professional.location}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base lg:text-xl font-bold lg:text-center text-foreground lg:mb-1 break-words">{professional.name}</h2>
+                <div className="flex items-center lg:justify-center gap-1.5 text-sm text-muted-foreground lg:mb-4">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  <span>{professional.location}</span>
+                </div>
               </div>
-              
+              <p className="shrink-0 text-right text-sm font-bold text-foreground lg:hidden">
+                {professional.price} {t.perHour}
+                <span className="block text-xs font-normal text-muted-foreground">{t.exVat}</span>
+              </p>
+              </div>
+
+              <div className="hidden lg:block">
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -861,6 +876,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
 
@@ -870,7 +886,7 @@ export default function BookingPage() {
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
                 <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{t.selectDateLocation}</h2>
                 
-                <div className="max-w-lg">
+                <div className="mx-auto max-w-lg">
                   {/* Calendar: booked and blocked days only show as not available, never as events */}
                   <div>
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -896,10 +912,10 @@ export default function BookingPage() {
                     </div>
 
                     <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
-                      {(language === "nl" ? ["M", "D", "W", "D", "V", "Z", "Z"] : ["M", "T", "W", "T", "F", "S", "S"]).map((day, index) => (
+                      {(language === "nl" ? ["ma", "di", "wo", "do", "vr", "za", "zo"] : ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]).map((day, index) => (
                         <div
                           key={index}
-                          className="text-center text-[10px] sm:text-xs font-semibold text-muted-foreground h-6 sm:h-8 flex items-center justify-center"
+                          className="text-center text-xs font-semibold text-muted-foreground h-6 sm:h-8 flex items-center justify-center"
                         >
                           {day}
                         </div>
@@ -912,7 +928,7 @@ export default function BookingPage() {
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-200 dark:bg-zinc-700" aria-hidden />{tr("Beschikbaar", "Available")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" aria-hidden />{tr("Gekozen", "Selected")}</li>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-red-600 dark:bg-red-500" aria-hidden />{tr("Niet beschikbaar", "Not available")}</li>
-                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-500 dark:bg-zinc-800" aria-hidden />{tr("Voorbij", "Past")}</li>
+                      <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm border border-border bg-muted/40" aria-hidden />{tr("Voorbij", "Past")}</li>
                     </ul>
 
                     <div className="mt-4 p-3 bg-muted rounded-lg">
@@ -963,7 +979,7 @@ export default function BookingPage() {
                   <Button
                     onClick={calculateDistance}
                     disabled={!eventLocation.trim() || calculating}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base whitespace-nowrap"
+                    className="bg-red-700 hover:bg-red-600 text-white px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base whitespace-nowrap"
                   >
                     {calculating ? t.calculating : t.checkDistance}
                   </Button>
@@ -990,7 +1006,7 @@ export default function BookingPage() {
                 <Button
                   onClick={() => goToStep(2)}
                   disabled={!eventDate || !eventLocation.trim() || distance === null}
-                  className="w-full py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  className="w-full py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
                 </Button>
@@ -1477,7 +1493,7 @@ export default function BookingPage() {
                 <Button
                   onClick={() => goToStep(3)}
                   disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions}
-                  className="flex-1 py-3 text-base font-semibold bg-red-600 hover:bg-red-700 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  className="flex-1 py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
                 </Button>
@@ -1522,7 +1538,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-700 hover:bg-red-600 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
               {missingHint(missingStep3)}
             </div>
           )}
@@ -1590,13 +1606,13 @@ export default function BookingPage() {
                   </p>
                 </div>
               )}
-              <div className="flex gap-3"><Button onClick={() => goToStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-600 hover:bg-red-700 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : changedTotal !== null ? tr(`Akkoord met ${formatEuro(changedTotal)}, verstuur`, `Agree to ${formatEuro(changedTotal)}, send`) : tr("Verstuur aanvraag", "Send request")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(3)} disabled={submitting} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={handleSubmitBooking} disabled={submitting || !eventDate || !pricing} className="flex-1 bg-red-700 hover:bg-red-600 text-white">{submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadPercent !== null ? tr(`Muziek uploaden... ${uploadPercent}%`, `Uploading music... ${uploadPercent}%`) : tr("Versturen...", "Sending...")}</> : changedTotal !== null ? tr(`Akkoord met ${formatEuro(changedTotal)}, verstuur`, `Agree to ${formatEuro(changedTotal)}, send`) : tr("Verstuur aanvraag", "Send request")}</Button></div>
             </div>
           )}
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div data-private className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-600 hover:bg-red-700 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
+            <div data-private className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-700 hover:bg-red-600 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
           )}
         </div>
       </div>

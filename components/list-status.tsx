@@ -35,7 +35,7 @@ export function LiveListError({ onRetry, retrying }: { onRetry: () => void; retr
 export function ListSkeleton() {
   const nl = useLanguage().language !== "en"
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5" aria-busy="true" aria-live="polite">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5" aria-busy="true" aria-live="polite">
       <span className="sr-only">{nl ? "Professionals laden" : "Loading professionals"}</span>
       {Array.from({ length: 6 }, (_, index) => (
         <div key={index} className="h-[520px] animate-pulse motion-reduce:animate-none rounded-xl border border-border bg-card" />

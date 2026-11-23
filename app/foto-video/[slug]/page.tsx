@@ -5,8 +5,7 @@ import { ArtistWebsite } from "@/components/artist-website/artist-website"
 import { getArtistPageContent } from "@/lib/artist-page"
 import { getProfessionalArtistBySlug } from "@/lib/professional-artist"
 import { emptyPageContent, mediaUrl, withPageContent } from "@/lib/artist-page-types"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArtistBackLink } from "@/components/artist-back-link"
 
 export const dynamic = "force-dynamic"
 
@@ -49,13 +48,7 @@ export default async function PhotoVideoProfessionalPage({ params }: PhotoVideoP
     <div className="min-h-screen bg-background">
       <Header />
       <main className="mx-auto w-full max-w-[1400px] px-3 py-4 sm:px-6 sm:py-6">
-        <Link
-          href="/photo-video"
-          className="mb-3 ml-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground sm:ml-0"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Alle fotografen en videografen
-        </Link>
+        <ArtistBackLink artistId={professional.id} photo />
         <ArtistWebsite artist={professional} content={content ?? emptyPageContent()} />
       </main>
     </div>
