@@ -4,6 +4,7 @@ import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { db } from "@/lib/db"
+import { storeNotice } from "@/lib/db/notify"
 import { bookings, notifications, reviews } from "@/lib/db/schema"
 import { logError, withoutValues } from "@/lib/log-error"
 import { getSession } from "@/lib/session"
@@ -51,13 +52,15 @@ export async function submitReview(token: string, input: { rating: number; comme
         .returning({ professionalId: reviews.professionalId, bookingId: reviews.bookingId })
       if (!review) return false
       const [booking] = await tx.select({ eventName: bookings.eventName }).from(bookings).where(eq(bookings.id, review.bookingId)).limit(1)
-      await tx.insert(notifications).values({
-        professionalId: review.professionalId,
-        bookingId: review.bookingId,
-        type: "review",
-        title: "Nieuwe review",
-        body: `Je hebt een nieuwe review${booking ? ` voor ${booking.eventName}` : ""}. Bekijk hem bij Reviews.`,
-      })
+      await storeNotice(tx, "Failed to notify the professional of a review:", (notice) =>
+        notice.insert(notifications).values({
+          professionalId: review.professionalId,
+          bookingId: review.bookingId,
+          type: "review",
+          title: "Nieuwe review",
+          body: `Je hebt een nieuwe review${booking ? ` voor ${booking.eventName}` : ""}. Bekijk hem bij Reviews.`,
+        }),
+      )
       return true
     })
     if (!stored) return { ok: false as const, error: "used" }

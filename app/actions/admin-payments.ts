@@ -3,6 +3,7 @@
 import { and, asc, desc, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
+import { storeNotice } from "@/lib/db/notify"
 import { billingProfiles, bookings, customerNotifications, invoices, notifications } from "@/lib/db/schema"
 import { logError } from "@/lib/log-error"
 import { isBookingId } from "@/lib/bookings/booking-input"
@@ -78,10 +79,13 @@ export async function markPaymentReceived(input: { bookingId: number; part: "dep
           ? `De klant heeft de factuur voor ${row.eventName} betaald.`
           : `De klant heeft de aanbetaling voor ${row.eventName} betaald. De boeking is definitief.`,
       })
-      if (updated.customerId) {
-        await tx
-          .insert(customerNotifications)
-          .values({ userId: updated.customerId, bookingId: row.id, status: balance ? "payment_received" : "deposit_received" })
+      const { customerId } = updated
+      if (customerId) {
+        await storeNotice(tx, "Failed to notify the client of a payment:", (notice) =>
+          notice
+            .insert(customerNotifications)
+            .values({ userId: customerId, bookingId: row.id, status: balance ? "payment_received" : "deposit_received" }),
+        )
       }
       await logAdminAction(
         {

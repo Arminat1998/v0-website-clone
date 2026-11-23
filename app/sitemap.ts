@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = ["/", "/artiesten", "/photo-video", "/register/professional"]
   try {
     const [artists, photographers] = await Promise.all([listLiveProfessionalArtists(), listLivePhotographers()])
-    pages.push(...artists.map(getArtistPath), ...photographers.flatMap((photographer) => photographer.href ?? []))
+    pages.push(...artists.map((artist) => getArtistPath(artist)), ...photographers.flatMap((photographer) => photographer.href ?? []))
   } catch {
     // Without the database the fixed pages are still listed.
   }

@@ -3,6 +3,7 @@
 import { and, asc, eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
+import { storeNotice } from "@/lib/db/notify"
 import { logError, withoutValues } from "@/lib/log-error"
 import {
   billingProfiles,
@@ -302,23 +303,26 @@ async function storeInvoice({ professionalId, bookingId, invoiceDate, upload, ..
       title: "Factuur ontvangen",
       body: `Factuur ${invoiceNumber} voor ${booking.eventName} is ontvangen. Je uitbetaling van ${formatEuro(payout.payoutCents)} volgt. Je krijgt een melding zodra die is gedaan.`,
     })
-    if (booking.customerId) {
-      // A corrected invoice renews the unread notice; its amount is read from the invoice when it is shown.
-      const renewed = await tx
-        .update(customerNotifications)
-        .set({ createdAt: new Date() })
-        .where(
-          and(
-            eq(customerNotifications.userId, booking.customerId),
-            eq(customerNotifications.bookingId, bookingId),
-            eq(customerNotifications.status, "invoice_ready"),
-            eq(customerNotifications.read, false),
-          ),
-        )
-        .returning({ id: customerNotifications.id })
-      if (renewed.length === 0) {
-        await tx.insert(customerNotifications).values({ userId: booking.customerId, bookingId, status: "invoice_ready" })
-      }
+    const { customerId } = booking
+    if (customerId) {
+      await storeNotice(tx, "Failed to notify the client of an invoice:", async (notice) => {
+        // A corrected invoice renews the unread notice; its amount is read from the invoice when it is shown.
+        const renewed = await notice
+          .update(customerNotifications)
+          .set({ createdAt: new Date() })
+          .where(
+            and(
+              eq(customerNotifications.userId, customerId),
+              eq(customerNotifications.bookingId, bookingId),
+              eq(customerNotifications.status, "invoice_ready"),
+              eq(customerNotifications.read, false),
+            ),
+          )
+          .returning({ id: customerNotifications.id })
+        if (renewed.length === 0) {
+          await notice.insert(customerNotifications).values({ userId: customerId, bookingId, status: "invoice_ready" })
+        }
+      })
     }
     return stored
   })
