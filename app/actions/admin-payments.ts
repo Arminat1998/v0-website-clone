@@ -1,9 +1,12 @@
 "use server"
 
-import { and, desc, eq, inArray } from "drizzle-orm"
+import { and, asc, desc, eq, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { bookings, invoices, notifications } from "@/lib/db/schema"
+import { billingProfiles, bookings, invoices, notifications } from "@/lib/db/schema"
+import { logError } from "@/lib/log-error"
+import { isBookingId } from "@/lib/bookings/booking-input"
+import { invoiceFileUrl, isValidIban } from "@/lib/bookings/invoicing"
 import { requireAdmin } from "@/lib/session"
 import { logAdminAction } from "@/lib/moderation"
 import { formatEuro } from "@/lib/bookings/pricing"
@@ -83,5 +86,134 @@ export async function markPaymentReceived(input: { bookingId: number; part: "dep
   revalidatePath("/admin/activiteit")
   revalidatePath(`/account/boekingen/${row.id}`)
   revalidatePath("/dashboard")
+  return { ok: true }
+}
+
+/** Completed bookings with an invoice: what goes to which professional, and what has been paid out. */
+export async function listPayouts() {
+  await requireAdmin()
+  const rows = await db
+    .select({
+      id: bookings.id,
+      eventName: bookings.eventName,
+      eventDate: bookings.eventDate,
+      professionalName: bookings.professionalName,
+      paymentStatus: bookings.paymentStatus,
+      payoutCents: bookings.payoutCents,
+      payoutStatus: bookings.payoutStatus,
+      paidOutAt: bookings.paidOutAt,
+      invoiceNumber: invoices.invoiceNumber,
+      invoiceMethod: invoices.method,
+      filePathname: invoices.filePathname,
+      lines: invoices.lines,
+      accountName: billingProfiles.businessName,
+      iban: billingProfiles.iban,
+    })
+    .from(bookings)
+    .innerJoin(invoices, and(eq(invoices.bookingId, bookings.id), eq(invoices.professionalId, bookings.professionalId)))
+    .leftJoin(billingProfiles, eq(billingProfiles.professionalId, bookings.professionalId))
+    .where(eq(bookings.status, "completed"))
+    .orderBy(asc(bookings.eventDate), asc(bookings.id), asc(invoices.id))
+  // The oldest invoice of a booking is the one in use, like in storeInvoice.
+  const unique = rows.filter((row, index) => rows.findIndex((other) => other.id === row.id) === index)
+  return unique.map(({ filePathname, lines, iban, ...row }) => {
+    const open = row.payoutStatus !== "paid"
+    return {
+      ...row,
+      invoiceUrl: row.invoiceMethod === "upload" ? invoiceFileUrl({ filePathname }) : `/admin/betalingen/${row.id}/factuur`,
+      receipts: lines.flatMap((line) =>
+        line.receipt ? [{ label: line.description, url: invoiceFileUrl({ filePathname: line.receipt.pathname })! }] : [],
+      ),
+      // The account number is only needed for what still has to be paid out.
+      iban: open ? iban?.trim() || null : null,
+      ibanValid: open && isValidIban(iban ?? ""),
+    }
+  })
+}
+
+export type AdminPayoutRow = Awaited<ReturnType<typeof listPayouts>>[number]
+
+/** The invoice ARSI Events made for a professional, to show to an admin. */
+export async function getInvoiceForAdmin(bookingId: number) {
+  await requireAdmin()
+  if (!isBookingId(bookingId)) return null
+  const [row] = await db
+    .select({ booking: bookings, invoice: invoices, profile: billingProfiles })
+    .from(invoices)
+    .innerJoin(bookings, and(eq(bookings.id, invoices.bookingId), eq(bookings.professionalId, invoices.professionalId)))
+    .innerJoin(billingProfiles, eq(billingProfiles.professionalId, invoices.professionalId))
+    .where(eq(invoices.bookingId, bookingId))
+    .orderBy(asc(invoices.id))
+    .limit(1)
+  return row ?? null
+}
+
+/** Registers a payout ARSI Events made by bank transfer. Nothing is transferred here. */
+export async function markPayoutPaid(input: { bookingId: number; payoutCents: number }): Promise<Result> {
+  const admin = await requireAdmin()
+  if (!isBookingId(input?.bookingId) || !Number.isSafeInteger(input.payoutCents)) return { ok: false, error: "Boeking niet gevonden." }
+  const { bookingId } = input
+  try {
+    const result = await db.transaction(async (tx): Promise<Result> => {
+      const [booking] = await tx
+        .select({
+          professionalId: bookings.professionalId,
+          eventName: bookings.eventName,
+          payoutCents: bookings.payoutCents,
+          payoutStatus: bookings.payoutStatus,
+        })
+        .from(bookings)
+        .where(and(eq(bookings.id, bookingId), eq(bookings.status, "completed")))
+        .limit(1)
+        .for("update")
+      if (!booking) return { ok: false, error: "Boeking niet gevonden." }
+      if (booking.payoutStatus === "paid") return { ok: false, error: "Deze uitbetaling is al verwerkt." }
+      const [invoice] = await tx
+        .select({ invoiceNumber: invoices.invoiceNumber })
+        .from(invoices)
+        .where(and(eq(invoices.bookingId, bookingId), eq(invoices.professionalId, booking.professionalId)))
+        .orderBy(asc(invoices.id))
+        .limit(1)
+      if (!invoice) return { ok: false, error: "Er is nog geen factuur voor deze boeking." }
+      // The professional may have sent a new invoice after the admin opened the page.
+      if (booking.payoutCents !== input.payoutCents) return { ok: false, error: "Het bedrag is gewijzigd. Controleer de factuur opnieuw." }
+      const [profile] = await tx
+        .select({ iban: billingProfiles.iban })
+        .from(billingProfiles)
+        .where(eq(billingProfiles.professionalId, booking.professionalId))
+        .limit(1)
+      if (!isValidIban(profile?.iban ?? "")) return { ok: false, error: "Het IBAN van deze professional ontbreekt of klopt niet." }
+
+      const now = new Date()
+      await tx.update(bookings).set({ payoutStatus: "paid", paidOutAt: now, updatedAt: now }).where(eq(bookings.id, bookingId))
+      const amount = formatEuro(booking.payoutCents)
+      await tx.insert(notifications).values({
+        professionalId: booking.professionalId,
+        bookingId,
+        type: "payout",
+        title: "Uitbetaald",
+        body: `Je uitbetaling van ${amount} voor ${booking.eventName} (factuur ${invoice.invoiceNumber}) is overgemaakt.`,
+      })
+      await logAdminAction(
+        {
+          adminId: admin.id,
+          adminName: admin.name,
+          action: "payout_paid",
+          targetUserId: booking.professionalId,
+          targetLabel: `Boeking #${bookingId} · ${booking.eventName}`,
+          details: `${amount} uitbetaald (factuur ${invoice.invoiceNumber})`,
+        },
+        tx,
+      )
+      return { ok: true }
+    })
+    if (!result.ok) return result
+  } catch (error) {
+    logError("Failed to register the payout:", error)
+    return { ok: false, error: "Opslaan is mislukt. Probeer het opnieuw." }
+  }
+  revalidatePath("/admin/betalingen")
+  revalidatePath("/admin/activiteit")
+  revalidatePath("/dashboard", "layout")
   return { ok: true }
 }

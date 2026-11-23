@@ -107,6 +107,7 @@ const nl = {
     blacklist_remove: "Van blacklist gehaald",
     payment_deposit: "Aanbetaling ontvangen",
     payment_balance: "Eindfactuur betaald",
+    payout_paid: "Uitbetaling geregistreerd",
   } as Record<string, string>,
   stats: {
     title: "Moderatie",
@@ -227,6 +228,7 @@ const en: UsersTranslations = {
     blacklist_remove: "Removed from blacklist",
     payment_deposit: "Deposit received",
     payment_balance: "Final invoice paid",
+    payout_paid: "Payout registered",
   },
   stats: {
     title: "Moderation",

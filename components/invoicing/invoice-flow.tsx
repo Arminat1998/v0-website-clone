@@ -81,6 +81,8 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
   const invoiceLocked =
     invoice?.status === "approved" || booking.paymentStatus === "paid" || booking.payoutStatus === "paid"
 
+  const paidOutAt = booking.payoutStatus === "paid" ? booking.paidOutAt : null
+
   const canSubmit =
     !showDetailsForm &&
     invoiceNumber.trim().length > 0 &&
@@ -425,9 +427,13 @@ export function InvoiceFlow({ context }: { context: InvoiceContext }) {
               </span>
               <div>
                 <h1 id="done-heading" className="text-2xl font-bold text-foreground md:text-3xl">
-                  {ti.doneTitle}
+                  {paidOutAt ? ti.donePaidTitle : ti.doneTitle}
                 </h1>
-                <p className="mt-2 text-pretty text-muted-foreground">{ti.doneBody(formatEuro(pricedBooking.payoutCents, locale))}</p>
+                <p className="mt-2 text-pretty text-muted-foreground">
+                  {paidOutAt
+                    ? ti.donePaidBody(formatEuro(booking.payoutCents, locale), formatDateTime(paidOutAt, locale))
+                    : ti.doneBody(formatEuro(pricedBooking.payoutCents, locale))}
+                </p>
                 {profile.iban && (
                   <p className="mt-1 text-sm text-muted-foreground">
                     {ti.doneIban} <span className="font-mono text-foreground">{formatIban(profile.iban)}</span>

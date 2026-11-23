@@ -299,7 +299,7 @@ async function storeInvoice({ professionalId, bookingId, invoiceDate, upload, ..
       bookingId,
       type: "payout",
       title: "Factuur ontvangen",
-      body: `Factuur ${invoiceNumber} voor ${booking.eventName} is ontvangen. Je uitbetaling van ${formatEuro(payout.payoutCents)} volgt binnen 7 dagen.`,
+      body: `Factuur ${invoiceNumber} voor ${booking.eventName} is ontvangen. Je uitbetaling van ${formatEuro(payout.payoutCents)} volgt. Je krijgt een melding zodra die is gedaan.`,
     })
     return stored
   })
