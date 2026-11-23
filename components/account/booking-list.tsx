@@ -31,7 +31,7 @@ export function BookingRows({ bookings }: { bookings: CustomerBooking[] }) {
           key={booking.id}
           className="block rounded-lg py-4 transition-colors hover:bg-accent/50 focus-visible:outline-2 focus-visible:outline-ring"
         >
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="flex min-w-0 items-center gap-4">
               <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg border bg-background">
                 <span className="text-sm text-muted-foreground">
@@ -57,14 +57,14 @@ export function BookingRows({ bookings }: { bookings: CustomerBooking[] }) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col items-end gap-2">
+            <div className="flex w-full items-center justify-between gap-4 pl-16 sm:w-auto sm:pl-0">
+              <div className="flex flex-1 items-center justify-between gap-2 sm:flex-col sm:items-end">
                 <BookingBadge status={displayStatus(booking)} />
-                <span className="text-sm font-medium">
+                <span className="whitespace-nowrap text-sm font-medium tabular-nums">
                   {euro(booking.totalCents, nl)}
                 </span>
               </div>
-              <ArrowUpRight className="size-4 text-muted-foreground" />
+              <ArrowUpRight className="hidden size-4 text-muted-foreground sm:block" />
             </div>
           </div>
           <span className="sr-only">{eventDate(booking.eventDate, nl)}</span>

@@ -145,15 +145,14 @@ export function AccountBookingDetail({
                   {detail(
                     nl ? "Locatie" : "Location",
                     [
-                      b.street,
-                      b.houseNumber,
-                      b.houseNumberExt,
-                      b.postalCode,
-                      b.city,
+                      [b.street, b.houseNumber, b.houseNumberExt]
+                        .filter(Boolean)
+                        .join(" "),
+                      [b.postalCode, b.city].filter(Boolean).join(" "),
                       b.country,
                     ]
                       .filter(Boolean)
-                      .join(" "),
+                      .join(", "),
                   )}
                   {detail(
                     nl ? "Type evenement" : "Event type",
