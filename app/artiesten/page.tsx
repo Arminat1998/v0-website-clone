@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 import { ListFilters } from "@/components/list-filters"
 import { ArtiestGrid } from "@/components/artiest-grid"
 import { Button } from "@/components/ui/button"
@@ -94,6 +95,7 @@ export default function ArtiestenPage() {
           />
         </main>
       )}
+      {ready && <Footer />}
     </div>
   )
 }

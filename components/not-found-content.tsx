@@ -7,7 +7,7 @@ import { useLanguage } from "@/contexts/language-context"
 export function NotFoundContent() {
   const nl = useLanguage().language !== "en"
   return (
-    <main className="mx-auto flex max-w-xl flex-col items-center px-4 py-24 text-center">
+    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center px-4 py-16 text-center sm:py-24">
       <p className="text-sm font-semibold text-red-700 dark:text-red-400">404</p>
       <h1 className="mt-2 text-3xl font-bold text-foreground text-balance">
         {nl ? "Deze pagina bestaat niet (meer)" : "This page does not exist (anymore)"}
