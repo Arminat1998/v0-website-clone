@@ -11,7 +11,6 @@ import { bookingHref, experienceLabel, professionLabel, useWebsite } from "@/com
 import { hoursLabel, rangeLabel } from "@/lib/artist-facts"
 import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
 import { isDemoProfessional } from "@/lib/demo-professionals"
-import { DemoBookButton } from "@/components/demo-book-button"
 
 export function EditPencil({ label, onClick, href }: { label: string; onClick?: () => void; href?: string }) {
   const className =
@@ -58,19 +57,19 @@ export function Card({ title, action, children }: { title: string; action?: Reac
 export function BookingCard() {
   const bookGuard = useBookGuard()
   const { artist, t, goToTab } = useWebsite()
+  // A sample profile cannot be booked: the header says so, here only the calendar is left.
+  const demo = isDemoProfessional(artist.id)
   return (
     <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <h2 className="text-xl font-bold text-foreground">{t.bookTitle}</h2>
-      <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.bookText}</p>
+      <h2 className="text-xl font-bold text-foreground">{demo ? t.tabs.availability : t.bookTitle}</h2>
+      {!demo && <p className="mt-1 text-sm text-muted-foreground text-pretty">{t.bookText}</p>}
       <div className="mt-4 flex flex-col gap-2">
-        {isDemoProfessional(artist.id) ? (
-          <DemoBookButton />
-        ) : (
-          <Button asChild className="bg-red-700 text-white hover:bg-red-600">
+        {!demo && (
+          <Button asChild className="min-h-11 bg-red-700 text-white hover:bg-red-600">
             <Link href={bookingHref(artist)} onClick={(event) => bookGuard(bookingHref(artist), event)}>{t.book}</Link>
           </Button>
         )}
-        <Button type="button" variant="outline" onClick={() => goToTab("availability")}>
+        <Button type="button" variant="outline" className="min-h-11" onClick={() => goToTab("availability")}>
           {t.checkAvailability}
         </Button>
       </div>
@@ -231,16 +230,13 @@ export function PhotosCard({ limit, columns = "sm:grid-cols-3" }: { limit?: numb
     </div>
   )
 
+  if (!edit && photos.length === 0) return null
   return (
     <Card title={t.photos} action={action}>
       {photos.length === 0 ? (
-        edit ? (
-          <AddPrompt label={t.photosAdd} onClick={() => openDialog("photos")} />
-        ) : (
-          <p className="py-6 text-center text-sm text-muted-foreground">{t.photosEmpty}</p>
-        )
+        <AddPrompt label={t.photosAdd} onClick={() => openDialog("photos")} />
       ) : (
-        <ul className={`grid grid-cols-2 gap-2 ${columns}`}>
+        <ul className={`grid grid-cols-2 gap-2 ${photos.length > 2 ? columns : ""}`}>
           {photos.map((path, index) => (
             <li key={path}>
               <button
@@ -280,14 +276,11 @@ export function VideosCard({ limit }: { limit?: number }) {
     </div>
   )
 
+  if (!edit && videos.length === 0) return null
   return (
     <Card title={t.videos} action={action}>
       {videos.length === 0 ? (
-        edit ? (
-          <AddPrompt label={t.videosAdd} onClick={() => openDialog("videos")} />
-        ) : (
-          <p className="py-6 text-center text-sm text-muted-foreground">{t.videosEmpty}</p>
-        )
+        <AddPrompt label={t.videosAdd} onClick={() => openDialog("videos")} />
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {videos.map((video) => {
