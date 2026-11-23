@@ -79,8 +79,6 @@ async function runSaveArtistPage(input: ArtistPageContent): Promise<SaveArtistPa
     socials: cleanSocials(input.socials),
   }
 
-  const [previous] = await db.select().from(artistPages).where(eq(artistPages.professionalId, professionalId)).limit(1)
-
   const values = {
     bannerPath: content.bannerPath,
     avatarPath: content.avatarPath,
@@ -94,21 +92,34 @@ async function runSaveArtistPage(input: ArtistPageContent): Promise<SaveArtistPa
     updatedAt: new Date(),
   }
 
-  await db
-    .insert(artistPages)
-    .values({ professionalId, ...values })
-    .onConflictDoUpdate({ target: artistPages.professionalId, set: values })
+  // Together, so a failure halfway never leaves the profile on a removed photo. The rows are locked in the same
+  // order as saveProfessionalProfile (profile, then page), so a save of both at the same time waits instead of
+  // overwriting the other or deadlocking.
+  const previous = await db.transaction(async (tx) => {
+    await tx
+      .select({ id: professionalProfiles.professionalId })
+      .from(professionalProfiles)
+      .where(eq(professionalProfiles.professionalId, professionalId))
+      .for("update")
+    const [page] = await tx.select().from(artistPages).where(eq(artistPages.professionalId, professionalId)).limit(1).for("update")
 
-  // "Edit profile" reads its photos from the profile. Without this it would keep, and save again, a removed file.
-  await db
-    .update(professionalProfiles)
-    .set({ avatarPath: content.avatarPath, bannerPath: content.bannerPath })
-    .where(eq(professionalProfiles.professionalId, professionalId))
+    await tx
+      .insert(artistPages)
+      .values({ professionalId, ...values })
+      .onConflictDoUpdate({ target: artistPages.professionalId, set: values })
 
-  await db
-    .update(user)
-    .set({ image: content.avatarPath ? mediaUrl(content.avatarPath) : null })
-    .where(eq(user.id, professionalId))
+    // "Edit profile" reads its photos from the profile. Without this it would keep, and save again, a removed file.
+    await tx
+      .update(professionalProfiles)
+      .set({ avatarPath: content.avatarPath, bannerPath: content.bannerPath })
+      .where(eq(professionalProfiles.professionalId, professionalId))
+
+    await tx
+      .update(user)
+      .set({ image: content.avatarPath ? mediaUrl(content.avatarPath) : null })
+      .where(eq(user.id, professionalId))
+    return page
+  })
 
   if (previous) {
     const kept = new Set([content.bannerPath, content.avatarPath, ...content.gallery])
