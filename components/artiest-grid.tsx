@@ -90,7 +90,7 @@ export function ArtiestGrid({ search, initialSort, autoStart, onAutoStartComplet
 
       <div id="artist-results" className="scroll-mt-24">
         {isEmpty && <NoResults search={search} count={count} kind="artist" suggestions={language === "nl" ? ["DJ voor een bruiloft", "DJ voor een verjaardag", "Band voor een bedrijfsfeest", "Achtergrondmuziek"] : ["DJ for a wedding", "DJ for a birthday", "Band for a corporate event", "Background music"]} />}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
           {sortedArtists.map((artist) => (
             <ArtiestCard
               key={artist.id}

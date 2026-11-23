@@ -4,7 +4,7 @@ import { Header } from "@/components/header"
 import { ListFilters } from "@/components/list-filters"
 import { ArtiestGrid } from "@/components/artiest-grid"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { SlidersHorizontal } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { useListSearch } from "@/hooks/use-list-search"
 import { consumeListStateForReturn, updateListState, type ArtiestListState } from "@/lib/artiest-list-state"
@@ -64,15 +64,15 @@ export default function ArtiestenPage() {
     <div className="min-h-screen bg-background transition-colors">
       <Header />
 
-      <div className="md:hidden bg-card border-b border-border px-4 py-3">
+      <div className="lg:hidden bg-card border-b border-border px-4 py-3">
         <Button variant="outline" onClick={() => setIsMobileFilterOpen(true)} className="flex h-11 items-center gap-2">
-          <Menu className="w-4 h-4" aria-hidden />
+          <SlidersHorizontal className="w-4 h-4" aria-hidden />
           {t.filters}
         </Button>
       </div>
 
       {isMobileFilterOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileFilterOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsMobileFilterOpen(false)} />
       )}
 
       {ready && (

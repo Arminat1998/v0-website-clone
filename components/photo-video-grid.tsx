@@ -113,7 +113,7 @@ export function PhotoVideoGrid({ search, autoStart, onAutoStartComplete }: Photo
 
       <div id="photo-video-results" className="scroll-mt-24">
         {isEmpty && <NoResults search={search} count={count} kind="photo-video" suggestions={nl ? ["Fotograaf voor een bruiloft", "Videograaf voor een bedrijfsfeest", "Productlancering", "Drone"] : ["Photographer for a wedding", "Videographer for a corporate event", "Product launch", "Drone"]} />}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
           {sortedProfessionals.map((professional) => (
             <PhotoVideoCard
               key={professional.id}
