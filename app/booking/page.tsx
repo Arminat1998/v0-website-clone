@@ -728,7 +728,7 @@ export default function BookingPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Progress Steps: finished steps lead back, the current one is marked for screen readers too */}
         <nav aria-label={tr("Stappen", "Steps")} className="mb-4 sm:mb-8 bg-card rounded-lg p-3 sm:p-6 shadow border border-border">
-          <ol className="flex items-center justify-between max-w-4xl mx-auto overflow-x-auto p-1">
+          <ol className="mx-auto flex max-w-4xl items-start">
             {steps.map((step, index) => {
               const current = currentStep === step.number
               const done = currentStep > step.number
@@ -740,32 +740,38 @@ export default function BookingPage() {
               const content = (
                 <>
                   <span className={circle}>{done ? <Check className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden /> : step.number}</span>
-                  <span className={`text-[10px] sm:text-xs mt-1 sm:mt-2 text-foreground text-center max-w-[60px] sm:max-w-none leading-tight ${current ? "font-bold" : "font-medium"}`}>{step.label}</span>
+                  {/* On a phone only the circles fit; the line below them names the current step. */}
+                  <span className={`sr-only text-center text-xs leading-tight text-foreground sm:not-sr-only sm:mt-2 sm:max-w-24 ${current ? "font-bold" : "font-medium"}`}>{step.label}</span>
                   {done && <span className="sr-only">({tr("afgerond", "completed")})</span>}
                 </>
               )
               return (
-                <li key={step.number} aria-current={current ? "step" : undefined} className="flex items-center flex-shrink-0">
+                <li key={step.number} aria-current={current ? "step" : undefined} className={`flex min-w-0 items-start ${index < steps.length - 1 ? "flex-1" : ""}`}>
                   {canReturn ? (
-                    <button type="button" onClick={() => goToStep(step.number)} className="flex flex-col items-center rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+                    <button type="button" onClick={() => goToStep(step.number)} className="flex flex-col items-center rounded-md p-1.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
                       {content}
                     </button>
                   ) : (
-                    <div className="flex flex-col items-center">{content}</div>
+                    <div className="flex flex-col items-center p-1.5">{content}</div>
                   )}
                   {index < steps.length - 1 && (
-                    <div aria-hidden className={`w-4 sm:w-8 md:w-16 h-0.5 mx-1 sm:mx-2 flex-shrink-0 ${done ? "bg-green-700" : "bg-border"}`} />
+                    <div aria-hidden className={`mt-[21px] h-0.5 min-w-2 flex-1 sm:mx-1 sm:mt-[25px] ${done ? "bg-green-700" : "bg-border"}`} />
                   )}
                 </li>
               )
             })}
           </ol>
+          <p aria-hidden className="mt-1 text-center text-sm text-muted-foreground sm:hidden">
+            {tr("Stap", "Step")} {currentStep} {tr("van", "of")} {steps.length}:{" "}
+            <span className="font-semibold text-foreground">{steps[currentStep - 1]?.label}</span>
+          </p>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-4 sm:gap-6">
           {/* Left Column - Professional Card */}
-          <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
-            <div className="relative h-32 sm:h-48 bg-gradient-to-br from-red-600 to-red-800">
+          {/* Below lg one compact row, so the form itself starts at the top of the screen. */}
+          <div className="bg-card rounded-lg shadow border border-border overflow-hidden lg:sticky lg:top-4 lg:self-start">
+            <div className="relative hidden h-48 lg:block bg-gradient-to-br from-red-600 to-red-800">
               <img 
                 src={professional.banner || professionalImage} 
                 alt={`${professional.name} header`} 
@@ -773,8 +779,9 @@ export default function BookingPage() {
               />
             </div>
             
-            <div className="p-4 sm:p-6 -mt-12 sm:-mt-16 relative">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-card bg-card overflow-hidden mx-auto mb-3 sm:mb-4">
+            <div className="relative p-3 sm:p-4 lg:-mt-16 lg:p-6">
+              <div className="flex items-center gap-3 lg:block">
+              <div className="size-14 shrink-0 rounded-full bg-card overflow-hidden lg:mx-auto lg:mb-4 lg:size-24 lg:border-4 lg:border-card">
                 <img 
                   src={professional.avatar || professionalImage} 
                   alt={professional.name} 
@@ -782,12 +789,20 @@ export default function BookingPage() {
                 />
               </div>
               
-              <h2 className="text-lg sm:text-xl font-bold text-center text-foreground mb-1">{professional.name}</h2>
-              <div className="flex items-center justify-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
-                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>{professional.location}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base lg:text-xl font-bold lg:text-center text-foreground lg:mb-1 break-words">{professional.name}</h2>
+                <div className="flex items-center lg:justify-center gap-1.5 text-sm text-muted-foreground lg:mb-4">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                  <span>{professional.location}</span>
+                </div>
               </div>
-              
+              <p className="shrink-0 text-right text-sm font-bold text-foreground lg:hidden">
+                {professional.price} {t.perHour}
+                <span className="block text-xs font-normal text-muted-foreground">{t.exVat}</span>
+              </p>
+              </div>
+
+              <div className="hidden lg:block">
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -861,6 +876,7 @@ export default function BookingPage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
 
