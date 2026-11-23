@@ -1,6 +1,6 @@
 "use server"
 
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { artistPages, billingProfiles, professionalProfiles, user as userTable } from "@/lib/db/schema"
@@ -174,10 +174,20 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
       vatNumber: values.vatNumber || null,
       city: values.city || null,
     }
+    // The invoice details are kept in the invoice step: the profile only fills in what is still empty there.
     await db
       .insert(billingProfiles)
       .values({ professionalId, ...billing })
-      .onConflictDoUpdate({ target: billingProfiles.professionalId, set: { ...billing, updatedAt: new Date() } })
+      .onConflictDoUpdate({
+        target: billingProfiles.professionalId,
+        set: {
+          businessName: sql`coalesce(nullif(${billingProfiles.businessName}, ''), excluded.business_name)`,
+          kvkNumber: sql`coalesce(nullif(${billingProfiles.kvkNumber}, ''), excluded.kvk_number)`,
+          vatNumber: sql`coalesce(nullif(${billingProfiles.vatNumber}, ''), excluded.vat_number)`,
+          city: sql`coalesce(nullif(${billingProfiles.city}, ''), excluded.city)`,
+          updatedAt: new Date(),
+        },
+      })
 
     const pageSocials: ArtistPageSocials = {}
     for (const link of socials) {

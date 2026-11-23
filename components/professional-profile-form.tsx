@@ -1347,6 +1347,18 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 </div>
               </div>
 
+              {isEdit && (
+                <p className="text-sm text-[var(--rf-muted)]">
+                  {L
+                    ? "Deze gegevens vullen alleen lege velden van je factuurgegevens. De gegevens op je factuur (ook IBAN en adres) pas je aan bij het indienen van een factuur, via "
+                    : "These details only fill empty fields of your invoice details. You change the details on your invoice (also IBAN and address) when you submit an invoice, via "}
+                  <Link href="/dashboard/completed-bookings" className="text-[var(--rf-text)] underline underline-offset-4">
+                    {L ? "Afgeronde boekingen" : "Completed bookings"}
+                  </Link>
+                  .
+                </p>
+              )}
+
               {/* Bio - Full width */}
               <div className="space-y-2">
                 <Label htmlFor="bio" className="text-sm sm:text-base font-medium text-[var(--rf-text)]">
