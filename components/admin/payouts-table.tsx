@@ -53,7 +53,7 @@ export function PayoutsTable({ rows }: { rows: AdminPayoutRow[] }) {
 
   function table(list: AdminPayoutRow[], isOpen: boolean) {
     return (
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="relative overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-muted-foreground">
             <tr>
