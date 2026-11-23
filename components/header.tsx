@@ -40,6 +40,10 @@ const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
   "/photo-video": { nl: "Fotografen en videografen boeken | ARSI Events", en: "Book photographers and videographers | ARSI Events" },
   "/reset-password": { nl: "Nieuw wachtwoord | ARSI Events", en: "New password | ARSI Events" },
   "/security": { nl: "Beveiliging | ARSI Events", en: "Security | ARSI Events" },
+  "/catering": { nl: "Catering | ARSI Events", en: "Catering | ARSI Events" },
+  "/entertainment": { nl: "Entertainment | ARSI Events", en: "Entertainment | ARSI Events" },
+  "/location": { nl: "Locatie | ARSI Events", en: "Venues | ARSI Events" },
+  "/decoration": { nl: "Decoratie | ARSI Events", en: "Decoration | ARSI Events" },
 }
 
 /** A path on this site, so a link can never send someone elsewhere after logging in. */

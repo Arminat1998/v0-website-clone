@@ -113,7 +113,7 @@ export function EquipmentSection() {
   const nl = t.locale.startsWith("nl")
   const lang = nl ? "nl" : "en"
   const perDay = nl ? "/dag" : "/day"
-  const price = `${(artist.equipmentPrice ?? "€450").replace("€", "€ ")}${perDay}`
+  const price = `${(artist.equipmentPrice ?? "€450").replace("€", "€ ").replace(/\d{4,}/, (n) => n.replace(/\B(?=(\d{3})+(?!\d))/g, "."))}${perDay}`
 
   return (
     <div className="space-y-4">

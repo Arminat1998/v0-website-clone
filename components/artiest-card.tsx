@@ -143,7 +143,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
                 </dt>
                 {artist.equipmentPrice ? (
                   <dd className="text-right font-semibold text-foreground">
-                    {artist.equipmentPrice.replace("€", "€ ")} <span className="text-sm font-normal text-muted-foreground">{t.perDay}</span>
+                    {artist.equipmentPrice.replace("€", "€ ").replace(/\d{4,}/, (n) => n.replace(/\B(?=(\d{3})+(?!\d))/g, "."))} <span className="text-sm font-normal text-muted-foreground">{t.perDay}</span>
                     <span className="block text-xs font-normal text-muted-foreground">{t.exVat}</span>
                   </dd>
                 ) : (
