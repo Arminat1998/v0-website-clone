@@ -67,6 +67,10 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
+          // The forms require a name; a direct request with only spaces would create an account without one.
+          if (typeof user.name !== "string" || !user.name.trim()) {
+            throw new APIError("BAD_REQUEST", { message: "Vul je naam in." })
+          }
           const role = (user as { role?: string }).role
           const safeRole = PUBLIC_ROLES.includes(role as (typeof PUBLIC_ROLES)[number]) ? role : "user"
           const blocked = await findBlacklistMatch({
