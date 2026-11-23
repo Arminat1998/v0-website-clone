@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { X, Mail, ArrowLeft, Loader2 } from "lucide-react"
@@ -21,13 +21,21 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState<"busy" | "failed" | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    await authClient.requestPasswordReset({ email: email.trim(), redirectTo: "/reset-password" })
-    setLoading(false)
-    setSent(true)
+    setError(null)
+    try {
+      const { error: failed } = await authClient.requestPasswordReset({ email: email.trim(), redirectTo: "/reset-password" })
+      if (failed) setError(failed.status === 429 ? "busy" : "failed")
+      else setSent(true)
+    } catch {
+      setError("failed")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleOpenChange = (next: boolean) => {
@@ -37,22 +45,29 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="!max-w-[95vw] sm:!max-w-[480px] p-0 gap-0">
+      <DialogContent className="!max-w-[95vw] sm:!max-w-[480px] p-0 gap-0"
+        showCloseButton={false}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          document.getElementById("forgot-email")?.focus()
+        }}
+      >
         <DialogTitle className="sr-only">{nl ? "Wachtwoord vergeten" : "Forgot password"}</DialogTitle>
         <div className="relative p-5 sm:p-8">
           <button
             onClick={() => handleOpenChange(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            type="button"
+            className="absolute right-2 top-2 flex size-11 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close</span>
+            <X className="h-5 w-5" aria-hidden />
+            <span className="sr-only">{nl ? "Sluiten" : "Close"}</span>
           </button>
 
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold text-red-600 dark:text-red-500 mb-2">
               {nl ? "Wachtwoord vergeten" : "Forgot password"}
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 text-sm text-pretty">
+            <DialogDescription className="text-sm text-pretty">
               {sent
                 ? nl
                   ? "Bestaat er een account met dit e-mailadres, dan ontvang je een link om je wachtwoord opnieuw in te stellen."
@@ -60,7 +75,7 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
                 : nl
                   ? "Vul je e-mailadres in en we sturen je een link om je wachtwoord opnieuw in te stellen."
                   : "Enter your email address and we will send you a link to reset your password."}
-            </p>
+            </DialogDescription>
           </div>
 
           {!sent && (
@@ -68,6 +83,8 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input
+                  id="forgot-email"
+                  aria-label={nl ? "Je e-mailadres" : "Your email address"}
                   type="email"
                   autoComplete="email"
                   placeholder={nl ? "Je e-mailadres" : "Your email address"}
@@ -77,6 +94,14 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
                   required
                 />
               </div>
+
+              {error && (
+                <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+                  {error === "busy"
+                    ? nl ? "Te veel pogingen. Probeer het over een minuut opnieuw." : "Too many attempts. Try again in a minute."
+                    : nl ? "Dat lukte niet. Controleer je verbinding en probeer het opnieuw." : "That did not work. Check your connection and try again."}
+                </p>
+              )}
 
               <Button type="submit" disabled={loading} className="w-full h-12 bg-red-700 hover:bg-red-600 text-white">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : nl ? "Stuur resetlink" : "Send reset link"}

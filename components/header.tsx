@@ -35,6 +35,7 @@ function currentState(item: (typeof NAV_ITEMS)[number], pathname: string) {
 const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
   "/": { nl: "ARSI Events — Alles voor jouw evenement", en: "ARSI Events — Everything for your event" },
   "/artiesten": { nl: "Artiesten boeken | ARSI Events", en: "Book artists | ARSI Events" },
+  "/booking": { nl: "Boeken | ARSI Events", en: "Book | ARSI Events" },
   "/photo-video": { nl: "Fotografen en videografen boeken | ARSI Events", en: "Book photographers and videographers | ARSI Events" },
 }
 

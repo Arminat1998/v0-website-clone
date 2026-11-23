@@ -28,6 +28,9 @@ const copy = {
     cancel: "Annuleren",
     confirm: "Bijsnijden en gebruiken",
     error: "Bijsnijden is mislukt. Probeer het opnieuw.",
+    type: "Dit bestand is geen foto die we kunnen openen. Kies een JPG, PNG, WebP of AVIF.",
+    size: "Deze foto is groter dan 15 MB. Kies een kleinere foto.",
+    close: "Sluiten",
   },
   en: {
     title: "Crop photo",
@@ -36,8 +39,13 @@ const copy = {
     cancel: "Cancel",
     confirm: "Crop and use",
     error: "Cropping failed. Please try again.",
+    type: "This file is not a photo we can open. Choose a JPG, PNG, WebP or AVIF.",
+    size: "This photo is larger than 15 MB. Choose a smaller photo.",
+    close: "Close",
   },
 }
+
+const MAX_SOURCE_BYTES = 15 * 1024 * 1024
 
 export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: ImageCropDialogProps) {
   const { language } = useLanguage()
@@ -48,6 +56,7 @@ export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: Im
   const [area, setArea] = useState<PixelArea | null>(null)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [invalid, setInvalid] = useState<"type" | "size" | null>(null)
 
   useEffect(() => {
     setCrop({ x: 0, y: 0 })
@@ -55,11 +64,20 @@ export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: Im
     setArea(null)
     setFailed(false)
     setSource(null)
+    setInvalid(null)
     if (!file) return
+    if (!file.type.startsWith("image/")) return setInvalid("type")
+    if (file.size > MAX_SOURCE_BYTES) return setInvalid("size")
     let active = true
-    fileToDataUrl(file).then((url) => {
-      if (active) setSource(url)
-    })
+    fileToDataUrl(file)
+      .then((url) => {
+        // The name and type can lie; only a photo the browser can open may be cropped.
+        const image = new window.Image()
+        image.onload = () => active && setSource(url)
+        image.onerror = () => active && setInvalid("type")
+        image.src = url
+      })
+      .catch(() => active && setInvalid("type"))
     return () => {
       active = false
     }
@@ -88,7 +106,13 @@ export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: Im
           <DialogDescription>{t.description}</DialogDescription>
         </DialogHeader>
 
-        <div className="relative h-72 w-full overflow-hidden rounded-lg bg-black sm:h-96">
+        {invalid && (
+          <p role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-foreground">
+            {t[invalid]}
+          </p>
+        )}
+
+        <div className={invalid ? "hidden" : "relative h-72 w-full overflow-hidden rounded-lg bg-black sm:h-96"}>
           {source ? (
             <Cropper
               image={source}
@@ -108,7 +132,7 @@ export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: Im
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className={invalid ? "hidden" : "flex items-center gap-3"}>
           <ZoomOut className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <Slider
             aria-label={t.zoom}
@@ -125,12 +149,14 @@ export function ImageCropDialog({ file, aspect, round, onCancel, onConfirm }: Im
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
-            {t.cancel}
+            {invalid ? t.close : t.cancel}
           </Button>
-          <Button type="button" onClick={confirm} disabled={busy || !area}>
-            {busy && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-            {t.confirm}
-          </Button>
+          {!invalid && (
+            <Button type="button" onClick={confirm} disabled={busy || !area}>
+              {busy && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+              {t.confirm}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

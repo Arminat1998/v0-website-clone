@@ -208,6 +208,13 @@ function DraftField({
     setDraft(null)
     onCommit(draft)
   }
+  // Applies by itself shortly after typing; Enter and leaving the field apply at once.
+  useEffect(() => {
+    if (draft === null || draft === "") return
+    const timer = setTimeout(commit, 900)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft])
   return (
     <NumericInput
       id={id}

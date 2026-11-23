@@ -215,8 +215,8 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin, onSignup }: S
                     <SelectContent>
                       <SelectItem value="artist">{t.categoryArtist}</SelectItem>
                       <SelectItem value="photo-video">{t.categoryPhotoVideo}</SelectItem>
-                      <SelectItem value="venue">{t.categoryVenue}</SelectItem>
-                      <SelectItem value="catering">{t.categoryCatering}</SelectItem>
+                      <SelectItem value="venue" disabled>{t.categoryVenue} ({language === "nl" ? "binnenkort" : "coming soon"})</SelectItem>
+                      <SelectItem value="catering" disabled>{t.categoryCatering} ({language === "nl" ? "binnenkort" : "coming soon"})</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">{t.categoryHelp}</p>

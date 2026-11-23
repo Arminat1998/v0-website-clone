@@ -18,7 +18,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "ARSI Events — Alles voor jouw evenement",
   description: "Ontdek en boek artiesten en eventprofessionals. Beheer je aanvragen, favorieten en boekingen in je eigen ARSI Events account.",
-  generator: "v0.app",
 }
 
 // Sets the saved (or system) theme before the first paint, so a dark site does not flash white.

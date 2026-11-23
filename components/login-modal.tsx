@@ -68,7 +68,12 @@ export function LoginModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="!max-w-[95vw] sm:!max-w-[480px] md:!max-w-[480px] lg:!max-w-[480px] p-0 gap-0 max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          document.getElementById("login-email")?.focus()
+        }}
+        showCloseButton={false} className="!max-w-[95vw] sm:!max-w-[480px] md:!max-w-[480px] lg:!max-w-[480px] p-0 gap-0 max-h-[90vh] overflow-y-auto">
         <div className="relative p-4 sm:p-8">
           <DialogClose
             aria-label={language === "nl" ? "Sluiten" : "Close"}
