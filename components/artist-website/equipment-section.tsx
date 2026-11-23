@@ -65,7 +65,7 @@ function RealEquipment({ packageItems, extraItems }: { packageItems: EquipmentDe
                 )}
                 <div className="min-w-0">
                   <h3 className="font-semibold text-foreground">{item.name}</h3>
-                  {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+                  {item.description && item.description.trim() !== item.name.trim() && <p className="text-sm text-muted-foreground">{item.description}</p>}
                 </div>
               </li>
             ))}
@@ -88,7 +88,7 @@ function RealEquipment({ packageItems, extraItems }: { packageItems: EquipmentDe
                 )}
                 <div className="min-w-0">
                   <h3 className="font-semibold text-foreground">{extra.name}</h3>
-                  {extra.description && <p className="mb-2 text-sm text-muted-foreground">{extra.description}</p>}
+                  {extra.description && extra.description.trim() !== extra.name.trim() && <p className="mb-2 text-sm text-muted-foreground">{extra.description}</p>}
                   {extra.price && (
                     <p className="text-lg font-bold text-red-700 dark:text-red-400">+{formatRentalPrice(extra.price, suffix)}</p>
                   )}
