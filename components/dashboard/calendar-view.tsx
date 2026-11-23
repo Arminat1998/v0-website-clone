@@ -158,7 +158,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
           ? "bg-blue-600/40 text-white/70 font-medium"
           : "bg-blue-600 text-white font-medium hover:bg-blue-700"
       } else if (isPast || isTooFar) {
-        classes += "bg-zinc-500 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-500 cursor-not-allowed line-through"
+        classes += "cursor-not-allowed bg-muted/40 text-muted-foreground/60 line-through"
       } else if (isDisabledByMode) {
         classes += unavailable ? "bg-red-600/50 text-white/50 font-medium cursor-not-allowed" : "text-zinc-700/50 dark:text-zinc-400/50 bg-zinc-200/50 dark:bg-zinc-700/50 cursor-not-allowed"
       } else if (unavailable && isSelected) {
@@ -217,6 +217,7 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
     { swatch: "bg-red-600", label: tr("Niet beschikbaar", "Unavailable") },
     { swatch: "bg-green-600", label: tr("Geselecteerd", "Selected") },
     { swatch: "bg-zinc-200 dark:bg-zinc-700", label: tr("Beschikbaar", "Available") },
+    { swatch: "border border-border bg-muted/40", label: tr("Voorbij", "Past") },
   ]
 
   return (
@@ -251,8 +252,8 @@ export function CalendarView({ bookings, unavailableDates }: { bookings: Calenda
             </div>
 
             <div className="mb-2 grid grid-cols-7 gap-0.5 sm:gap-1">
-              {tr("M D W D V Z Z", "M T W T F S S").split(" ").map((day, index) => (
-                <div key={index} className="flex h-6 items-center justify-center text-center text-[10px] font-semibold text-muted-foreground sm:h-8 sm:text-xs">
+              {tr("ma di wo do vr za zo", "Mo Tu We Th Fr Sa Su").split(" ").map((day, index) => (
+                <div key={index} className="flex h-6 items-center justify-center text-center text-xs font-semibold text-muted-foreground sm:h-8">
                   {day}
                 </div>
               ))}
