@@ -7,11 +7,11 @@ import { requireAdmin } from "@/lib/session"
 export const dynamic = "force-dynamic"
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const admin = await requireAdmin()
+  await requireAdmin()
   const submissions = await loadSubmissions()
 
   return (
-    <AdminSubmissionsProvider initialSubmissions={submissions} adminName={admin.name}>
+    <AdminSubmissionsProvider initialSubmissions={submissions}>
       <AdminShell>{children}</AdminShell>
     </AdminSubmissionsProvider>
   )
