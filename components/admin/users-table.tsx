@@ -111,7 +111,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
                 </td>
                 <td className="px-4 py-3">
                   {u.warningCount > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-amber-500">
+                    <span className="inline-flex items-center gap-1 text-amber-800 dark:text-amber-400">
                       <TriangleAlert className="h-4 w-4" aria-hidden="true" />
                       {u.warningCount}
                     </span>
@@ -121,7 +121,7 @@ export function UsersTable({ users }: { users: AdminUserRow[] }) {
                 </td>
                 <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(u.createdAt)}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/gebruikers/${u.id}`} className="text-red-500 hover:text-red-400 text-sm">
+                  <Link href={`/admin/gebruikers/${u.id}`} className="text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 text-sm">
                     {t.openProfile}
                   </Link>
                 </td>

@@ -34,9 +34,9 @@ export function ArtistAccountActions({ userId }: { userId: string }) {
       <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-4 text-sm">
         <UserStatusBadge status={account.status} />
         {account.status === "suspended" && account.suspendedUntil && (
-          <span className="text-amber-500">{t.suspendedUntil(formatDate(account.suspendedUntil))}</span>
+          <span className="text-amber-800 dark:text-amber-400">{t.suspendedUntil(formatDate(account.suspendedUntil))}</span>
         )}
-        <Link href={`/admin/gebruikers/${account.id}`} className="ml-auto text-red-500 hover:text-red-400">
+        <Link href={`/admin/gebruikers/${account.id}`} className="ml-auto text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
           {t.viewAccount}
         </Link>
       </div>

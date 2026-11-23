@@ -20,7 +20,7 @@ export function ModerationStatsCards({ stats }: { stats: ModerationStats }) {
         <h2 id="moderation-heading" className="text-lg font-semibold text-foreground">
           {t.stats.title}
         </h2>
-        <Link href="/admin/gebruikers" className="text-sm text-red-500 hover:text-red-400">
+        <Link href="/admin/gebruikers" className="text-sm text-red-700 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
           {t.stats.manage}
         </Link>
       </div>
@@ -31,7 +31,7 @@ export function ModerationStatsCards({ stats }: { stats: ModerationStats }) {
             href={item.href}
             className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/40"
           >
-            <p className={`text-2xl font-semibold ${item.alert ? "text-red-500" : "text-foreground"}`}>{item.value}</p>
+            <p className={`text-2xl font-semibold ${item.alert ? "text-red-700 dark:text-red-400" : "text-foreground"}`}>{item.value}</p>
             <p className="mt-1 text-xs text-muted-foreground">{item.label}</p>
           </Link>
         ))}

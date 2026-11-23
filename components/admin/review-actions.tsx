@@ -83,8 +83,8 @@ export function ReviewActions({ submission }: { submission: Submission }) {
         <div
           className={`rounded-lg p-4 text-sm ${
             submission.status === "goedgekeurd"
-              ? "bg-green-500/10 text-green-500"
-              : "bg-red-500/10 text-red-500"
+              ? "bg-green-500/10 text-green-800 dark:text-green-400"
+              : "bg-red-500/10 text-red-700 dark:text-red-400"
           }`}
         >
           {submission.status === "goedgekeurd"
@@ -119,7 +119,7 @@ export function ReviewActions({ submission }: { submission: Submission }) {
             type="button"
             disabled={saving}
             onClick={() => open("info")}
-            className="w-full min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-orange-500/10 text-orange-500 text-sm font-medium hover:bg-orange-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-orange-500/10 text-orange-800 dark:text-orange-400 text-sm font-medium hover:bg-orange-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <HelpCircle className="w-4 h-4" aria-hidden />
             {t.review.requestInfo}

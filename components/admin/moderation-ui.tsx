@@ -4,9 +4,9 @@ import { useUsersT } from "@/lib/admin-users-i18n"
 import { cn } from "@/lib/utils"
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
-  suspended: "bg-amber-500/10 text-amber-500 border-amber-500/30",
-  banned: "bg-red-500/10 text-red-500 border-red-500/30",
+  active: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border-emerald-500/30",
+  suspended: "bg-amber-500/10 text-amber-800 dark:text-amber-400 border-amber-500/30",
+  banned: "bg-red-500/10 text-red-800 dark:text-red-400 border-red-500/30",
 }
 
 export function UserStatusBadge({ status }: { status: string }) {
