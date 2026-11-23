@@ -1947,7 +1947,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                 </p>
               )}
               {isEdit && saved && (
-                <p role="status" className="text-center text-sm text-green-600">
+                <p role="status" className="text-center text-sm text-green-700 dark:text-green-400">
                   {L ? "Je profiel is opgeslagen" : "Your profile has been saved"}
                 </p>
               )}
