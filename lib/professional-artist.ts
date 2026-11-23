@@ -8,7 +8,7 @@ import { slugify } from "@/lib/artist-slug"
 import { loadUnavailableDates } from "@/lib/bookings/availability"
 import { getRestriction } from "@/lib/moderation"
 import { digitsOnlyPrice, formatRentalPrice } from "@/lib/professional-profile-types"
-import { canonicalEventType, genreLabel, isPhotoVideo } from "@/lib/profile-options"
+import { canonicalEventType, genreLabel, isAllround, isPhotoVideo, mainGenres } from "@/lib/profile-options"
 import type { Artist, EquipmentDetail, Photographer } from "@/lib/smart-search"
 import { logError } from "@/lib/log-error"
 import { loadRatings, type RatingSummary } from "@/lib/reviews"
@@ -72,7 +72,8 @@ export function buildProfessionalArtist(
     description: profile?.bio || undefined,
     eventTypes: profile?.eventTypes.length ? [...new Set(profile.eventTypes.map(canonicalEventType))] : undefined,
     // Genres are stored by value; show and filter on their English names, like the other artists.
-    musicStyles: profile?.genres.length ? [...new Set(profile.genres.map((value) => genreLabel(value, false)))] : undefined,
+    musicStyles: profile && mainGenres(profile.genres).length ? [...new Set(mainGenres(profile.genres).map((value) => genreLabel(value, false)))] : undefined,
+    allround: isAllround(profile?.genres) || undefined,
     experience: profile?.yearsExperience ? `${profile.yearsExperience}` : undefined,
     equipment: profile?.equipment.length ? profile.equipment : undefined,
     equipmentDetails: { packageItems: profile?.packageItems ?? [], extraItems: profile?.extraItems ?? [] },

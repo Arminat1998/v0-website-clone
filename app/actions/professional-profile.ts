@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { artistPages, billingProfiles, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { getProfessionalId } from "@/lib/bookings/professional"
-import { isPhotoVideo } from "@/lib/profile-options"
+import { ALLROUND, isDj, isPhotoVideo, mainGenres } from "@/lib/profile-options"
 import { MEDIA_PREFIX, mediaUrl } from "@/lib/artist-page-types"
 import { socialsForPage, syncPageWithProfile, type SyncedField } from "@/lib/profile-page-sync"
 import { httpUrl } from "@/lib/http-url"
@@ -87,9 +87,10 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
     .map((item) => cleanEquipment(item, ownPrefix))
     .filter((item): item is ProfileEquipmentItem => item !== null)
 
-  const genres = list(input.genres)
+  // Allround is only for DJs; it is kept next to the main genres, which must stay.
+  const genres = list(input.genres).filter((value) => value !== ALLROUND || isDj(input.artistType))
   const eventTypes = list(input.eventTypes)
-  const genreLabels = list(input.genreLabels)
+  const genreLabels = list(input.genreLabels).filter((label) => label.trim().toLowerCase() !== ALLROUND)
   // The form checks this too; here it stops a profile that skips the form's checks.
   const completeEquipment = Object.values(minimumEquipment).filter((item) => item.name && item.price && item.description && item.image)
   // Photographers and videographers have no required equipment package.
@@ -100,7 +101,7 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
   } catch {
     return { ok: false, error: "failed" }
   }
-  if (genres.length === 0 || eventTypes.length === 0 || (!photo && completeEquipment.length === 0)) return { ok: false, error: "invalid" }
+  if (mainGenres(genres).length === 0 || eventTypes.length === 0 || (!photo && completeEquipment.length === 0)) return { ok: false, error: "invalid" }
   const avatarPath = cleanImage(input.avatarPath, ownPrefix) ?? null
   const bannerPath = cleanImage(input.bannerPath, ownPrefix) ?? null
   const phone = text(input.phone, 40)

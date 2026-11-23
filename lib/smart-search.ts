@@ -16,6 +16,8 @@ export interface Artist {
   description?: string
   eventTypes?: string[]
   musicStyles?: string[]
+  /** DJ who offers every genre: the booking form then shows the whole genre list. */
+  allround?: boolean
   mood?: string[]
   experience?: string
   availableDates?: string[] // Array of available dates in YYYY-MM-DD format

@@ -37,8 +37,11 @@ import {
   PHOTO_VIDEO_TYPES,
   SOCIAL_PLATFORMS,
   canonicalEventType,
+  ALLROUND,
   genreLabel,
+  isDj,
   isPhotoVideo,
+  mainGenres,
 } from "@/lib/profile-options"
 import { digitsOnlyPrice, imageSrc, type ProfessionalProfileData } from "@/lib/professional-profile-types"
 
@@ -178,6 +181,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
   const [kvkError, setKvkError] = useState<string>("")
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>(initialProfile?.genres ?? [])
+  // Allround (DJs only) is kept next to the main genres and does not replace them.
+  const allround = !photo && isDj(artistType) && selectedGenres.includes(ALLROUND)
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>((initialProfile?.eventTypes ?? []).map(canonicalEventType))
 
   const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>(initialProfile?.socials ?? [])
@@ -777,7 +782,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(yearsExperience.trim() !== "" && Number(yearsExperience) <= 60, "Jaren ervaring (maximaal 60)", "Years of experience (at most 60)")
     need(Number(hourlyRate) > 0, "Tarief per uur", "Fee per hour")
     need(!!artistType, photo ? "Type" : "Artiesttype", photo ? "Type" : "Artist type")
-    need(selectedGenres.length > 0, photo ? "Specialisaties" : "Muziekgenres", photo ? "Specialisations" : "Music genres")
+    need(mainGenres(selectedGenres).length > 0, photo ? "Specialisaties" : "Muziekgenres", photo ? "Specialisations" : "Music genres")
     need(selectedEventTypes.length > 0, "Evenement types", "Event types")
     if (photo) {
       // No equipment package for photographers and videographers.
@@ -830,7 +835,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       if (!isEdit) trackUserTest("profile_error", { reason })
       document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" })
     }
-    if (selectedGenres.length === 0) {
+    if (mainGenres(selectedGenres).length === 0) {
       setGenresError(
         photo
           ? L
@@ -914,7 +919,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       )
       const avatarPath = profileImage ? await uploadImage(profileImage, "avatar") : null
       const bannerPath = bannerImage ? await uploadImage(bannerImage, "banner") : null
-      const genreLabels = selectedGenres.map((value) => genreLabel(value, L))
+      const genreLabels = mainGenres(selectedGenres).map((value) => genreLabel(value, L))
 
       const result = await saveProfessionalProfile({
         stageName,
@@ -931,7 +936,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
         city,
         rangeKm: Number(rangeKm) || 0,
         artistType,
-        genres: selectedGenres,
+        genres: allround ? selectedGenres : mainGenres(selectedGenres),
         genreLabels,
         eventTypes: selectedEventTypes,
         socials: socialMediaLinks,
@@ -1613,7 +1618,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     {photo ? (L ? "Specialisaties" : "Specialisations") : L ? "Muziekgenres" : "Music Genres"}
                     <RequiredMark />
                   </Label>
-                  {genresError && selectedGenres.length === 0 && (
+                  {genresError && mainGenres(selectedGenres).length === 0 && (
                     <p role="alert" className="text-sm text-[var(--rf-red-text)]">
                       {genresError}
                     </p>
@@ -1623,9 +1628,9 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     labelledBy="genres-label"
                     multiple
                     nl={L}
-                    value={selectedGenres}
-                    onChange={setSelectedGenres}
-                    invalid={!!genresError && selectedGenres.length === 0}
+                    value={mainGenres(selectedGenres)}
+                    onChange={(next) => setSelectedGenres(allround ? [...next, ALLROUND] : next)}
+                    invalid={!!genresError && mainGenres(selectedGenres).length === 0}
                     placeholder={
                       photo ? (L ? "Selecteer specialisaties" : "Select specialisations") : L ? "Selecteer genres" : "Select genres"
                     }
@@ -1638,6 +1643,27 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
                     }))}
                   />
+                  {!photo && isDj(artistType) && (
+                    <div className="flex items-start gap-3 pt-1">
+                      <Checkbox
+                        id="allround"
+                        checked={allround}
+                        onCheckedChange={(checked) =>
+                          setSelectedGenres(checked === true ? [...mainGenres(selectedGenres), ALLROUND] : mainGenres(selectedGenres))
+                        }
+                      />
+                      <div className="space-y-0.5">
+                        <Label htmlFor="allround" className="text-sm font-medium text-[var(--rf-text)]">
+                          Allround
+                        </Label>
+                        <p className="text-sm text-[var(--rf-muted)]">
+                          {L
+                            ? "Klanten mogen bij het boeken uit alle genres kiezen. Je hoofdgenres hierboven blijven staan."
+                            : "Customers may choose from all genres when booking. Your main genres above stay on your profile."}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

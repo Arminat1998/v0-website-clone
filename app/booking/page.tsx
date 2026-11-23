@@ -26,7 +26,7 @@ import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
 import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
-import { EVENT_TYPE_GROUPS, GENRE_GROUPS, genreLabel } from "@/lib/profile-options"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, bookableGenreGroups, genreLabel, isDj } from "@/lib/profile-options"
 import { getCustomerProfile } from "@/app/actions/customer"
 import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking, travelCents } from "@/lib/bookings/pricing"
 
@@ -451,6 +451,11 @@ export default function BookingPage() {
     }
   }
 
+  // A DJ offers only their own genres, unless they are Allround. Other artists keep the whole list.
+  const genreGroups = artist && isDj(artist.specialty) ? bookableGenreGroups(artist.musicStyles, !!artist.allround) : GENRE_GROUPS
+  // A saved draft may hold genres the DJ does not offer (any more); those are not shown and not sent.
+  const offeredGenres = new Set(genreGroups.flatMap((group) => group.options.map((option) => option.value)))
+  const chosenGenres = selectedMusicGenres.filter((value) => offeredGenres.has(value))
   const sideGenres = tagLabels(artist?.musicStyles, styleLabel, language === "nl")
   const sideEvents = tagLabels(professional.eventTypes, eventLabel, language === "nl")
 
@@ -557,7 +562,7 @@ export default function BookingPage() {
         endTime: endTime || "00:00",
         eventTypes: selectedEventTypes,
         // Bookings store genres by their English name, which is also how the dashboards show them.
-        musicGenres: selectedMusicGenres.map((value) => genreLabel(value, false)),
+        musicGenres: chosenGenres.map((value) => genreLabel(value, false)),
         capacity,
         description,
         specialRequests,
@@ -1211,11 +1216,11 @@ export default function BookingPage() {
                     labelledBy="booking-genres-label"
                     multiple
                     nl={language === "nl"}
-                    value={selectedMusicGenres}
+                    value={chosenGenres}
                     onChange={setSelectedMusicGenres}
                     placeholder={tr("Kies muziekgenres", "Choose music genres")}
                     searchPlaceholder={tr("Zoek een genre...", "Search a genre...")}
-                    groups={comboGroups(GENRE_GROUPS, language === "nl")}
+                    groups={comboGroups(genreGroups, language === "nl")}
                   />
                 </div>
                 )}

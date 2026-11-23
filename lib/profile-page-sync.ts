@@ -1,5 +1,5 @@
 import { PAGE_LIMITS, SOCIAL_KEYS, type ArtistPageSocials, type SocialKey } from "@/lib/artist-page-types"
-import { canonicalEventType, genreLabel } from "@/lib/profile-options"
+import { canonicalEventType, genreLabel, mainGenres } from "@/lib/profile-options"
 
 /** The parts of "My website" that follow the profile until they are edited there. */
 export interface SyncedPage {
@@ -52,6 +52,9 @@ export function syncPageWithProfile(
   next: ProfileValues & { genreLabels: string[] },
 ): { page: SyncedPage; kept: SyncedField[] } {
   const kept: SyncedField[] = []
+  // The Allround marker is a setting, not a genre on the page.
+  if (previous) previous = { ...previous, genres: mainGenres(previous.genres) }
+  next = { ...next, genres: mainGenres(next.genres) }
   const pick = <T,>(field: SyncedField, follows: boolean, current: T, value: T, changed: boolean, shown: boolean) => {
     if (follows) return value
     if (changed && !shown) kept.push(field)

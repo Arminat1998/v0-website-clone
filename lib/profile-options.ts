@@ -267,7 +267,33 @@ export const SOCIAL_PLATFORMS: { value: string; label: string }[] = [
   { value: "linkedin", label: "LinkedIn" },
 ]
 
+/**
+ * "Allround" is stored as a marker in the genres list of a DJ, next to their own main genres. It is a setting, not a
+ * music genre: it never shows as a genre, and it gives customers the whole genre list when they book.
+ */
+export const ALLROUND = "allround"
+
+export const isAllround = (genres: string[] | undefined | null) => !!genres?.some((value) => value === ALLROUND)
+
+/** The genres without the Allround marker: the DJ's own main genres. */
+export const mainGenres = (genres: string[] | undefined | null) => (genres ?? []).filter((value) => value !== ALLROUND)
+
+export const isDj = (artistType: string | undefined | null) => (artistType ?? "").trim().toLowerCase() === "dj"
+
+/**
+ * The genre groups a customer may choose from when booking. A normal DJ offers only their own genres; an Allround DJ,
+ * and anyone without genres on record (older profiles), offers the whole list.
+ */
+export function bookableGenreGroups(offered: string[] | undefined | null, allround: boolean): OptionGroup[] {
+  const own = new Set(mainGenres(offered).map(canonicalGenre))
+  if (allround || own.size === 0) return GENRE_GROUPS
+  return GENRE_GROUPS.map((group) => ({ ...group, options: group.options.filter((option) => own.has(option.value)) })).filter(
+    (group) => group.options.length > 0,
+  )
+}
+
 export function genreLabel(value: string, dutch: boolean) {
+  if (value === ALLROUND) return "Allround"
   for (const group of [...GENRE_GROUPS, ...PHOTO_SPECIALTY_GROUPS]) {
     const option = group.options.find((item) => item.value === value)
     if (option) return dutch ? option.nl : option.en

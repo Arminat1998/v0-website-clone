@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { artistPages, professionalProfiles, user as userTable } from "@/lib/db/schema"
 import { mediaUrl } from "@/lib/artist-page-types"
+import { mainGenres } from "@/lib/profile-options"
 import { requireAdmin } from "@/lib/session"
 import type { ChecklistState, ReviewState, Submission, SubmissionStatus } from "@/contexts/admin-submissions-context"
 
@@ -79,7 +80,7 @@ export async function loadSubmissions(): Promise<Submission[]> {
       availability: `${profile.minHours}-${profile.maxHours} uur per optreden, binnen ${profile.rangeKm} km van ${profile.city || "de woonplaats"}`,
       hourlyRate: Number(profile.hourlyRate) ? `€${Number(profile.hourlyRate)}` : null,
       dayRate: null,
-      genres: profile.genres,
+      genres: mainGenres(profile.genres),
       eventTypes: profile.eventTypes,
       website,
       socials: profile.socials
