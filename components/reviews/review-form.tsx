@@ -66,8 +66,8 @@ export function ReviewForm({ invite }: { invite: ReviewInvite }) {
             {invite.rating && <Stars rating={invite.rating} />}
             <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
               {nl
-                ? "Je review helpt andere klanten en de professional zelf."
-                : "Your review helps other customers and the professional."}
+                ? "Je sterren tellen mee in de score op het profiel. Je tekst ziet de professional."
+                : "Your stars count towards the score on the profile. The professional sees your text."}
             </p>
             <Button asChild variant="outline">
               <Link href="/account/reviews">{nl ? "Naar mijn reviews" : "Go to my reviews"}</Link>

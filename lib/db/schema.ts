@@ -201,7 +201,7 @@ export const professionalUnavailableDates = pgTable(
   (table) => [primaryKey({ columns: [table.professionalId, table.date] })],
 )
 
-export const NOTIFICATION_TYPES = ["new_request", "payment", "payout", "reminder"] as const
+export const NOTIFICATION_TYPES = ["new_request", "payment", "payout", "reminder", "review"] as const
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number]
 
 export const notifications = pgTable("notifications", {

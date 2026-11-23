@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Wallet } from "lucide-react"
+import { ArrowRight, Banknote, Bell, CalendarCheck, Clock, FileText, Hourglass, Inbox, MapPin, Receipt, Star, Wallet } from "lucide-react"
 import { AccountEmpty, AccountHeading } from "@/components/account/account-common"
 import { Card, CardContent } from "@/components/ui/card"
 import { useLanguage } from "@/contexts/language-context"
@@ -20,6 +20,7 @@ const notificationIcon: Record<Notification["type"], typeof Bell> = {
   payment: Banknote,
   payout: Wallet,
   reminder: Clock,
+  review: Star,
 }
 
 export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
@@ -244,7 +245,7 @@ export function DashboardOverview({ summary }: { summary: DashboardSummary }) {
                   return (
                     <li key={notification.id}>
                       {notification.bookingId ? (
-                        <Link href={`/dashboard/bookings/${notification.bookingId}`} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent">
+                        <Link href={notification.type === "review" ? "/dashboard/reviews" : `/dashboard/bookings/${notification.bookingId}`} className="flex items-start gap-3 rounded-md p-2 transition-colors hover:bg-accent">
                           {content}
                         </Link>
                       ) : (
