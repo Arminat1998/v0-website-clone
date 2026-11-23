@@ -282,14 +282,20 @@ export const isDj = (artistType: string | undefined | null) => (artistType ?? ""
 
 /**
  * The genre groups a customer may choose from when booking. A normal DJ offers only their own genres; an Allround DJ,
- * and anyone without genres on record (older profiles), offers the whole list.
+ * offers the whole list. A DJ without genres offers no genres; custom/legacy values remain bookable.
  */
 export function bookableGenreGroups(offered: string[] | undefined | null, allround: boolean): OptionGroup[] {
-  const own = new Set(mainGenres(offered).map(canonicalGenre))
-  if (allround || own.size === 0) return GENRE_GROUPS
-  return GENRE_GROUPS.map((group) => ({ ...group, options: group.options.filter((option) => own.has(option.value)) })).filter(
+  if (allround) return GENRE_GROUPS
+  const raw = mainGenres(offered)
+  if (raw.length === 0) return []
+  const own = new Set(raw.map(canonicalGenre))
+  const groups = GENRE_GROUPS.map((group) => ({ ...group, options: group.options.filter((option) => own.has(option.value)) })).filter(
     (group) => group.options.length > 0,
   )
+  const custom = raw.filter((value) => !GENRE_GROUPS.some((group) => group.options.some((option) => option.value === canonicalGenre(value))))
+  return custom.length > 0
+    ? [...groups, { nl: "Overig", en: "Other", options: custom.map((value) => ({ value, nl: value, en: value })) }]
+    : groups
 }
 
 export function genreLabel(value: string, dutch: boolean) {

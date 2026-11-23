@@ -782,7 +782,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
     need(yearsExperience.trim() !== "" && Number(yearsExperience) <= 60, "Jaren ervaring (maximaal 60)", "Years of experience (at most 60)")
     need(Number(hourlyRate) > 0, "Tarief per uur", "Fee per hour")
     need(!!artistType, photo ? "Type" : "Artiesttype", photo ? "Type" : "Artist type")
-    need(mainGenres(selectedGenres).length > 0, photo ? "Specialisaties" : "Muziekgenres", photo ? "Specialisations" : "Music genres")
+    need(
+      mainGenres(selectedGenres).length > 0 || allround,
+      photo ? "Specialisaties" : "Muziekgenres",
+      photo ? "Specialisations" : "Music genres",
+    )
     need(selectedEventTypes.length > 0, "Evenement types", "Event types")
     if (photo) {
       // No equipment package for photographers and videographers.
@@ -835,7 +839,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       if (!isEdit) trackUserTest("profile_error", { reason })
       document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "center" })
     }
-    if (mainGenres(selectedGenres).length === 0) {
+    if (mainGenres(selectedGenres).length === 0 && !allround) {
       setGenresError(
         photo
           ? L

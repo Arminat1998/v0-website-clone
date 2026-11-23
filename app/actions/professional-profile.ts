@@ -101,7 +101,10 @@ export async function saveProfessionalProfile(input: SaveProfessionalProfileInpu
   } catch {
     return { ok: false, error: "failed" }
   }
-  if (mainGenres(genres).length === 0 || eventTypes.length === 0 || (!photo && completeEquipment.length === 0)) return { ok: false, error: "invalid" }
+  const allroundDj = genres.includes(ALLROUND) && isDj(input.artistType) && !photo
+  if ((!allroundDj && mainGenres(genres).length === 0) || eventTypes.length === 0 || (!photo && completeEquipment.length === 0)) {
+    return { ok: false, error: "invalid" }
+  }
   const avatarPath = cleanImage(input.avatarPath, ownPrefix) ?? null
   const bannerPath = cleanImage(input.bannerPath, ownPrefix) ?? null
   const phone = text(input.phone, 40)
