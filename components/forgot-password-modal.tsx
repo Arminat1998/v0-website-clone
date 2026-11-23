@@ -54,8 +54,15 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
           event.preventDefault()
           document.getElementById("forgot-email")?.focus()
         }}
+        onCloseAutoFocus={(event) => {
+          // Opened from the login window, which is gone by now: back to the button that started it.
+          const trigger = document.querySelector<HTMLElement>("[data-login-trigger]")
+          if (trigger) {
+            event.preventDefault()
+            trigger.focus()
+          }
+        }}
       >
-        <DialogTitle className="sr-only">{nl ? "Wachtwoord vergeten" : "Forgot password"}</DialogTitle>
         <div className="relative p-5 sm:p-8">
           <button
             onClick={() => handleOpenChange(false)}
@@ -67,9 +74,9 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
           </button>
 
           <div className="mb-6 text-center">
-            <h2 className="mb-2 text-2xl font-semibold tracking-tight text-foreground">
+            <DialogTitle className="mb-2 text-2xl font-semibold tracking-tight text-foreground">
               {nl ? "Wachtwoord vergeten" : "Forgot password"}
-            </h2>
+            </DialogTitle>
             <DialogDescription className="text-sm text-pretty">
               {sent
                 ? nl
