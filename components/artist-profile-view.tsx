@@ -146,8 +146,7 @@ export function ArtistProfileView({
               <dt className="mb-2 text-xs text-muted-foreground sm:text-sm">{t.rate}</dt>
               <dd>
                 <span className="mb-1 block text-2xl font-bold text-foreground sm:text-4xl">
-                  <span className="text-red-600">€</span>
-                  {artist.price.replace("€", "").trim()}
+                  <span className="text-red-600">€</span> {artist.price.replace("€", "").trim()}
                 </span>
                 <span className="block text-xs text-muted-foreground">{t.rateNote}</span>
               </dd>
@@ -255,7 +254,7 @@ export function ArtistProfileView({
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">{artist.name}</p>
               <p className="whitespace-nowrap text-sm text-foreground">
-                <span className="font-semibold">{artist.price}</span>/{nl ? "uur" : "hr"}
+                <span className="font-semibold">{artist.price.replace("€", "€ ")}</span> {nl ? "per uur" : "per hour"}
                 <span className="ml-1 text-xs text-muted-foreground">{nl ? "excl. btw" : "excl. VAT"}</span>
               </p>
             </div>
