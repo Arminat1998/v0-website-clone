@@ -25,13 +25,13 @@ export function ReplacementCard({
 }) {
   const footer = (
     <div className="flex gap-2">
-      <Button variant="brand" asChild className="h-9 flex-1" onClick={(event) => event.stopPropagation()}>
+      <Button variant="brand" asChild className="min-h-11 flex-1" onClick={(event) => event.stopPropagation()}>
         <Link href={item.href}>{nl ? "Boek met je wensen" : "Book with your wishes"}</Link>
       </Button>
       <Button
         type="button"
         variant="outline"
-        className="h-9 flex-1"
+        className="min-h-11 flex-1"
         onClick={(event) => {
           event.stopPropagation();
           onView();
