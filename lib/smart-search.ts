@@ -430,6 +430,7 @@ export const enhancedArtists: Artist[] = [
       "Wedding specialist with extensive experience in creating magical moments. Expertly handles all ages and musical preferences.",
     eventTypes: ["wedding", "anniversary", "romantic event", "family celebration"],
     musicStyles: ["wedding mix", "romantic", "all genres", "family-friendly"],
+    allround: true,
     mood: ["romantic", "celebratory", "emotional", "magical"],
     experience: "18+ years specializing in weddings and romantic events",
     availableDates: [
@@ -957,6 +958,7 @@ export const enhancedArtists: Artist[] = [
       "All-around party specialist mixing various genres to keep everyone dancing. Adaptable to any crowd and event type.",
     eventTypes: ["general party", "mixed crowd", "celebration", "versatile event"],
     musicStyles: ["party mix", "various genres", "crowd pleasers", "adaptable"],
+    allround: true,
     mood: ["versatile", "party", "adaptable", "crowd-pleasing"],
     experience: "13 years adapting to various party needs",
     availableDates: [
