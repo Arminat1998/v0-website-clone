@@ -1624,7 +1624,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     {photo ? (L ? "Specialisaties" : "Specialisations") : L ? "Muziekgenres" : "Music Genres"}
                     <RequiredMark />
                   </Label>
-                  {genresError && mainGenres(selectedGenres).length === 0 && (
+                  {genresError && mainGenres(selectedGenres).length === 0 && !allround && (
                     <p role="alert" className="text-sm text-[var(--rf-red-text)]">
                       {genresError}
                     </p>
@@ -1636,7 +1636,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     nl={L}
                     value={mainGenres(selectedGenres)}
                     onChange={(next) => setSelectedGenres(allround ? [...next, ALLROUND] : next)}
-                    invalid={!!genresError && mainGenres(selectedGenres).length === 0}
+                    invalid={!!genresError && mainGenres(selectedGenres).length === 0 && !allround}
                     placeholder={
                       photo ? (L ? "Selecteer specialisaties" : "Select specialisations") : L ? "Selecteer genres" : "Select genres"
                     }
@@ -1655,8 +1655,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                         id="allround"
                         checked={allround}
                         onCheckedChange={(checked) =>
+                          {
+                          if (checked === true) setGenresError("")
                           setSelectedGenres(checked === true ? [...mainGenres(selectedGenres), ALLROUND] : mainGenres(selectedGenres))
-                        }
+                        }}
                       />
                       <div className="space-y-0.5">
                         <Label htmlFor="allround" className="text-sm font-medium text-[var(--rf-text)]">

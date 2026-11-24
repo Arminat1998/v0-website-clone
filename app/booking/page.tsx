@@ -519,6 +519,51 @@ export default function BookingPage() {
     customerType === "business" && !companyName.trim() && tr("bedrijfsnaam", "company name"),
     customerType === "business" && !vatNumber.trim() && tr("btw-nummer", "VAT number"),
   ].filter(Boolean) as string[]
+  const blocked1 = !eventDate || !eventLocation.trim() || distance === null
+  const blocked2 = !eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions
+  const blocked3 = !firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))
+  // Scroll smoothly to the first invalid field of a step and focus it.
+  const focusFirstInvalid = (ids: (string | false)[]) => {
+    const id = ids.find(Boolean)
+    const el = id ? document.getElementById(id) : null
+    if (!el) return
+    el.scrollIntoView({ behavior: "smooth", block: "center" })
+    el.focus({ preventScroll: true })
+  }
+  const continueFrom = (step: 1 | 2 | 3) => {
+    if (step === 1) {
+      if (blocked1) return focusFirstInvalid([!eventDate && "booking-calendar", "booking-location"])
+      return goToStep(2)
+    }
+    if (step === 2) {
+      if (blocked2) {
+        return focusFirstInvalid([
+          (!eventName || eventName.length < 3) && "booking-event-name",
+          !startTime && "booking-start",
+          (!endTime || sameTime || Boolean(hoursIssue)) && "booking-end",
+          !isWebLink(playlistLink) && "booking-playlist",
+          !isWebLink(openingDanceLink) && "booking-opening-link",
+          !isWebLink(lastSongLink) && "booking-last-song-link",
+        ])
+      }
+      return goToStep(3)
+    }
+    if (blocked3) {
+      return focusFirstInvalid([
+        !firstName.trim() && "step3-first-name",
+        !lastName.trim() && "step3-last-name",
+        !isEmail(email) && "step3-email",
+        !isPhone(phone) && "step3-phone",
+        customerType === "business" && !companyName.trim() && "step3-company",
+        !billingStreet.trim() && "step3-street",
+        !billingHouseNumber.trim() && "step3-house",
+        !billingPostalCode.trim() && "step3-postal",
+        !billingCity.trim() && "step3-city",
+        customerType === "business" && !vatNumber.trim() && "step3-vat",
+      ])
+    }
+    goToStep(4)
+  }
   const changeInStep1 = (label: string) => (
     <button
       type="button"
@@ -1068,7 +1113,7 @@ export default function BookingPage() {
                       ))}
                     </div>
 
-                    <div className="grid grid-cols-7 gap-0.5 sm:gap-1">{renderCalendar()}</div>
+                    <div id="booking-calendar" tabIndex={-1} className="grid grid-cols-7 gap-0.5 sm:gap-1 outline-none">{renderCalendar()}</div>
 
                     <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-label={tr("Legenda", "Legend")}>
                       <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm bg-zinc-200 dark:bg-zinc-700" aria-hidden />{tr("Beschikbaar", "Available")}</li>
@@ -1101,6 +1146,7 @@ export default function BookingPage() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <input
+                    id="booking-location"
                     type="text"
                     value={eventLocation}
                     onChange={(e) => {
@@ -1158,9 +1204,9 @@ export default function BookingPage() {
               {/* Continue Button */}
               <div className="mt-6">
                 <Button
-                  onClick={() => goToStep(2)}
-                  disabled={!eventDate || !eventLocation.trim() || distance === null}
-                  className="w-full py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  onClick={() => continueFrom(1)}
+                  aria-disabled={blocked1}
+                  className="w-full py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white aria-disabled:bg-muted aria-disabled:text-muted-foreground aria-disabled:hover:bg-muted aria-disabled:cursor-not-allowed"
                 >
                   {tr("Naar evenementdetails", "Continue to Event Details")}
                 </Button>
@@ -1424,6 +1470,7 @@ export default function BookingPage() {
                       type="url"
                       maxLength={300}
                       aria-labelledby="booking-opening-label"
+                      id="booking-opening-link"
                       aria-invalid={!isWebLink(openingDanceLink)}
                       aria-describedby="booking-opening-error"
                       value={openingDanceLink}
@@ -1469,6 +1516,7 @@ export default function BookingPage() {
                       type="url"
                       maxLength={300}
                       aria-labelledby="booking-last-song-label"
+                      id="booking-last-song-link"
                       aria-invalid={!isWebLink(lastSongLink)}
                       aria-describedby="booking-last-song-error"
                       value={lastSongLink}
@@ -1683,9 +1731,9 @@ export default function BookingPage() {
                   {tr("Terug", "Back")}
                 </Button>
                 <Button
-                  onClick={() => goToStep(3)}
-                  disabled={!eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions}
-                  className="flex-1 py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  onClick={() => continueFrom(2)}
+                  aria-disabled={blocked2}
+                  className="flex-1 py-3 text-base font-semibold bg-red-700 hover:bg-red-600 text-white aria-disabled:bg-muted aria-disabled:text-muted-foreground aria-disabled:hover:bg-muted aria-disabled:cursor-not-allowed"
                 >
                   {tr("Naar persoonlijke gegevens", "Continue to Personal Details")}
                 </Button>
@@ -1702,10 +1750,10 @@ export default function BookingPage() {
                 <p className="text-sm text-muted-foreground mb-2">{tr("Vul je gegevens in zodat de professional contact met je kan opnemen.", "Fill in your details so the professional can contact you.")}</p>
                 {requiredNote}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}{required}<input required value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}{required}<input required value={lastName} autoComplete="family-name" onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}{required}<input required autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
-                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}{required}<input required autoComplete="tel" type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Voornaam", "First name")}{required}<input required id="step3-first-name" value={firstName} autoComplete="given-name" onChange={(event) => setFirstName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Voornaam", "First name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Achternaam", "Last name")}{required}<input required id="step3-last-name" value={lastName} autoComplete="family-name" onChange={(event) => setLastName(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Achternaam", "Last name")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("E-mailadres", "Email address")}{required}<input required id="step3-email" autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("jij@voorbeeld.nl", "you@example.com")} /></label>
+                  <label className="space-y-2 text-sm font-medium text-foreground">{tr("Telefoonnummer", "Phone number")}{required}<input required id="step3-phone" autoComplete="tel" type="tel" value={phone} onChange={(event) => setPhone(phoneChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="06 12345678" /></label>
                 </div>
                 <div className="mt-6 border-t border-border pt-5">
                   <h3 className="font-semibold text-foreground">{tr("Factuurgegevens", "Billing details")}</h3>
@@ -1720,17 +1768,17 @@ export default function BookingPage() {
                     <button type="button" role="radio" aria-checked={customerType === "business"} onClick={() => setCustomerType("business")} className={`rounded-md border px-4 py-2 text-sm ${customerType === "business" ? "border-red-500 bg-red-500/10" : "border-border"}`}>{tr("Zakelijk", "Business")}</button>
                   </div>
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}{required}<input required autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}{required}<input required autoComplete="address-line1" value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}{required}<input required value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}{required}<input required autoComplete="postal-code" value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
-                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}{required}<input required autoComplete="address-level2" value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground sm:col-span-2">{tr("Bedrijfsnaam", "Company name")}{required}<input required id="step3-company" autoComplete="organization" value={companyName} onChange={(event) => setCompanyName(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Bedrijfsnaam", "Company name")} /></label>}
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Straat", "Street")}{required}<input required id="step3-street" autoComplete="address-line1" value={billingStreet} onChange={(event) => setBillingStreet(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder={tr("Straatnaam", "Street name")} /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}{required}<input required id="step3-house" value={billingHouseNumber} onChange={(event) => setBillingHouseNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="12A" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}{required}<input required id="step3-postal" autoComplete="postal-code" value={billingPostalCode} onChange={(event) => setBillingPostalCode(postalCodeChars(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="1234 AB" /></label>
+                    <label className="space-y-2 text-sm font-medium text-foreground">{tr("Plaats", "City")}{required}<input required id="step3-city" autoComplete="address-level2" value={billingCity} onChange={(event) => setBillingCity(lettersOnly(event.target.value))} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="Amsterdam" /></label>
                     <label className="space-y-2 text-sm font-medium text-foreground">{tr("Land", "Country")}<select value={billingCountry} onChange={(event) => setBillingCountry(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2"><option value="Nederland">{tr("Nederland", "Netherlands")}</option><option value="België">{tr("België", "Belgium")}</option><option value="Duitsland">{tr("Duitsland", "Germany")}</option><option value="Anders">{tr("Anders", "Other")}</option></select></label>
-                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">{tr("Btw-nummer", "VAT number")}{required}<input required value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
+                    {customerType === "business" && <label className="space-y-2 text-sm font-medium text-foreground">{tr("Btw-nummer", "VAT number")}{required}<input required id="step3-vat" value={vatNumber} onChange={(event) => setVatNumber(event.target.value)} className="w-full rounded-md border border-border bg-background px-3 py-2" placeholder="NL123456789B01" /></label>}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => goToStep(4)} disabled={!firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))} className="flex-1 bg-red-700 hover:bg-red-600 text-white">{tr("Naar overzicht", "To overview")}</Button></div>
+              <div className="flex gap-3"><Button onClick={() => goToStep(2)} className="px-6 bg-accent text-foreground">{tr("Terug", "Back")}</Button><Button onClick={() => continueFrom(3)} aria-disabled={blocked3} className="flex-1 bg-red-700 hover:bg-red-600 text-white aria-disabled:bg-muted aria-disabled:text-muted-foreground aria-disabled:hover:bg-muted aria-disabled:cursor-not-allowed">{tr("Naar overzicht", "To overview")}</Button></div>
               {missingHint(missingStep3)}
             </div>
           )}
@@ -1751,8 +1799,10 @@ export default function BookingPage() {
                   {pricing.equipmentCents > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{artist ? tr("Apparatuur en extra's", "Equipment and extras") : tr("Extra's", "Extras")} ({pricing.equipmentLabels.join(", ")})</span><span className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Reiskosten", "Travel")} ({(distance ?? 0) * 2} km {tr("retour", "round trip")})</span><span className="font-medium text-foreground">{formatEuro(pricing.travelCents)}</span></div>
                   <div className="flex justify-between border-t border-border pt-2"><span className="text-muted-foreground">{tr("Subtotaal excl. btw", "Subtotal excl. VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.netCents)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw", "VAT")}</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw (21%)", "VAT (21%)")}</span><span className="font-medium text-foreground">{formatEuro(pricing.vatCents)}</span></div>
                   <div className="flex justify-between text-base pt-2"><span className="font-bold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</span><span className="font-bold text-red-700 dark:text-red-400">{formatEuro(shownTotal)}</span></div>
+                  <div className="flex justify-between rounded-md bg-muted px-3 py-2 font-semibold text-foreground"><span>{tr("25% nu te voldoen", "25% due now")}</span><span>{formatEuro(depositCents(shownTotal))}</span></div>
+                  <div className="flex justify-between px-3 text-foreground"><span>{tr("Restant, later te voldoen", "Remainder, due later")}</span><span className="font-medium">{formatEuro(shownTotal - depositCents(shownTotal))}</span></div>
                   </>}
                   <p className="text-xs text-muted-foreground">{tr("De professional bevestigt dit bedrag als je aanvraag wordt geaccepteerd. Je betaalt pas daarna.", "The professional confirms this amount when your request is accepted. You only pay after that.")}</p>
                 </div>
