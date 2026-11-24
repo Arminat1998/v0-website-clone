@@ -119,7 +119,7 @@ export function ReplacementSuggestions({
             </Badge>
           );
           return (
-            <ReplacementCard key={item.id} item={item} nl={nl} badge={badge} reasons={reasons} onView={() => show(item)} />
+            <ReplacementCard key={item.id} item={item} nl={nl} badge={badge} onView={() => show(item)} />
           );
         })}
           </div>

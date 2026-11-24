@@ -27,9 +27,11 @@ interface ArtiestCardProps {
   footer?: ReactNode
   /** A badge on the photo, top left. */
   badge?: ReactNode
+  /** Smaller banner, avatar and spacing, e.g. in a side column. Same content and look. */
+  compact?: boolean
 }
 
-export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, footer, badge }: ArtiestCardProps) {
+export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, footer, badge, compact = false }: ArtiestCardProps) {
   const router = useRouter()
   const bookGuard = useBookGuard()
   const { t, language } = useLanguage()
@@ -49,7 +51,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, fo
       className="relative h-full overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer p-0 group bg-card border-border"
       onClick={onClick}
     >
-      <div className="relative h-48 overflow-hidden">
+      <div className={`relative overflow-hidden ${compact ? "h-32" : "h-48"}`}>
         <img
           src={artist.banner || artist.image || `/placeholder.svg?height=200&width=400&query=${artist.category} performance`}
           alt={artist.name}
@@ -81,10 +83,10 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, fo
         )}
       </div>
 
-      <CardContent className="flex flex-1 flex-col p-4">
-        <div className="flex items-start gap-3 mb-3 -mt-16">
+      <CardContent className={`flex flex-1 flex-col ${compact ? "p-3" : "p-4"}`}>
+        <div className={`flex items-start gap-3 ${compact ? "mb-2 -mt-10" : "mb-3 -mt-16"}`}>
           <div className="relative flex-shrink-0">
-            <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-card shadow-lg">
+            <div className={`rounded-full border-4 border-card overflow-hidden bg-card shadow-lg ${compact ? "w-20 h-20" : "w-24 h-24"}`}>
               <img
                 src={artist.avatar || artist.image || `/placeholder.svg?height=96&width=96&query=${artist.name} profile`}
                 alt={artist.name}
@@ -93,7 +95,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, fo
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-2 mt-12">
+          <div className={`flex min-w-0 flex-1 flex-col gap-2 ${compact ? "mt-7" : "mt-12"}`}>
             <div className="flex flex-col gap-1">
               <div className="flex items-start">
                 <h3 className="min-w-0 font-bold text-lg leading-tight text-foreground text-balance">{artist.name}</h3>
@@ -123,7 +125,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, fo
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 mb-4 mt-4">
+        <div className={`flex flex-col ${compact ? "gap-2.5 mb-3 mt-2" : "gap-4 mb-4 mt-4"}`}>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5" aria-hidden="true" />
             <span>

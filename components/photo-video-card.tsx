@@ -26,9 +26,11 @@ interface PhotoVideoCardProps {
   footer?: ReactNode
   /** A badge on the photo, top left. */
   badge?: ReactNode
+  /** Smaller banner, avatar and spacing, e.g. in a side column. Same content and look. */
+  compact?: boolean
 }
 
-export function PhotoVideoCard({ professional, onClick, isVisited = false, distanceKm, footer, badge }: PhotoVideoCardProps) {
+export function PhotoVideoCard({ professional, onClick, isVisited = false, distanceKm, footer, badge, compact = false }: PhotoVideoCardProps) {
   const { t, language } = useLanguage()
   const router = useRouter()
   const bookGuard = useBookGuard()
@@ -47,7 +49,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
       className="relative h-full overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer p-0 group bg-card border-border"
       onClick={onClick}
     >
-      <div className="relative h-48 overflow-hidden">
+      <div className={`relative overflow-hidden ${compact ? "h-32" : "h-48"}`}>
         <img
           src={professional.banner || professional.image || `/placeholder.svg?height=200&width=400&query=${professional.category}`}
           alt={professional.name}
@@ -79,10 +81,10 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
         )}
       </div>
 
-      <CardContent className="flex flex-1 flex-col p-4">
-        <div className="flex items-start gap-3 mb-3 -mt-16">
+      <CardContent className={`flex flex-1 flex-col ${compact ? "p-3" : "p-4"}`}>
+        <div className={`flex items-start gap-3 ${compact ? "mb-2 -mt-10" : "mb-3 -mt-16"}`}>
           <div className="relative flex-shrink-0">
-            <div className="w-24 h-24 rounded-full border-4 border-card overflow-hidden bg-card shadow-lg">
+            <div className={`rounded-full border-4 border-card overflow-hidden bg-card shadow-lg ${compact ? "w-20 h-20" : "w-24 h-24"}`}>
               <img
                 src={professional.avatar || professional.image || `/placeholder.svg?height=96&width=96&query=${professional.name}`}
                 alt={professional.name}
@@ -91,7 +93,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 mt-12">
+          <div className={`min-w-0 flex-1 ${compact ? "mt-7" : "mt-12"}`}>
             <div className="mb-1 flex items-start">
               <h3 className="min-w-0 font-bold text-lg leading-tight text-foreground">{professional.name}</h3>
               <CardRating professional={professional} />
@@ -106,7 +108,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 mb-4 mt-4">
+        <div className={`flex flex-col ${compact ? "gap-2.5 mb-3 mt-2" : "gap-4 mb-4 mt-4"}`}>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="w-3.5 h-3.5" aria-hidden />
             <span>
