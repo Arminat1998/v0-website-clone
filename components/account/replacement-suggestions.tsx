@@ -52,21 +52,21 @@ export function ReplacementSuggestions({
   };
   const { data, isLoading, error } = useSWR(["replacements", bookingId], () => getReplacementSuggestions(bookingId));
   return (
-    <Card>
-      <CardHeader>
+    <Card className="gap-5">
+      <CardHeader className="px-4 sm:px-6">
         <CardTitle>
-          <h2 className="flex items-center gap-2">
-            <Sparkles className="size-5 text-brand" />
-            {nl ? "Vind een vergelijkbare vervangende professional" : "Find a similar replacement"}
+          <h2 className="flex items-center gap-2 text-lg leading-snug">
+            <Sparkles className="size-5 shrink-0 text-brand" aria-hidden="true" />
+            {nl ? "Vergelijkbare professionals" : "Similar professionals"}
           </h2>
         </CardTitle>
         <CardDescription>
           {nl
-            ? `De beste alternatieven voor ${professionalName}. Je ingevulde wensen worden meteen overgenomen, je hoeft niets opnieuw in te vullen.`
-            : `The closest alternatives to ${professionalName}. Your wishes are carried over, so there is nothing to fill in again.`}
+            ? `Lijken het meest op ${professionalName}. Je wensen gaan mee, je hoeft niets opnieuw in te vullen.`
+            : `Closest to ${professionalName}. Your wishes come along, so there is nothing to fill in again.`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-4 px-4 sm:px-6">
         {isLoading && (
           <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />

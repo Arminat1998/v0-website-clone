@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock3, MapPin, Star, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarX2, Clock3, MapPin, Star, XCircle } from "lucide-react";
 import { MessageButton } from "@/components/chat/message-button";
 import { useLanguage } from "@/contexts/language-context";
 import {
@@ -126,13 +126,41 @@ export function AccountBookingDetail({
       </div>
     );
   }
+  // Only what the customer filled in is listed; the empty fields are named once on a single line.
+  const eventFields = (() => {
+    const location = [
+      [b.street, b.houseNumber, b.houseNumberExt].filter(Boolean).join(" "),
+      [b.postalCode, b.city].filter(Boolean).join(" "),
+      b.country,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const short: [string, string | number | null][] = [
+      [nl ? "Locatie" : "Location", location],
+      [nl ? "Type evenement" : "Event type", b.eventTypes.map((type) => eventTypeLabel(canonicalEventType(type), nl)).join(", ")],
+      [nl ? "Aantal gasten" : "Guests", b.capacity],
+      ["Dresscode", b.dressCode],
+      [nl ? "Muziekgenres" : "Music genres", b.musicGenres.map((genre) => genreLabel(canonicalGenre(genre), nl)).join(", ")],
+      [nl ? "Apparatuur" : "Equipment", b.equipment.map(equipmentLabel).join(", ")],
+    ];
+    const longer: [string, string | number | null][] = [
+      [nl ? "Omschrijving" : "Description", b.description],
+      [nl ? "Speciale wensen" : "Special requests", b.specialRequests],
+    ];
+    const isFilled = ([, value]: [string, string | number | null]) => Boolean(value);
+    return {
+      filled: short.filter(isFilled),
+      long: longer.filter(isFilled),
+      missing: [...short, ...longer].filter((field) => !isFilled(field)).map(([label]) => label.toLowerCase()),
+    };
+  })();
   const status = displayStatus(b);
   const closed = status === "rejected" || status === "cancelled" || status === "expired";
   const hasMusic =
     b.openingDanceLink || b.openingDanceFileName || b.lastSongLink || b.lastSongFileName;
   return (
     <div className="flex flex-col gap-6">
-      <Button variant="ghost" asChild className="self-start">
+      <Button variant="ghost" asChild className="-ml-3 min-h-11 self-start">
         <Link href="/account/boekingen">
           <ArrowLeft />
           {nl ? "Alle boekingen" : "All bookings"}
@@ -140,9 +168,47 @@ export function AccountBookingDetail({
       </Button>
       <AccountHeading
         title={b.eventName}
-        description={`${nl ? "Boeking" : "Booking"} #${b.id} · ${b.professionalName}`}
-        action={<BookingBadge status={status} />}
+        description={`${nl ? "Boeking" : "Booking"} #${b.id} · ${b.professionalName} · ${nl ? "aangevraagd op" : "requested on"} ${new Date(b.createdAt).toLocaleDateString(nl ? "nl-NL" : "en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: BOOKING_TIME_ZONE })}`}
+        // On a phone the banner below already says the booking is closed, so the badge would only repeat it
+        action={<span className={closed ? "hidden sm:block" : undefined}><BookingBadge status={status} /></span>}
       />
+      {closed && (
+        <section
+          aria-labelledby="closed-title"
+          className="flex gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:p-5"
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background text-brand" aria-hidden="true">
+            <CalendarX2 className="size-5" />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 id="closed-title" className="font-semibold leading-snug text-foreground">
+              {status === "expired"
+                ? nl ? "De datum van deze aanvraag is verstreken" : "The date of this request has passed"
+                : status === "rejected"
+                  ? nl ? "Deze aanvraag is afgewezen" : "This request was declined"
+                  : nl ? "Deze boeking gaat niet door" : "This booking will not take place"}
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {b.paymentStatus === "unpaid" && (nl ? "Je hoeft niets te betalen. " : "You do not have to pay anything. ")}
+              {nl ? "Hieronder vind je vergelijkbare professionals; je wensen gaan mee." : "Below you find similar professionals; your wishes come along."}
+            </p>
+            <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-foreground">
+              <span className="flex items-center gap-1.5">
+                <CalendarDays className="size-4 text-muted-foreground" aria-hidden="true" />
+                {eventDate(b.eventDate, nl)}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock3 className="size-4 text-muted-foreground" aria-hidden="true" />
+                {b.startTime} – {b.endTime}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <MapPin className="size-4 text-muted-foreground" aria-hidden="true" />
+                {b.city}
+              </span>
+            </p>
+          </div>
+        </section>
+      )}
       {(b.responseMessage || b.rejectionReason) && (
         <Alert>
           <AlertTitle>
@@ -157,9 +223,11 @@ export function AccountBookingDetail({
       )}
       <div className="grid items-start gap-6 lg:grid-cols-[1.6fr_1fr] lg:grid-rows-[auto_1fr]">
         {/* On mobile the payment comes first (what the customer has to act on), then the replacement card when the booking is closed */}
-        <div className="min-w-0 lg:col-start-2 lg:row-start-1">
-          <BookingPayment booking={b} invoice={invoice} bank={bank} />
-        </div>
+        {(!closed || b.paymentStatus !== "unpaid") && (
+          <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+            <BookingPayment booking={b} invoice={invoice} bank={bank} />
+          </div>
+        )}
         <div className={`flex min-w-0 flex-col gap-6 lg:order-none lg:col-start-1 lg:row-span-2 lg:row-start-1${closed ? " order-3" : ""}`}>
           <Card>
             <CardHeader>
@@ -174,6 +242,7 @@ export function AccountBookingDetail({
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-6">
+                {!closed && (<>
                 <div className="flex flex-wrap gap-5 text-sm">
                   <span className="flex items-center gap-2">
                     <CalendarDays className="size-4 text-brand" />
@@ -192,35 +261,11 @@ export function AccountBookingDetail({
                   </span>
                 </div>
                 <Separator />
-                <dl className="grid gap-5 sm:grid-cols-2">
-                  {detail(
-                    nl ? "Locatie" : "Location",
-                    [
-                      [b.street, b.houseNumber, b.houseNumberExt]
-                        .filter(Boolean)
-                        .join(" "),
-                      [b.postalCode, b.city].filter(Boolean).join(" "),
-                      b.country,
-                    ]
-                      .filter(Boolean)
-                      .join(", "),
-                  )}
-                  {detail(
-                    nl ? "Type evenement" : "Event type",
-                    b.eventTypes
-                      .map((type) => eventTypeLabel(canonicalEventType(type), nl))
-                      .join(", "),
-                  )}
-                  {detail(nl ? "Aantal gasten" : "Guests", b.capacity)}
-                  {detail("Dresscode", b.dressCode)}
-                  {detail(
-                    nl ? "Muziekgenres" : "Music genres",
-                    b.musicGenres.map((genre) => genreLabel(canonicalGenre(genre), nl)).join(", "),
-                  )}
-                  {detail(
-                    nl ? "Apparatuur" : "Equipment",
-                    b.equipment.map(equipmentLabel).join(", "),
-                  )}
+                </>)}
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
+                  {eventFields.filled.map(([label, value]) => (
+                    <Fragment key={label}>{detail(label, value)}</Fragment>
+                  ))}
                 </dl>
                 {hasMusic && (
                   <dl className="grid gap-5 sm:grid-cols-2">
@@ -238,13 +283,19 @@ export function AccountBookingDetail({
                     )}
                   </dl>
                 )}
-                <dl className="flex flex-col gap-5">
-                  {detail(nl ? "Omschrijving" : "Description", b.description)}
-                  {detail(
-                    nl ? "Speciale wensen" : "Special requests",
-                    b.specialRequests,
-                  )}
-                </dl>
+                {eventFields.long.length > 0 && (
+                  <dl className="flex flex-col gap-5">
+                    {eventFields.long.map(([label, value]) => (
+                      <Fragment key={label}>{detail(label, value)}</Fragment>
+                    ))}
+                  </dl>
+                )}
+                {eventFields.missing.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{nl ? "Niet ingevuld:" : "Not provided:"}</span>{" "}
+                    {eventFields.missing.join(", ")}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -281,7 +332,8 @@ export function AccountBookingDetail({
             </CardContent>
           </Card>
         </div>
-        <div className={`flex min-w-0 flex-col gap-6 lg:order-none lg:col-start-2 lg:row-start-2${closed ? " order-2" : ""}`}>
+        {/* Without a payment card (closed and nothing paid) this column starts at the top on desktop */}
+        <div className={`flex min-w-0 flex-col gap-6 lg:order-none lg:col-start-2 ${closed && b.paymentStatus === "unpaid" ? "lg:row-start-1" : "lg:row-start-2"}${closed ? " order-2" : ""}`}>
           {closed && (
             <ReplacementSuggestions
               bookingId={b.id}
@@ -296,15 +348,11 @@ export function AccountBookingDetail({
               <h2>{b.professionalName}</h2>
             </CardTitle>
               <CardDescription>
-                {status === "expired"
+                {closed
                   ? nl
-                    ? "De datum van deze aanvraag is verstreken. Bekijk welke andere professionals bij je evenement passen."
-                    : "The date of this request has passed. See which other professionals suit your event."
-                  : closed
-                    ? nl
-                      ? "Deze boeking gaat niet door. Bekijk welke andere professionals bij je evenement passen."
-                      : "This booking will not take place. See which other professionals suit your event."
-                    : nl
+                    ? "Toch liever deze professional? Vraag een andere datum aan of stuur een bericht."
+                    : "Still prefer this professional? Request another date or send a message."
+                  : nl
                       ? "Stel je vragen of stem details af via de chat."
                       : "Ask questions or align details via chat."}
               </CardDescription>
@@ -321,7 +369,7 @@ export function AccountBookingDetail({
                 </Button>
               )}
               {(status === "expired" || status === "cancelled" || status === "rejected") && (
-                <Button variant="outline" asChild className="min-h-11 h-auto whitespace-normal py-2">
+                <Button variant="outline" asChild className="min-h-11 h-auto whitespace-normal py-2 text-center">
                   <Link
                     href={`/booking?${
                       b.professionalType === "photographer"
@@ -337,13 +385,6 @@ export function AccountBookingDetail({
                 <p className="text-sm text-muted-foreground">
                   {nl ? "De professional reageert meestal binnen 48 uur." : "The professional usually replies within 48 hours."}
                 </p>
-              )}
-              {closed && (
-                <Button variant="brand" asChild className="min-h-11">
-                  <Link href={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}>
-                    {nl ? "Andere professionals bekijken" : "See other professionals"}
-                  </Link>
-                </Button>
               )}
               <MessageButton
                 // While the customer still has to pay, the payment card holds the main action
@@ -371,12 +412,6 @@ export function AccountBookingDetail({
               />
             </CardContent>
           </Card>
-          <p className="text-sm text-muted-foreground">
-            {nl ? "Aangevraagd op" : "Requested on"}{" "}
-            {new Date(b.createdAt).toLocaleDateString(nl ? "nl-NL" : "en-GB", {
-              timeZone: BOOKING_TIME_ZONE,
-            })}
-          </p>
         </div>
       </div>
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
