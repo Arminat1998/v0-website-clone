@@ -620,7 +620,7 @@ export const translations: Record<Language, Translations> = {
     selectedDateLabel: "Gekozen datum:",
     eventLocationLabel: "Locatie van het evenement",
     enterCityName: "Voer stadsnaam in (bijv. Utrecht)",
-    checkDistance: "Controleer afstand",
+    checkDistance: "Afstand berekenen",
     calculating: "Berekenen...",
     distanceFromTo: "Afstand van",
     estimatedTravelCost: "Geschatte reiskosten:",

@@ -187,6 +187,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
   const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>(initialProfile?.socials ?? [])
   const [currentSocialMedia, setCurrentSocialMedia] = useState({ platform: "", url: "" })
+  const [socialError, setSocialError] = useState("")
 
   const [mounted, setMounted] = useState(false)
 
@@ -585,9 +586,10 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       }
 
       if (!isValid) {
-        alert(errorMessage)
+        setSocialError(errorMessage)
         return
       }
+      setSocialError("")
       // </CHANGE>
 
       const newLink: SocialMediaLink = {
@@ -598,7 +600,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
       setSocialMediaLinks([...socialMediaLinks, newLink])
       setCurrentSocialMedia({ platform: "", url: "" })
     } else {
-      alert(
+      setSocialError(
         L
           ? "Selecteer een platform en voer een URL in voordat je toevoegt"
           : "Please select a platform and enter a URL before adding",
@@ -1912,7 +1914,7 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     id="social-platform"
                     nl={L}
                     value={currentSocialMedia.platform}
-                    onChange={(platform) => setCurrentSocialMedia({ ...currentSocialMedia, platform })}
+                    onChange={(platform) => { setSocialError(""); setCurrentSocialMedia({ ...currentSocialMedia, platform }) }}
                     placeholder={L ? "Selecteer platform" : "Select platform"}
                     searchPlaceholder={L ? "Zoek een platform..." : "Search a platform..."}
                     groups={[{ options: SOCIAL_PLATFORMS }]}
@@ -1924,8 +1926,13 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     placeholder={L ? "Plak je link hier..." : "Paste your link here..."}
                     className={inputClassName}
                     value={currentSocialMedia.url}
-                    onChange={(e) => setCurrentSocialMedia({ ...currentSocialMedia, url: e.target.value })}
+                    aria-invalid={socialError ? true : undefined}
+                    aria-describedby={socialError ? "social-error" : undefined}
+                    onChange={(e) => { setSocialError(""); setCurrentSocialMedia({ ...currentSocialMedia, url: e.target.value }) }}
                   />
+                  {socialError && (
+                    <p id="social-error" role="alert" className="text-sm text-red-700 dark:text-red-400">{socialError}</p>
+                  )}
                 </div>
 
                 <Button

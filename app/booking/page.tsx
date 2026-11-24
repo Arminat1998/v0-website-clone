@@ -92,6 +92,9 @@ export default function BookingPage() {
   
   const [currentStep, setCurrentStep] = useState(1)
   const [artistDetailsOpen, setArtistDetailsOpen] = useState(false)
+  const [extrasOpen, setExtrasOpen] = useState(false)
+  const lastCheckedPlace = useRef("")
+  const distanceRequest = useRef(0)
   const [priceOpen, setPriceOpen] = useState(false)
   // After a step change the heading of the new step comes into view and gets the focus.
   const stepHeading = useRef<HTMLHeadingElement>(null)
@@ -725,12 +728,17 @@ export default function BookingPage() {
 
   // The server calculates the distance, the same way it does when the booking is sent.
   const calculateDistance = async () => {
-    if (!eventLocation.trim()) return
+    const place = eventLocation.trim()
+    if (!place) return
+    lastCheckedPlace.current = place
+    const requestId = ++distanceRequest.current
     setCalculating(true)
     setDistance(null)
     setDistanceError(null)
     try {
-      const result = await calculateBookingDistance(String(professional.id), eventLocation.trim())
+      const result = await calculateBookingDistance(String(professional.id), place)
+      // A newer search has started: this answer is outdated.
+      if (requestId !== distanceRequest.current) return
       if (result.ok) setDistance(result.distanceKm)
       else
         setDistanceError(
@@ -746,9 +754,25 @@ export default function BookingPage() {
       console.error("Distance calculation failed:", error)
       setDistanceError(t.distanceCalculationError)
     } finally {
-      setCalculating(false)
+      if (requestId === distanceRequest.current) setCalculating(false)
     }
   }
+
+  const extrasFilled = Boolean(
+    specialRequests.trim() || playlistLink.trim() || dressCode.trim() ||
+    (artist && (openingDanceFile || lastSongFile || openingDanceLink.trim() || lastSongLink.trim())),
+  )
+  // A broken link in the collapsed part must never be hidden.
+  const extrasInvalid = Boolean(artist) && !(isWebLink(playlistLink) && (openingDanceOption === "upload" || isWebLink(openingDanceLink)) && (lastSongOption === "upload" || isWebLink(lastSongLink)))
+
+  // The distance is calculated by itself shortly after typing stops (or on leaving the field).
+  useEffect(() => {
+    const place = eventLocation.trim()
+    if (place.length < 3 || distance !== null || calculating || place === lastCheckedPlace.current) return
+    const timer = setTimeout(() => { void calculateDistance() }, 900)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventLocation, distance, calculating])
 
   const formatSelectedDate = () => {
     return eventDate ? formatEventDate(eventDate, dateLocale) : tr("Niet gekozen", "Not selected")
@@ -1082,11 +1106,16 @@ export default function BookingPage() {
                     onChange={(e) => {
                       setEventLocation(placeChars(e.target.value))
                       // The distance belongs to the previous place.
+                      distanceRequest.current++
+                      setCalculating(false)
                       setDistance(null)
                       setDistanceError(null)
                     }}
+                    onBlur={() => {
+                      if (eventLocation.trim().length >= 3 && distance === null && !calculating && eventLocation.trim() !== lastCheckedPlace.current) calculateDistance()
+                    }}
                     onKeyDown={(e) => {
-                      // Enter does the same as the "Check distance" button.
+                      // Enter calculates right away.
                       if (e.key !== "Enter") return
                       e.preventDefault()
                       if (eventLocation.trim() && !calculating) calculateDistance()
@@ -1107,6 +1136,9 @@ export default function BookingPage() {
                   </Button>
                 </div>
 
+                <p className="mt-2 text-xs text-muted-foreground" aria-live="polite">
+                  {calculating ? t.calculating : tr("De afstand wordt automatisch berekend zodra je klaar bent met typen.", "The distance is calculated automatically when you stop typing.")}
+                </p>
                 {distanceError && (
                   <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">{distanceError}</p>
                 )}
@@ -1305,6 +1337,22 @@ export default function BookingPage() {
                   <p className="text-xs text-muted-foreground mt-1">{description.length}/5000 {tr("tekens", "characters")}</p>
                 </div>
                 
+                {/* Optional extras, collapsed so the required part stays short */}
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setExtrasOpen((open) => !open)}
+                    aria-expanded={extrasOpen || extrasInvalid}
+                    aria-controls="booking-extras"
+                    className="flex min-h-11 w-full items-center justify-between rounded-lg border border-border px-3 text-sm font-medium text-foreground"
+                  >
+                    <span>
+                      {tr("Extra wensen & voorkeuren (optioneel)", "Extra requests & preferences (optional)")}
+                      {extrasFilled && <span className="ml-2 text-xs font-normal text-muted-foreground">{tr("ingevuld", "filled in")}</span>}
+                    </span>
+                    <ChevronDown className={`size-4 transition-transform ${extrasOpen || extrasInvalid ? "rotate-180" : ""}`} aria-hidden />
+                  </button>
+                  <div id="booking-extras" className={`${extrasOpen || extrasInvalid ? "block" : "hidden"} mt-4`}>
                 {/* Special Requests */}
                 <div className="mb-4">
                   <label htmlFor="booking-requests" className="block text-sm font-medium text-foreground mb-2">{tr("Speciale wensen", "Special Requests")}</label>
@@ -1449,6 +1497,9 @@ export default function BookingPage() {
                 
                 </>
                 )}
+
+                  </div>
+                </div>
 
                 {/* Event Venue Address */}
                 <div className="border-t border-border pt-4">
