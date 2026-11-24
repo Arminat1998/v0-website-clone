@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Music, Plus, X, Camera, Speaker, Mic, Lightbulb, Piano, Guitar, ChevronDown, Check, Moon, Sun, Lock } from "lucide-react"
 import { DualRangeSlider } from "@/components/dual-range-slider"
 import { LanguageSwitcher } from "@/components/language-switcher"
@@ -182,7 +181,8 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
 
   const [selectedGenres, setSelectedGenres] = useState<string[]>(initialProfile?.genres ?? [])
   // Allround (DJs only) is kept next to the main genres and does not replace them.
-  const allround = !photo && isDj(artistType) && selectedGenres.includes(ALLROUND)
+  const showAllround = !photo && isDj(artistType)
+  const allround = showAllround && selectedGenres.includes(ALLROUND)
   const [selectedEventTypes, setSelectedEventTypes] = useState<string[]>((initialProfile?.eventTypes ?? []).map(canonicalEventType))
 
   const [socialMediaLinks, setSocialMediaLinks] = useState<SocialMediaLink[]>(initialProfile?.socials ?? [])
@@ -1634,8 +1634,11 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                     labelledBy="genres-label"
                     multiple
                     nl={L}
-                    value={mainGenres(selectedGenres)}
-                    onChange={(next) => setSelectedGenres(allround ? [...next, ALLROUND] : next)}
+                    value={showAllround ? selectedGenres : mainGenres(selectedGenres)}
+                    onChange={(next) => {
+                      if (showAllround && next.includes(ALLROUND)) setGenresError("")
+                      setSelectedGenres(showAllround ? next : next.filter((value) => value !== ALLROUND))
+                    }}
                     invalid={!!genresError && mainGenres(selectedGenres).length === 0 && !allround}
                     placeholder={
                       photo ? (L ? "Selecteer specialisaties" : "Select specialisations") : L ? "Selecteer genres" : "Select genres"
@@ -1644,33 +1647,21 @@ export function ProfessionalProfileForm({ mode = "register", initialProfile = nu
                       photo ? (L ? "Zoek een specialisatie..." : "Search a specialisation...") : L ? "Zoek een genre..." : "Search a genre..."
                     }
                     labelFor={(value) => genreLabel(value, L)}
-                    groups={(photo ? PHOTO_SPECIALTY_GROUPS : GENRE_GROUPS).map((group) => ({
-                      label: L ? group.nl : group.en,
-                      options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
-                    }))}
+                    groups={[
+                      // Allround is the first choice in the list for DJs.
+                      ...(showAllround ? [{ label: L ? "Algemeen" : "General", options: [{ value: ALLROUND, label: "Allround" }] }] : []),
+                      ...(photo ? PHOTO_SPECIALTY_GROUPS : GENRE_GROUPS).map((group) => ({
+                        label: L ? group.nl : group.en,
+                        options: group.options.map((option) => ({ value: option.value, label: L ? option.nl : option.en })),
+                      })),
+                    ]}
                   />
-                  {!photo && isDj(artistType) && (
-                    <div className="flex items-start gap-3 pt-1">
-                      <Checkbox
-                        id="allround"
-                        checked={allround}
-                        onCheckedChange={(checked) =>
-                          {
-                          if (checked === true) setGenresError("")
-                          setSelectedGenres(checked === true ? [...mainGenres(selectedGenres), ALLROUND] : mainGenres(selectedGenres))
-                        }}
-                      />
-                      <div className="space-y-0.5">
-                        <Label htmlFor="allround" className="text-sm font-medium text-[var(--rf-text)]">
-                          Allround
-                        </Label>
-                        <p className="text-sm text-[var(--rf-muted)]">
-                          {L
-                            ? "Klanten mogen bij het boeken uit alle genres kiezen. Je hoofdgenres hierboven blijven staan."
-                            : "Customers may choose from all genres when booking. Your main genres above stay on your profile."}
-                        </p>
-                      </div>
-                    </div>
+                  {allround && (
+                    <p className="text-sm text-[var(--rf-muted)]">
+                      {L
+                        ? "Allround: klanten mogen bij het boeken uit alle genres kiezen. Je hoofdgenres blijven op je profiel staan."
+                        : "Allround: customers may choose from all genres when booking. Your main genres stay on your profile."}
+                    </p>
                   )}
                 </div>
               )}
