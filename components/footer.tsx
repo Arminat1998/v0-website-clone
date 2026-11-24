@@ -43,6 +43,7 @@ export function Footer() {
               <FooterLink href="/artiesten">{nl ? "Artiesten" : "Artists"}</FooterLink>
               <FooterLink href="/photo-video">{nl ? "Foto & video" : "Photo & video"}</FooterLink>
               <FooterLink href="/#hoe-het-werkt">{nl ? "Hoe het werkt" : "How it works"}</FooterLink>
+              <FooterLink href="/design-system">Design System</FooterLink>
             </ul>
           </nav>
 
