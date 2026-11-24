@@ -17,16 +17,22 @@ export function ReplacementCard({
   nl,
   badge,
   onView,
+  withWishes = true,
 }: {
-  item: ReplacementSuggestion;
+  item: Pick<ReplacementSuggestion, "type" | "profile" | "href">;
   nl: boolean;
   badge: ReactNode;
   onView: () => void;
+  withWishes?: boolean;
 }) {
   const footer = (
     <div className="flex gap-2">
       <Button variant="brand" asChild className="min-h-11 flex-1" onClick={(event) => event.stopPropagation()}>
-        <Link href={item.href}>{nl ? "Boek met je wensen" : "Book with your wishes"}</Link>
+        <Link href={item.href}>
+          {withWishes
+            ? (nl ? "Boek met je wensen" : "Book with your wishes")
+            : (nl ? "Boek nu" : "Book now")}
+        </Link>
       </Button>
       <Button
         type="button"

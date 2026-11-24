@@ -29,73 +29,43 @@ import {
   MessageCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArtiestCard } from "@/components/artiest-card"
 import { PhotoVideoCard } from "@/components/photo-video-card"
 import { ReplacementCard } from "@/components/account/replacement-card"
 import { ComboSelect, comboGroups } from "@/components/combo-select"
 import { GENRE_GROUPS, ALLROUND } from "@/lib/profile-options"
-import type { Artist, Photographer } from "@/lib/smart-search"
-import type { ReplacementSuggestion } from "@/lib/bookings/replacement"
+import { useLiveProfessionals } from "@/hooks/use-live-professionals"
+import { getArtistPath } from "@/lib/artist-slug"
+import { getViewedArtistIds, markArtistViewed } from "@/lib/artiest-list-state"
+import { isDemoProfessional } from "@/lib/demo-professionals"
+import type { Artist } from "@/lib/smart-search"
 
 const noop = () => {}
 
-const sampleArtist: Artist = {
-  id: 901,
-  name: "DJ Marco",
-  specialty: "DJ",
-  location: "Amsterdam",
-  rating: 4.8,
-  reviews: 32,
-  price: "€150",
-  equipmentPrice: "€250",
-  available: true,
-  musicStyles: ["house", "techno", "trance"],
-  eventTypes: ["Wedding", "Corporate", "Birthday"],
-  category: "dj",
-  artistTypes: ["dj"],
-  minHours: 1,
-  maxHours: 8,
-  kind: "artist",
-}
-
-const samplePhotographer: Photographer = {
-  id: 903,
-  name: "Studio Light",
-  specialty: "Photographer",
-  location: "Rotterdam",
-  rating: 4.9,
-  reviews: 18,
-  price: "€200",
-  available: true,
-  eventTypes: ["Wedding", "Corporate"],
-  serviceTypes: ["photography"],
-  category: "photographer",
-  minHours: 1,
-  maxHours: 8,
-}
-
-const sampleReplacement: ReplacementSuggestion = {
-  id: "ds-sample",
-  type: "artist",
-  name: sampleArtist.name,
-  specialty: "DJ",
-  location: sampleArtist.location,
-  hourlyRateCents: 15000,
-  rating: 4.8,
-  reviews: 32,
-  image: null,
-  match: 86,
-  reasons: ["type", "genres", "city"],
-  sharedGenres: ["house", "techno"],
-  rateDiffPercent: -10,
-  href: "#",
-  profileHref: null,
-  profile: sampleArtist,
+function hasProfilePhotos(profile: { id: number; banner?: string; avatar?: string; image?: string }) {
+  const hasPhoto = (src?: string) => Boolean(src?.trim() && !src.trim().startsWith("/placeholder"))
+  return !isDemoProfessional(profile.id)
+    && hasPhoto(profile.banner || profile.image)
+    && hasPhoto(profile.avatar || profile.image)
 }
 
 export default function DesignSystemContent() {
   const { language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
+  const router = useRouter()
+  const artists = useLiveProfessionals("artist")
+  const photographers = useLiveProfessionals("photo-video")
+  const artist = artists.professionals.find(hasProfilePhotos)
+  const allround = artists.professionals.find((profile) => profile.allround && hasProfilePhotos(profile))
+  const photographer = photographers.professionals.find((profile) => profile.href && hasProfilePhotos(profile))
+  const photographerHref = photographer?.href
+  const [visitedArtistIds, setVisitedArtistIds] = useState<number[]>([])
+  const openArtist = (profile: Artist) => {
+    markArtistViewed(profile.id)
+    setVisitedArtistIds(getViewedArtistIds())
+    router.push(getArtistPath(profile))
+  }
   const [hydrated, setHydrated] = useState(false)
   const [genres, setGenres] = useState<string[]>([ALLROUND, "house"])
   const [mainGenre, setMainGenre] = useState("")
@@ -106,6 +76,7 @@ export default function DesignSystemContent() {
 
   useEffect(() => {
     setHydrated(true)
+    setVisitedArtistIds(getViewedArtistIds())
   }, [])
 
   const colorSections = [
@@ -812,54 +783,56 @@ export default function DesignSystemContent() {
           </Card>
         </section>
 
-        {/* Cards: the real production components with sample data */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-foreground mb-2">
-            {language === "nl" ? "Kaart Voorbeelden" : "Card Examples"}
+            {language === "nl" ? "Kaarten met openbare profielen" : "Cards with public profiles"}
           </h2>
-          <p className="text-muted-foreground mb-8">
-            {language === "nl"
-              ? "De echte kaartcomponenten met voorbeelddata, zoals ze verschijnen in de overzichten en in de zijbalk."
-              : "The real card components with sample data, as they appear in the overviews and the side column."}
-          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">ArtiestCard</h3>
-              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<ArtiestCard artist onClick />"}</code>
-              <ArtiestCard artist={sampleArtist} onClick={noop} />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">ArtiestCard compact</h3>
-              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<ArtiestCard compact />"}</code>
-              <ArtiestCard artist={sampleArtist} onClick={noop} compact />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">
-                {language === "nl" ? "Allround + bezocht" : "Allround + visited"}
-              </h3>
-              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"artist.allround · isVisited"}</code>
-              <ArtiestCard artist={{ ...sampleArtist, id: 902, name: "DJ Nova", allround: true, equipmentPrice: undefined }} onClick={noop} isVisited />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">PhotoVideoCard</h3>
-              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<PhotoVideoCard professional />"}</code>
-              <PhotoVideoCard professional={samplePhotographer} onClick={noop} />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-1">ReplacementCard</h3>
-              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<ReplacementCard item nl badge onView />"}</code>
-              <ReplacementCard
-                item={sampleReplacement}
-                nl={language === "nl"}
-                badge={
-                  <Badge variant="secondary" className="shadow-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-                    {language === "nl" ? "Sterke match" : "Strong match"}
-                  </Badge>
-                }
-                onView={noop}
-              />
-            </div>
+            {[
+              { title: "ArtiestCard", source: artists, card: artist && (
+                <ArtiestCard artist={artist} onClick={() => openArtist(artist)} />
+              ) },
+              { title: "ArtiestCard compact", source: artists, card: artist && (
+                <ArtiestCard artist={artist} onClick={() => openArtist(artist)} compact />
+              ) },
+              { title: "ArtiestCard Allround", source: artists, card: allround && (
+                <ArtiestCard
+                  artist={allround}
+                  onClick={() => openArtist(allround)}
+                  isVisited={visitedArtistIds.includes(allround.id)}
+                />
+              ) },
+              { title: "PhotoVideoCard", source: photographers, card: photographer && photographerHref && (
+                <PhotoVideoCard professional={photographer} onClick={() => router.push(photographerHref)} />
+              ) },
+              { title: "ReplacementCard", source: artists, card: artist && (
+                <ReplacementCard
+                  item={{
+                    type: "artist",
+                    profile: artist,
+                    href: `/booking?artistId=${encodeURIComponent(String(artist.id))}&type=artist`,
+                  }}
+                  nl={language === "nl"}
+                  badge={null}
+                  onView={() => openArtist(artist)}
+                  withWishes={false}
+                />
+              ) },
+            ].map(({ title, source, card }) => (
+              <div key={title}>
+                <h3 className="text-lg font-semibold text-foreground mb-3">{title}</h3>
+                {card || (
+                  <p className="text-sm text-muted-foreground">
+                    {source.isLoading
+                      ? (language === "nl" ? "Profiel laden…" : "Loading profile…")
+                      : source.failed
+                        ? (language === "nl" ? "Profielen konden niet worden geladen." : "Could not load profiles.")
+                        : (language === "nl" ? "Geen passend openbaar profiel met foto’s beschikbaar." : "No matching public profile with photos available.")}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         </section>
 
