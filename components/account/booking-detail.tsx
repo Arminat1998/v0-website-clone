@@ -31,6 +31,7 @@ import { Separator } from "@/components/ui/separator";
 import { AccountHeading, BookingBadge, eventDate } from "./account-common";
 import { BookingPayment } from "./booking-payment";
 import { FavoriteButton } from "./favorite-button";
+import { ReplacementSuggestions } from "./replacement-suggestions";
 import { BookingAudio } from "@/components/booking/booking-audio";
 import { audioDisplayName, hasAudioFile, type AudioKind } from "@/lib/bookings/audio";
 import { equipmentLabel } from "@/lib/bookings/pricing";
@@ -278,6 +279,13 @@ export function AccountBookingDetail({
           </Card>
         </div>
         <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-start-2">
+          {closed && (
+            <ReplacementSuggestions
+              bookingId={b.id}
+              professionalName={b.professionalName}
+              browseHref={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}
+            />
+          )}
           <Card>
             <CardHeader>
               <CardTitle>

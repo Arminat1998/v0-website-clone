@@ -26,8 +26,8 @@ import { authClient } from "@/lib/auth-client"
 import { digitsOnly, lettersOnly, phoneChars, postalCodeChars } from "@/lib/input-filters"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
 import { eventLabel, styleLabel, tagLabels } from "@/lib/list-filters"
-import { EVENT_TYPE_GROUPS, GENRE_GROUPS, bookableGenreGroups, genreLabel, isDj } from "@/lib/profile-options"
-import { getCustomerProfile } from "@/app/actions/customer"
+import { EVENT_TYPE_GROUPS, GENRE_GROUPS, bookableGenreGroups, canonicalEventType, canonicalGenre, genreLabel, isDj } from "@/lib/profile-options"
+import { getBookingTemplate, getCustomerProfile } from "@/app/actions/customer"
 import { PACKAGE_OPTION_ID, formatEuro, hoursBetween, hoursProblem, priceBooking, travelCents } from "@/lib/bookings/pricing"
 
 const toIsoDate = (year: number, month: number, day: number) =>
@@ -81,6 +81,9 @@ export default function BookingPage() {
   const professionalId = searchParams.get("professionalId")
   const type = searchParams.get("type")
   const initialDate = searchParams.get("date")
+  // A replacement for a rejected or cancelled request: its wishes fill in the form.
+  const fromBookingParam = Number(searchParams.get("fromBookingId"))
+  const fromBookingId = Number.isSafeInteger(fromBookingParam) && fromBookingParam > 0 ? fromBookingParam : null
 
   const steps = [
     { number: 1, label: t.dateAndLocation },
@@ -272,6 +275,57 @@ export default function BookingPage() {
     },
     currentStep === 5,
   )
+
+  // The wishes of the earlier request replace the draft, once. Personal details come from the account, files are not copied.
+  const { data: template } = useSWR(
+    fromBookingId && sessionData?.user.role === "user" ? ["booking-template", fromBookingId] : null,
+    () => getBookingTemplate(fromBookingId as number).catch(() => null),
+    { revalidateOnFocus: false },
+  )
+  const templateApplied = useRef(false)
+  const [templateFrom, setTemplateFrom] = useState<string | null>(null)
+  useEffect(() => {
+    if (!template || templateApplied.current) return
+    if ((template.professionalType === "photographer") !== Boolean(professionalId)) return
+    templateApplied.current = true
+    if (template.eventDate && !initialDate) {
+      setEventDate(template.eventDate)
+      setCurrentYear(Number(template.eventDate.slice(0, 4)))
+      setCurrentMonth(Number(template.eventDate.slice(5, 7)) - 1)
+    }
+    const place = (template.postalCode || template.city).trim()
+    setEventLocation(place)
+    // The distance depends on the new professional: it is calculated again by itself.
+    setDistance(null)
+    setEventName(template.eventName)
+    setStartTime(template.startTime)
+    setEndTime(template.endTime)
+    setSelectedEventTypes([...new Set(template.eventTypes.map(canonicalEventType))])
+    setSelectedMusicGenres([...new Set(template.musicGenres.map(canonicalGenre))])
+    setCapacity(template.capacity)
+    setDescription(template.description)
+    setSpecialRequests(template.specialRequests)
+    setPlaylistLink(template.playlistLink)
+    if (template.openingDanceLink) {
+      setOpeningDanceOption("link")
+      setOpeningDanceLink(template.openingDanceLink)
+    }
+    if (template.lastSongLink) {
+      setLastSongOption("link")
+      setLastSongLink(template.lastSongLink)
+    }
+    setDressCode(template.dressCode)
+    setStreetName(template.street)
+    setHouseNumber(template.houseNumber)
+    setHouseNumberExt(template.houseNumberExt)
+    setPostalCode(template.postalCode)
+    setCity(template.city)
+    setCountry(template.country)
+    setSelectedEquipment(template.wantsPackage && artistId ? [PACKAGE_OPTION_ID] : [])
+    equipmentRestored.current = true
+    setCurrentStep(1)
+    setTemplateFrom(template.previousProfessionalName)
+  }, [template, professionalId, artistId, initialDate])
 
   // A restored or changed start time may invalidate the saved end time.
   useEffect(() => {
@@ -1079,6 +1133,14 @@ export default function BookingPage() {
           {/* Right Column - Content Based on Step */}
           {currentStep === 1 && (
             <div className="space-y-4 sm:space-y-6">
+              {templateFrom && (
+                <div role="status" className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-foreground">
+                  {tr(
+                    `Je wensen uit de eerdere aanvraag bij ${templateFrom} zijn overgenomen. Controleer ze en kies eventueel een andere datum. Muziekbestanden en extra apparatuur moet je opnieuw kiezen.`,
+                    `Your wishes from the earlier request with ${templateFrom} were carried over. Check them and change the date if needed. Music files and extra equipment have to be chosen again.`,
+                  )}
+                </div>
+              )}
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
                 <h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">{t.selectDateLocation}</h2>
                 

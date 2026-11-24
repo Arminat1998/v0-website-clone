@@ -22,6 +22,18 @@ import {
   type FavoriteItem,
 } from "@/lib/customer-types";
 import { resolveCustomerProfessional, resolveCustomerProfessionals } from "@/lib/customer-catalog";
+import { getProfessionalProfileSummary, listLivePhotographers, listLiveProfessionalArtists } from "@/lib/professional-artist";
+import { isAllround } from "@/lib/profile-options";
+import { todayIso } from "@/lib/bookings/format";
+import { PACKAGE_OPTION_ID } from "@/lib/bookings/pricing";
+import {
+  rateCents,
+  replacementHref,
+  scoreReplacement,
+  type BookingTemplate,
+  type ReplacementProfile,
+  type ReplacementSuggestion,
+} from "@/lib/bookings/replacement";
 
 async function customerUser() {
   const session = await getSession();
@@ -382,4 +394,123 @@ export async function markCustomerNotificationsRead(id?: number) {
       ),
     ));
   revalidatePath("/account", "layout");
+}
+
+/** Requests that are over can be used as a template for a replacement; open and paid ones cannot. */
+const REUSABLE_STATUSES = ["rejected", "cancelled"] as const;
+
+async function reusableBooking(id: number) {
+  const account = await customerUser();
+  if (!isBookingId(id)) return null;
+  const [row] = await db
+    .select()
+    .from(bookings)
+    .where(and(eq(bookings.id, id), eq(bookings.customerId, account.id)))
+    .limit(1);
+  if (!row) return null;
+  const expired = row.status === "pending" && row.eventDate < todayIso();
+  if (!expired && !(REUSABLE_STATUSES as readonly string[]).includes(row.status)) return null;
+  return row;
+}
+
+/**
+ * The wishes of a rejected, cancelled or expired request, kept in the customer's own account (the request itself),
+ * so a replacement does not have to be filled in again. Personal details come from the profile, files are not copied.
+ */
+export async function getBookingTemplate(id: number): Promise<BookingTemplate | null> {
+  try {
+    const row = await reusableBooking(id);
+    if (!row) return null;
+    return {
+      fromBookingId: row.id,
+      professionalType: row.professionalType === "photographer" ? "photographer" : "artist",
+      previousProfessionalName: row.professionalName,
+      eventDate: row.eventDate >= todayIso() ? row.eventDate : "",
+      eventName: row.eventName,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      eventTypes: row.eventTypes,
+      musicGenres: row.musicGenres,
+      capacity: row.capacity ? String(row.capacity) : "",
+      description: row.description ?? "",
+      specialRequests: row.specialRequests ?? "",
+      dressCode: row.dressCode ?? "",
+      playlistLink: row.playlistLink ?? "",
+      openingDanceLink: row.openingDanceLink ?? "",
+      lastSongLink: row.lastSongLink ?? "",
+      street: row.street ?? "",
+      houseNumber: row.houseNumber ?? "",
+      houseNumberExt: row.houseNumberExt ?? "",
+      postalCode: row.postalCode ?? "",
+      city: row.city,
+      country: row.country ?? "",
+      wantsPackage: row.equipment.includes(PACKAGE_OPTION_ID),
+    };
+  } catch (error) {
+    console.error("Failed to load the booking template:", withoutValuesMessage(error));
+    return null;
+  }
+}
+
+function withoutValuesMessage(error: unknown) {
+  return error instanceof Error ? error.name : "unknown";
+}
+
+/** The professionals that come closest to the one who declined or was cancelled: same kind of act, genres, rate and area. */
+export async function getReplacementSuggestions(id: number): Promise<ReplacementSuggestion[]> {
+  try {
+    const row = await reusableBooking(id);
+    if (!row) return [];
+    const type = row.professionalType === "photographer" ? "photographer" : "artist";
+    const [summary, candidates] = await Promise.all([
+      getProfessionalProfileSummary(row.professionalId),
+      type === "photographer" ? listLivePhotographers() : listLiveProfessionalArtists(),
+    ]);
+    const previous: ReplacementProfile = {
+      specialty: summary?.artistType ?? "",
+      genres: summary ? summary.genres.filter((genre) => genre !== "allround") : row.musicGenres,
+      allround: summary ? isAllround(summary.genres) : false,
+      eventTypes: summary?.eventTypes ?? row.eventTypes,
+      hourlyRateCents: summary?.hourlyRate ? Math.round(summary.hourlyRate * 100) : row.hourlyRateCents,
+      city: summary?.city ?? "",
+    };
+    const futureDate = row.eventDate >= todayIso() ? row.eventDate : "";
+    const suggestions: ReplacementSuggestion[] = [];
+    for (const candidate of candidates) {
+      const candidateId = String(candidate.id);
+      if (candidateId === row.professionalId || candidateId === row.customerId) continue;
+      if (futureDate && candidate.unavailableDates?.includes(futureDate)) continue;
+      const genres = "musicStyles" in candidate ? candidate.musicStyles : (candidate as { serviceTypes?: string[] }).serviceTypes;
+      const profile: ReplacementProfile = {
+        specialty: candidate.specialty,
+        genres: genres ?? [],
+        allround: "allround" in candidate && Boolean(candidate.allround),
+        eventTypes: candidate.eventTypes ?? [],
+        hourlyRateCents: rateCents(candidate.price),
+        city: candidate.location,
+      };
+      const { match, reasons } = scoreReplacement(previous, profile, row.musicGenres);
+      suggestions.push({
+        id: candidateId,
+        type,
+        name: candidate.name,
+        specialty: candidate.specialty,
+        location: candidate.location,
+        hourlyRateCents: profile.hourlyRateCents,
+        rating: candidate.rating,
+        reviews: candidate.reviews,
+        image: candidate.avatar ?? candidate.image ?? null,
+        match,
+        reasons,
+        href: replacementHref(type, candidateId, row.id),
+      });
+    }
+    return suggestions
+      .filter((item) => item.match >= 30)
+      .sort((a, b) => b.match - a.match || b.rating - a.rating || a.name.localeCompare(b.name))
+      .slice(0, 4);
+  } catch (error) {
+    console.error("Failed to find replacements:", withoutValuesMessage(error));
+    return [];
+  }
 }
