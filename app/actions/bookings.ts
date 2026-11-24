@@ -146,7 +146,13 @@ async function resolveDistance(professionalId: string, eventLocation: string, cl
 /** The bookable options of a professional for the booking page: rates, hours, range, package, extras and VAT. */
 export async function getBookingOptions(professionalId: string): Promise<BookingOptions | null> {
   if (isDemoProfessional(professionalId) || typeof professionalId !== "string" || professionalId.length > 100) return null
-  return loadBookingOptions(professionalId)
+  try {
+    return await loadBookingOptions(professionalId)
+  } catch (error) {
+    // A failing lookup must not crash the booking page; the form shows its own "options unavailable" state.
+    console.error("Failed to load booking options:", error)
+    return null
+  }
 }
 
 export type BookingDistanceResult =
@@ -592,7 +598,12 @@ export async function getCalendarBookings(): Promise<CalendarBooking[]> {
 /** Dates that cannot be booked, from today on: accepted bookings and dates blocked by hand. Public. */
 export async function getBlockedDates(professionalId: string): Promise<string[]> {
   if (typeof professionalId !== "string" || !professionalId || professionalId.length > 100) return []
-  return (await loadUnavailableDates([professionalId])).get(professionalId) ?? []
+  try {
+    return (await loadUnavailableDates([professionalId])).get(professionalId) ?? []
+  } catch (error) {
+    console.error("Failed to load blocked dates:", error)
+    return []
+  }
 }
 
 /** What waits for the signed-in professional, for the dashboard menu. */

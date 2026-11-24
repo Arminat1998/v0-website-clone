@@ -178,7 +178,7 @@ export default function BookingPage() {
   const equipmentRestored = useRef(false)
   const { data: savedProfile } = useSWR(
     sessionData?.user.role === "user" ? ["customer-profile", sessionData.user.id] : null,
-    () => getCustomerProfile(),
+    () => getCustomerProfile().catch(() => null),
   )
   const [profileApplied, setProfileApplied] = useState(false)
   useEffect(() => {
@@ -201,7 +201,7 @@ export default function BookingPage() {
   const professionalKey = artistId ?? professionalId
   const { data: blockedDates = [], mutate: reloadBlockedDates } = useSWR(
     professionalKey ? ["blocked-dates", professionalKey] : null,
-    ([, id]) => getBlockedDates(id),
+    ([, id]) => getBlockedDates(id).catch(() => [] as string[]),
   )
   
   // Get artist or photographer data
@@ -219,7 +219,7 @@ export default function BookingPage() {
 
   // Rates, hours, travel range, the professional's own equipment and the VAT come from the server.
   const optionsKey = professional && !isDemoProfessional(professional.id) ? ["booking-options", String(professional.id)] : null
-  const { data: bookingOptions, isLoading: optionsLoading, mutate: reloadOptions } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id))
+  const { data: bookingOptions, isLoading: optionsLoading, mutate: reloadOptions } = useSWR(optionsKey, ([, id]: string[]) => getBookingOptions(id).catch(() => null))
   useEffect(() => {
     // Artists start with their own equipment package selected; photographers have none.
     if (bookingOptions?.package && artist && !equipmentRestored.current) setSelectedEquipment((prev) => (prev.length ? prev : [PACKAGE_OPTION_ID]))
@@ -322,6 +322,18 @@ export default function BookingPage() {
 
   // Not in the list: the professional does not exist (any more). A failed lookup says nothing about that.
   const lookupFailed = liveArtists.failed || livePhotographers.failed
+  // The distance is calculated by itself shortly after typing stops (or on leaving the field).
+  // This hook must stay above the early returns below: hooks have to run in the same order on every render,
+  // also while the professional is still loading after a refresh.
+  const calculateDistanceRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    const place = eventLocation.trim()
+    if (!professional || place.length < 3 || distance !== null || calculating || place === lastCheckedPlace.current) return
+    const timer = setTimeout(() => calculateDistanceRef.current(), 900)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(professional), eventLocation, distance, calculating])
+
   const notFound = !professional && !lookupFailed && !liveArtists.isLoading && !livePhotographers.isLoading
 
   if (!professional) {
@@ -810,14 +822,7 @@ export default function BookingPage() {
   // A broken link in the collapsed part must never be hidden.
   const extrasInvalid = Boolean(artist) && !(isWebLink(playlistLink) && (openingDanceOption === "upload" || isWebLink(openingDanceLink)) && (lastSongOption === "upload" || isWebLink(lastSongLink)))
 
-  // The distance is calculated by itself shortly after typing stops (or on leaving the field).
-  useEffect(() => {
-    const place = eventLocation.trim()
-    if (place.length < 3 || distance !== null || calculating || place === lastCheckedPlace.current) return
-    const timer = setTimeout(() => { void calculateDistance() }, 900)
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventLocation, distance, calculating])
+  calculateDistanceRef.current = () => { void calculateDistance() }
 
   const formatSelectedDate = () => {
     return eventDate ? formatEventDate(eventDate, dateLocale) : tr("Niet gekozen", "Not selected")
