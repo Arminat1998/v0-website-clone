@@ -29,11 +29,80 @@ import {
   MessageCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { ArtiestCard } from "@/components/artiest-card"
+import { PhotoVideoCard } from "@/components/photo-video-card"
+import { ReplacementCard } from "@/components/account/replacement-card"
+import { ComboSelect, comboGroups } from "@/components/combo-select"
+import { GENRE_GROUPS, ALLROUND } from "@/lib/profile-options"
+import type { Artist, Photographer } from "@/lib/smart-search"
+import type { ReplacementSuggestion } from "@/lib/bookings/replacement"
+
+const noop = () => {}
+
+const sampleArtist: Artist = {
+  id: 901,
+  name: "DJ Marco",
+  specialty: "DJ",
+  location: "Amsterdam",
+  rating: 4.8,
+  reviews: 32,
+  price: "€150",
+  equipmentPrice: "€250",
+  available: true,
+  musicStyles: ["house", "techno", "trance"],
+  eventTypes: ["Wedding", "Corporate", "Birthday"],
+  category: "dj",
+  artistTypes: ["dj"],
+  minHours: 1,
+  maxHours: 8,
+  kind: "artist",
+}
+
+const samplePhotographer: Photographer = {
+  id: 903,
+  name: "Studio Light",
+  specialty: "Photographer",
+  location: "Rotterdam",
+  rating: 4.9,
+  reviews: 18,
+  price: "€200",
+  available: true,
+  eventTypes: ["Wedding", "Corporate"],
+  serviceTypes: ["photography"],
+  category: "photographer",
+  minHours: 1,
+  maxHours: 8,
+}
+
+const sampleReplacement: ReplacementSuggestion = {
+  id: "ds-sample",
+  type: "artist",
+  name: sampleArtist.name,
+  specialty: "DJ",
+  location: sampleArtist.location,
+  hourlyRateCents: 15000,
+  rating: 4.8,
+  reviews: 32,
+  image: null,
+  match: 86,
+  reasons: ["type", "genres", "city"],
+  sharedGenres: ["house", "techno"],
+  rateDiffPercent: -10,
+  href: "#",
+  profileHref: null,
+  profile: sampleArtist,
+}
 
 export default function DesignSystemContent() {
   const { language } = useLanguage()
   const { theme, toggleTheme } = useTheme()
   const [hydrated, setHydrated] = useState(false)
+  const [genres, setGenres] = useState<string[]>([ALLROUND, "house"])
+  const [mainGenre, setMainGenre] = useState("")
+  const genreOptions = [
+    { label: language === "nl" ? "Algemeen" : "General", options: [{ value: ALLROUND, label: "Allround" }] },
+    ...comboGroups(GENRE_GROUPS, language === "nl"),
+  ]
 
   useEffect(() => {
     setHydrated(true)
@@ -599,6 +668,95 @@ export default function DesignSystemContent() {
                 <Slider defaultValue={[100, 2500]} max={5000} min={100} step={50} className="w-full" />
               </div>
             </Card>
+
+            <Card className="p-6 md:col-span-2">
+              <h3 className="text-lg font-semibold text-foreground mb-1">ComboSelect</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === "nl"
+                  ? "Dropdown met zoeken en groepen. Hier met de genrelijst, Allround bovenaan voor DJs."
+                  : "Dropdown with search and groups. Shown with the genre list, Allround at the top for DJs."}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p id="ds-genres-label" className="mb-2 text-sm font-medium text-foreground">
+                    {language === "nl" ? "Muziekgenres (meerkeuze)" : "Music genres (multiple)"}
+                  </p>
+                  <ComboSelect
+                    multiple
+                    id="ds-genres"
+                    labelledBy="ds-genres-label"
+                    nl={language === "nl"}
+                    value={genres}
+                    onChange={setGenres}
+                    groups={genreOptions}
+                    placeholder={language === "nl" ? "Kies genres" : "Choose genres"}
+                    searchPlaceholder={language === "nl" ? "Zoek een genre" : "Search a genre"}
+                  />
+                </div>
+                <div>
+                  <p id="ds-genre-label" className="mb-2 text-sm font-medium text-foreground">
+                    {language === "nl" ? "Hoofdgenre (enkele keuze)" : "Main genre (single)"}
+                  </p>
+                  <ComboSelect
+                    id="ds-genre"
+                    labelledBy="ds-genre-label"
+                    nl={language === "nl"}
+                    value={mainGenre}
+                    onChange={setMainGenre}
+                    groups={genreOptions.slice(1)}
+                    placeholder={language === "nl" ? "Kies een genre" : "Choose a genre"}
+                    searchPlaceholder={language === "nl" ? "Zoek een genre" : "Search a genre"}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6 md:col-span-2">
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                {language === "nl" ? "Formuliervalidatie" : "Form validation"}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {language === "nl"
+                  ? "Een foutmelding staat direct onder het veld (role=\"alert\") en het veld krijgt een rode rand (invalid)."
+                  : "An error message sits right under the field (role=\"alert\") and the field gets a red border (invalid)."}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="ds-email" className="mb-2 block">E-mail</Label>
+                  <Input
+                    id="ds-email"
+                    defaultValue="geen-geldig-adres"
+                    aria-invalid="true"
+                    aria-describedby="ds-email-error"
+                    className="border-[var(--rf-red-text)]"
+                  />
+                  <p id="ds-email-error" role="alert" className="mt-1.5 text-sm text-[var(--rf-red-text)]">
+                    {language === "nl" ? "Vul een geldig e-mailadres in." : "Enter a valid email address."}
+                  </p>
+                </div>
+                <div>
+                  <p id="ds-genres-invalid-label" className="mb-2 text-sm font-medium text-foreground">
+                    {language === "nl" ? "Muziekgenres" : "Music genres"}
+                  </p>
+                  <ComboSelect
+                    multiple
+                    id="ds-genres-invalid"
+                    labelledBy="ds-genres-invalid-label"
+                    describedBy="ds-genres-error"
+                    nl={language === "nl"}
+                    value={[]}
+                    onChange={noop}
+                    groups={genreOptions}
+                    invalid
+                    placeholder={language === "nl" ? "Kies genres" : "Choose genres"}
+                    searchPlaceholder={language === "nl" ? "Zoek een genre" : "Search a genre"}
+                  />
+                  <p id="ds-genres-error" role="alert" className="mt-1.5 text-sm text-[var(--rf-red-text)]">
+                    {language === "nl" ? "Kies minstens één genre, of Allround." : "Choose at least one genre, or Allround."}
+                  </p>
+                </div>
+              </div>
+            </Card>
           </div>
         </section>
 
@@ -618,6 +776,7 @@ export default function DesignSystemContent() {
                   {language === "nl" ? "Genre Badges" : "Genre Badges"}
                 </h4>
                 <div className="flex flex-wrap gap-2">
+                  <Badge className="bg-primary text-primary-foreground font-semibold">Allround</Badge>
                   <Badge variant="secondary">House</Badge>
                   <Badge variant="secondary">Techno</Badge>
                   <Badge variant="secondary">Pop</Badge>
@@ -653,137 +812,54 @@ export default function DesignSystemContent() {
           </Card>
         </section>
 
-        {/* Cards Preview */}
+        {/* Cards: the real production components with sample data */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-foreground mb-2">
             {language === "nl" ? "Kaart Voorbeelden" : "Card Examples"}
           </h2>
           <p className="text-muted-foreground mb-8">
             {language === "nl"
-              ? "Voorbeelden van kaarten zoals ze verschijnen in de overview pagina's."
-              : "Examples of cards as they appear in the overview pages."}
+              ? "De echte kaartcomponenten met voorbeelddata, zoals ze verschijnen in de overzichten en in de zijbalk."
+              : "The real card components with sample data, as they appear in the overviews and the side column."}
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Mini Artist Card Preview */}
-            <Card className="overflow-hidden">
-              <div className="h-32 bg-gradient-to-br from-purple-600 to-pink-500"></div>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3 -mt-10 mb-3">
-                  <div className="w-16 h-16 rounded-full border-4 border-card bg-muted flex items-center justify-center">
-                    <Music className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <div className="mt-6">
-                    <h3 className="font-bold text-foreground">DJ Marco</h3>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> Amsterdam
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> 1-8 hrs
-                  </span>
-                  <span className="font-bold text-foreground">€150 per uur</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  <Badge variant="secondary" className="text-xs">
-                    House
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">ArtiestCard</h3>
+              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<ArtiestCard artist onClick />"}</code>
+              <ArtiestCard artist={sampleArtist} onClick={noop} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">ArtiestCard compact</h3>
+              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<ArtiestCard compact />"}</code>
+              <ArtiestCard artist={sampleArtist} onClick={noop} compact />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                {language === "nl" ? "Allround + bezocht" : "Allround + visited"}
+              </h3>
+              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"artist.allround · isVisited"}</code>
+              <ArtiestCard artist={{ ...sampleArtist, id: 902, name: "DJ Nova", allround: true, equipmentPrice: undefined }} onClick={noop} isVisited />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">PhotoVideoCard</h3>
+              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<PhotoVideoCard professional />"}</code>
+              <PhotoVideoCard professional={samplePhotographer} onClick={noop} />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">ReplacementCard</h3>
+              <code className="text-xs bg-muted px-2 py-1 rounded mb-3 inline-block">{"<ReplacementCard item nl badge onView />"}</code>
+              <ReplacementCard
+                item={sampleReplacement}
+                nl={language === "nl"}
+                badge={
+                  <Badge variant="secondary" className="shadow-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
+                    {language === "nl" ? "Sterke match" : "Strong match"}
                   </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    Techno
-                  </Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 text-xs bg-transparent"
-                  >
-                    Bekijk Profiel
-                  </Button>
-                  <Button size="sm" className="flex-1 bg-red-700 hover:bg-red-600 text-white text-xs">
-                    Boek Nu
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Mini Photo Card Preview */}
-            <Card className="overflow-hidden">
-              <div className="h-32 bg-gradient-to-br from-teal-600 to-blue-500"></div>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3 -mt-10 mb-3">
-                  <div className="w-16 h-16 rounded-full border-4 border-card bg-muted flex items-center justify-center">
-                    <Camera className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <div className="mt-6">
-                    <h3 className="font-bold text-foreground">Studio Light</h3>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> Rotterdam
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm mb-3">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> 1-8 hrs
-                  </span>
-                  <span className="font-bold text-foreground">€200 per uur</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  <Badge variant="secondary" className="text-xs">
-                    Photographer
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    Wedding
-                  </Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400 text-xs bg-transparent"
-                  >
-                    Bekijk Profiel
-                  </Button>
-                  <Button size="sm" className="flex-1 bg-red-700 hover:bg-red-600 text-white text-xs">
-                    Boek Nu
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Filter Panel Preview */}
-            <Card className="p-4">
-              <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-500" />
-                Filter Panel
-              </h4>
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs">Artiest Type</Label>
-                  <Select>
-                    <SelectTrigger className="h-8 text-xs mt-1">
-                      <SelectValue placeholder="Selecteer..." />
-                    </SelectTrigger>
-                  </Select>
-                </div>
-                <div className="p-2 rounded bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800">
-                  <p className="text-xs text-red-700 dark:text-red-300 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    15 januari 2026
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="default" className="text-xs">
-                    House <span className="ml-1">×</span>
-                  </Badge>
-                  <Badge variant="default" className="text-xs">
-                    Wedding <span className="ml-1">×</span>
-                  </Badge>
-                </div>
-              </div>
-            </Card>
+                }
+                onView={noop}
+              />
+            </div>
           </div>
         </section>
 
