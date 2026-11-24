@@ -197,30 +197,6 @@ export function Header() {
               className="hidden h-8 w-auto sm:h-12 dark:block"
             />
           </Link>
-
-          <nav aria-label={nl ? "Hoofdnavigatie" : "Main navigation"} className="hidden lg:block">
-            <ul className="flex items-center gap-1">
-              {NAV_ITEMS.map((item) => {
-                const current = currentState(item, pathname)
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={current}
-                      className={cn(
-                        "flex h-11 items-center border-b-2 px-3 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring",
-                        current
-                          ? "border-red-600 font-semibold text-foreground"
-                          : "border-transparent font-medium text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {nl ? item.nl : item.en}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </nav>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -262,7 +238,7 @@ export function Header() {
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-11 lg:hidden" aria-label={nl ? "Menu openen" : "Open menu"}>
+              <Button variant="ghost" size="icon" className="size-11" aria-label={nl ? "Menu openen" : "Open menu"}>
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
