@@ -157,6 +157,15 @@ export function Header() {
     setLoginModalOpen(true)
   }
 
+  const openSignupModal = () => {
+    afterLoginRef.current = null
+    setMenuOpen(false)
+    setSignupModalOpen(true)
+  }
+
+  const role = sessionData?.user.role
+  const dashboardPath = role === "admin" ? "/admin" : role === "professional" ? "/dashboard" : "/account"
+
   const themeToggle = (className: string) => (
     <Button
       variant="ghost"
@@ -224,45 +233,33 @@ export function Header() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden sm:block">
+          <div className="hidden items-center gap-2 lg:flex">
             <LanguageSwitcher />
+            {themeToggle("")}
+            {isPending ? (
+              <div className="h-11 w-40" aria-hidden="true" />
+            ) : sessionData?.user ? (
+              <ProfileDropdown
+                name={sessionData.user.name}
+                image={sessionData.user.image}
+                role={role}
+                onSignOut={handleSignOut}
+              />
+            ) : (
+              <>
+                <Button variant="ghost" data-login-trigger className="h-11" onClick={openLoginModal}>
+                  {nl ? "Inloggen" : "Log in"}
+                </Button>
+                <Button variant="outline" className="h-11" onClick={openSignupModal}>
+                  {nl ? "Registreren" : "Sign up"}
+                </Button>
+              </>
+            )}
           </div>
-          {themeToggle("hidden sm:inline-flex")}
-
-          {isPending ? (
-            <div className="h-11 w-24 sm:w-40" aria-hidden="true" />
-          ) : isLoggedIn && sessionData ? (
-            <ProfileDropdown
-              name={sessionData.user.name}
-              image={sessionData.user.image}
-              role={sessionData.user.role}
-              onSignOut={handleSignOut}
-            />
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                data-login-trigger
-                className="h-11 px-2 text-sm text-red-700 max-[359px]:hidden hover:bg-red-50 hover:text-red-700 sm:px-4 sm:text-base dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
-                onClick={openLoginModal}
-              >
-                {nl ? "Inloggen" : "Log in"}
-              </Button>
-              <Button
-                className="h-11 bg-red-700 px-3 text-sm text-white hover:bg-red-600 sm:px-6 sm:text-base"
-                onClick={() => {
-                  afterLoginRef.current = null
-                  setSignupModalOpen(true)
-                }}
-              >
-                {nl ? "Registreren" : "Sign up"}
-              </Button>
-            </>
-          )}
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-11 lg:hidden" aria-label={nl ? "Menu openen" : "Open menu"}>
+              <Button variant="ghost" size="icon" className="size-11 lg:hidden" data-login-trigger aria-label={nl ? "Menu openen" : "Open menu"}>
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
@@ -271,7 +268,7 @@ export function Header() {
               <SheetHeader className="flex-row items-center justify-between">
                 <SheetTitle>Menu</SheetTitle>
                 <SheetDescription className="sr-only">
-                  {nl ? "Navigatie, taal en thema" : "Navigation, language and theme"}
+                  {nl ? "Navigatie, account, taal en thema" : "Navigation, account, language and theme"}
                 </SheetDescription>
                 <div>
                   <SheetClose asChild>
@@ -305,14 +302,35 @@ export function Header() {
                   })}
                 </ul>
               </nav>
-              {!isPending && !isLoggedIn && (
-                <div className="px-4 min-[360px]:hidden">
-                  <Button variant="outline" className="h-11 w-full" onClick={openLoginModal}>
-                    {nl ? "Inloggen" : "Log in"}
-                  </Button>
+              {!isPending && (
+                <div className="mx-4 grid gap-1 border-t border-border pt-4">
+                  {isLoggedIn ? (
+                    <>
+                      <Button asChild variant="ghost" className="h-11 justify-start">
+                        <Link href={dashboardPath} onClick={() => setMenuOpen(false)}>
+                          {role === "user" ? (nl ? "Mijn dashboard" : "My dashboard") : "Dashboard"}
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" className="h-11 justify-start" onClick={() => {
+                        setMenuOpen(false)
+                        void handleSignOut()
+                      }}>
+                        {nl ? "Uitloggen" : "Sign out"}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="ghost" className="h-11 justify-start" onClick={openLoginModal}>
+                        {nl ? "Inloggen" : "Log in"}
+                      </Button>
+                      <Button variant="ghost" className="h-11 justify-start" onClick={openSignupModal}>
+                        {nl ? "Registreren" : "Sign up"}
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
-              <div className="mt-auto flex items-center justify-between border-t border-border p-4 sm:hidden">
+              <div className="mt-auto flex items-center justify-between border-t border-border p-4">
                 <LanguageSwitcher showLabel />
                 {themeToggle("")}
               </div>
