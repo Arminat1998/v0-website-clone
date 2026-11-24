@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2 } from "lucide-react"
+import { Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { uploadPresigned } from "@vercel/blob/client"
@@ -91,6 +91,8 @@ export default function BookingPage() {
   ]
   
   const [currentStep, setCurrentStep] = useState(1)
+  const [artistDetailsOpen, setArtistDetailsOpen] = useState(false)
+  const [priceOpen, setPriceOpen] = useState(false)
   // After a step change the heading of the new step comes into view and gets the focus.
   const stepHeading = useRef<HTMLHeadingElement>(null)
   const shownStep = useRef(1)
@@ -413,6 +415,30 @@ export default function BookingPage() {
         distanceKm: distance ?? 0,
       })
     : null
+
+  // Running price for steps 1-3: the performance part follows once a valid start and end time are chosen.
+  const hasLiveHours = Boolean(bookingOptions && startTime && endTime && !sameTime && !hoursIssue)
+  const rangeText = bookingOptions ? `${bookingOptions.minHours}–${bookingOptions.maxHours} ${tr("uur", "hrs")}` : ""
+  const livePrice = pricing && bookingOptions && currentStep < 4 ? (
+    <dl className="space-y-1.5 text-sm">
+      <div className="flex justify-between gap-3">
+        <dt className="text-muted-foreground">{artist ? tr("Optreden", "Performance") : tr("Inzet", "Service")}</dt>
+        <dd className="font-medium text-foreground">{hasLiveHours ? formatEuro(pricing.performanceCents) : tr("kies tijden", "pick times")}</dd>
+      </div>
+      {pricing.equipmentCents > 0 && (
+        <div className="flex justify-between gap-3"><dt className="text-muted-foreground">{tr("Apparatuur en extra's", "Equipment and extras")}</dt><dd className="font-medium text-foreground">{formatEuro(pricing.equipmentCents)}</dd></div>
+      )}
+      <div className="flex justify-between gap-3">
+        <dt className="text-muted-foreground">{tr("Reiskosten", "Travel")}</dt>
+        <dd className="font-medium text-foreground">{distance === null ? tr("na locatie", "after location") : formatEuro(pricing.travelCents)}</dd>
+      </div>
+      <div className="flex justify-between gap-3 border-t border-border pt-1.5">
+        <dt className="font-semibold text-foreground">{tr("Totaal incl. btw", "Total incl. VAT")}</dt>
+        <dd className="font-bold text-red-700 dark:text-red-400">{hasLiveHours ? formatEuro(pricing.totalCents) : tr("na tijden", "after times")}</dd>
+      </div>
+      <p className="text-xs text-muted-foreground">{tr("Indicatie; het definitieve bedrag zie je in het overzicht.", "Estimate; the final amount is shown in the overview.")}</p>
+    </dl>
+  ) : null
 
   const linkError = (value: string, id: string) =>
     isWebLink(value) ? null : (
@@ -834,7 +860,25 @@ export default function BookingPage() {
           </p>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-4 sm:gap-6">
+        {livePrice && pricing && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 py-2 shadow-lg lg:hidden">
+            <button
+              type="button"
+              onClick={() => setPriceOpen((open) => !open)}
+              aria-expanded={priceOpen}
+              aria-controls="live-price-mobile"
+              className="flex min-h-11 w-full items-center justify-between text-sm"
+            >
+              <span className="font-medium text-foreground">{tr("Prijsindicatie", "Price estimate")}</span>
+              <span className="flex items-center gap-2 font-bold text-red-700 dark:text-red-400">
+                {hasLiveHours ? formatEuro(pricing.totalCents) : tr("kies tijden", "pick times")}
+                <ChevronDown className={`size-4 transition-transform ${priceOpen ? "" : "rotate-180"}`} aria-hidden />
+              </span>
+            </button>
+            <div id="live-price-mobile" className={`${priceOpen ? "block" : "hidden"} pb-2`}>{livePrice}</div>
+          </div>
+        )}
+        <div className={`grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-4 sm:gap-6 ${livePrice ? "pb-16 lg:pb-0" : ""}`}>
           {/* Left Column - Professional Card */}
           {/* Below lg one compact row, so the form itself starts at the top of the screen. */}
           <div className="bg-card rounded-lg shadow border border-border overflow-hidden lg:sticky lg:top-4 lg:self-start">
@@ -869,7 +913,17 @@ export default function BookingPage() {
               </p>
               </div>
 
-              <div className="hidden lg:block">
+              <button
+                type="button"
+                onClick={() => setArtistDetailsOpen((open) => !open)}
+                aria-expanded={artistDetailsOpen}
+                aria-controls="artist-details"
+                className="mt-3 flex min-h-11 w-full items-center justify-between rounded-lg border border-border px-3 text-sm font-medium text-foreground lg:hidden"
+              >
+                {tr("Details van artiest", "Artist details")}
+                <ChevronDown className={`size-4 transition-transform ${artistDetailsOpen ? "rotate-180" : ""}`} aria-hidden />
+              </button>
+              <div id="artist-details" className={`${artistDetailsOpen ? "block" : "hidden"} mt-3 lg:mt-0 lg:block`}>
               <div className="space-y-3 mb-4">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -944,6 +998,7 @@ export default function BookingPage() {
                 </div>
               )}
               </div>
+              {livePrice && <div className="mt-4 hidden border-t border-border pt-4 lg:block" aria-live="polite">{livePrice}</div>}
             </div>
           </div>
 
@@ -1147,13 +1202,18 @@ export default function BookingPage() {
                       disabled={!startTime || !bookingOptions}
                       className="w-full px-3 sm:px-4 py-2.5 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
                     >
-                      <option value="">{tr("Kies", "Select")}</option>
+                      <option value="">{startTime ? tr("Kies", "Select") : tr("Kies eerst een starttijd", "Choose a start time first")}</option>
                       {endTimeOptions.map((time) => (
                         <option key={time} value={time}>
                           {time}{timeToMinutes(time) <= timeToMinutes(startTime) ? tr(" (volgende dag)", " (next day)") : ""}
                         </option>
                       ))}
                     </select>
+                    {!startTime ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{tr("Kies eerst een starttijd.", "Choose a start time first.")}</p>
+                    ) : bookingOptions ? (
+                      <p className="mt-1 text-xs text-muted-foreground">{tr("Boekbaar", "Bookable")}: {rangeText}</p>
+                    ) : null}
                   </div>
                 </div>
                 
@@ -1161,6 +1221,11 @@ export default function BookingPage() {
                   <p className="-mt-2 mb-4 text-sm text-muted-foreground" aria-live="polite">
                     {tr("Duur", "Duration")}: {bookedHours.toLocaleString(dateLocale)} {tr("uur", bookedHours === 1 ? "hour" : "hours")}
                     {endsNextDay && tr(" (eindigt na middernacht)", " (ends after midnight)")}
+                    {hasLiveHours && pricing && (
+                      <span className="block font-medium text-foreground">
+                        {bookedHours.toLocaleString(dateLocale)} {tr("uur", "hrs")} × {formatEuro(pricing.hourlyRateCents)} = {formatEuro(pricing.performanceCents)} {tr("excl. btw", "excl. VAT")}
+                      </span>
+                    )}
                   </p>
                 )}
                 {sameTime && (
