@@ -94,7 +94,7 @@ export function ReplacementSuggestions({
           </p>
         )}
         {data && data.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
         {data.map((item) => {
           const level = LEVELS[matchLevel(item.match)];
           const genres = item.sharedGenres.map((genre) => genreLabel(genre, nl));

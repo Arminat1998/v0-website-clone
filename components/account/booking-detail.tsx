@@ -320,7 +320,7 @@ export function AccountBookingDetail({
                   </Link>
                 </Button>
               )}
-              {(status === "expired" || status === "cancelled") && (
+              {(status === "expired" || status === "cancelled" || status === "rejected") && (
                 <Button variant="outline" asChild className="min-h-11 h-auto whitespace-normal py-2">
                   <Link
                     href={`/booking?${
