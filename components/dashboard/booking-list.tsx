@@ -57,6 +57,12 @@ export function BookingList({ variant, bookings }: { variant: Variant; bookings:
           </CardContent>
         </Card>
       ) : (
+        <>
+          {variant === "requests" && (
+            <p className="-mt-3 text-sm text-muted-foreground">
+              {nl ? "Reageer bij voorkeur binnen 48 uur." : "Please try to respond within 48 hours."}
+            </p>
+          )}
         <ul className="flex flex-col gap-4">
           {open.map((booking) => (
             <li key={booking.id}>
@@ -64,6 +70,7 @@ export function BookingList({ variant, bookings }: { variant: Variant; bookings:
             </li>
           ))}
         </ul>
+        </>
       )}
 
       {closed.length > 0 && (

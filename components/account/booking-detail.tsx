@@ -39,7 +39,7 @@ import { canonicalEventType, canonicalGenre, eventTypeLabel, genreLabel } from "
 import { displayStatus } from "@/lib/bookings/display-status";
 import type { CustomerBookingDetail } from "@/app/actions/customer";
 import type { BankDetails, CustomerInvoice } from "@/lib/bookings/payments";
-import { BOOKING_TIME_ZONE } from "@/lib/bookings/format";
+import { BOOKING_TIME_ZONE, todayIso } from "@/lib/bookings/format";
 
 export function AccountBookingDetail({
   booking: b,
@@ -182,6 +182,9 @@ export function AccountBookingDetail({
                   <span className="flex items-center gap-2">
                     <Clock3 className="size-4 text-brand" />
                     {b.startTime} – {b.endTime}
+                    {b.endTime <= b.startTime && (
+                      <span className="text-muted-foreground">{nl ? "(+1 dag)" : "(+1 day)"}</span>
+                    )}
                   </span>
                   <span className="flex items-center gap-2">
                     <MapPin className="size-4 text-brand" />
@@ -283,7 +286,7 @@ export function AccountBookingDetail({
             <ReplacementSuggestions
               bookingId={b.id}
               professionalName={b.professionalName}
-              datePassed={status === "expired" || b.eventDate < new Date().toISOString().slice(0, 10)}
+              datePassed={status === "expired" || b.eventDate < todayIso()}
               browseHref={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}
             />
           )}
@@ -316,6 +319,24 @@ export function AccountBookingDetail({
                       : nl ? "Review schrijven" : "Write a review"}
                   </Link>
                 </Button>
+              )}
+              {(status === "expired" || status === "cancelled") && (
+                <Button variant="outline" asChild className="min-h-11 h-auto whitespace-normal py-2">
+                  <Link
+                    href={`/booking?${
+                      b.professionalType === "photographer"
+                        ? `professionalId=${encodeURIComponent(b.professionalId)}&type=photographer`
+                        : `artistId=${encodeURIComponent(b.professionalId)}`
+                    }&fromBookingId=${b.id}&newDate=1`}
+                  >
+                    {nl ? `Vraag ${b.professionalName} aan voor een andere datum` : `Request ${b.professionalName} for another date`}
+                  </Link>
+                </Button>
+              )}
+              {status === "pending" && (
+                <p className="text-sm text-muted-foreground">
+                  {nl ? "De professional reageert meestal binnen 48 uur." : "The professional usually replies within 48 hours."}
+                </p>
               )}
               {closed && (
                 <Button variant="brand" asChild className="min-h-11">

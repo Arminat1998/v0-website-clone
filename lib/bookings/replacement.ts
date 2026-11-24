@@ -52,6 +52,8 @@ export interface ReplacementSuggestion {
   /** Rate compared with the previous professional, in whole percent (negative = cheaper); null when unknown. */
   rateDiffPercent: number | null
   href: string
+  /** The public profile page (media, bio, reviews); null when there is none. */
+  profileHref: string | null
 }
 
 /** Qualitative label for a match score. */

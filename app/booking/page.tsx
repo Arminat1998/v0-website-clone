@@ -81,6 +81,7 @@ export default function BookingPage() {
   const professionalId = searchParams.get("professionalId")
   const type = searchParams.get("type")
   const initialDate = searchParams.get("date")
+  const clearTemplateDate = searchParams.get("newDate") === "1"
   // A replacement for a rejected or cancelled request: its wishes fill in the form.
   const fromBookingParam = Number(searchParams.get("fromBookingId"))
   const fromBookingId = Number.isSafeInteger(fromBookingParam) && fromBookingParam > 0 ? fromBookingParam : null
@@ -295,7 +296,7 @@ export default function BookingPage() {
     if (!template || templateApplied.current) return
     if ((template.professionalType === "photographer") !== Boolean(professionalId)) return
     templateApplied.current = true
-    if (template.eventDate && !initialDate) {
+    if (template.eventDate && !initialDate && !clearTemplateDate) {
       setEventDate(template.eventDate)
       setCurrentYear(Number(template.eventDate.slice(0, 4)))
       setCurrentMonth(Number(template.eventDate.slice(5, 7)) - 1)
@@ -332,8 +333,8 @@ export default function BookingPage() {
     equipmentRestored.current = true
     setCurrentStep(1)
     setTemplateFrom(template.previousProfessionalName)
-    setTemplateNote({ datePassed: !template.eventDate, hadEquipment: template.hadEquipment, hadMusicFiles: template.hadMusicFiles })
-    if (!template.eventDate) {
+    setTemplateNote({ datePassed: !template.eventDate || clearTemplateDate, hadEquipment: template.hadEquipment, hadMusicFiles: template.hadMusicFiles })
+    if (!template.eventDate || clearTemplateDate) {
       // The earlier date has passed: send the customer to the date picker.
       setTimeout(() => {
         const calendar = document.getElementById("booking-calendar")
@@ -341,7 +342,7 @@ export default function BookingPage() {
         calendar?.focus({ preventScroll: true })
       }, 300)
     }
-  }, [template, professionalId, artistId, initialDate])
+  }, [template, professionalId, artistId, initialDate, clearTemplateDate])
 
   // A restored or changed start time may invalidate the saved end time.
   useEffect(() => {
@@ -1415,7 +1416,7 @@ export default function BookingPage() {
                 {startTime && endTime && !sameTime && (
                   <p className="-mt-2 mb-4 text-sm text-muted-foreground" aria-live="polite">
                     {tr("Duur", "Duration")}: {bookedHours.toLocaleString(dateLocale)} {tr("uur", bookedHours === 1 ? "hour" : "hours")}
-                    {endsNextDay && tr(" (eindigt na middernacht)", " (ends after midnight)")}
+                    {endsNextDay && tr(" (+1 dag, eindigt na middernacht)", " (+1 day, ends after midnight)")}
                     {hasLiveHours && pricing && (
                       <span className="block font-medium text-foreground">
                         {bookedHours.toLocaleString(dateLocale)} {tr("uur", "hrs")} × {formatEuro(pricing.hourlyRateCents)} = {formatEuro(pricing.performanceCents)} {tr("excl. btw", "excl. VAT")}
@@ -1970,7 +1971,7 @@ export default function BookingPage() {
 
           {/* Step 5 - Confirmation */}
           {currentStep === 5 && (
-            <div data-private className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. Je vindt de status en de reactie van de professional in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. You can follow the status and the professional's reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-700 hover:bg-red-600 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
+            <div data-private className="bg-card rounded-lg shadow border border-border p-8 text-center"><CheckCircle2 className="mx-auto h-16 w-16 text-green-500" /><h2 ref={stepHeading} tabIndex={-1} className="scroll-mt-4 outline-none mt-4 text-2xl font-bold text-foreground">{tr("Boekingsaanvraag verzonden", "Booking request sent")}</h2><p className="mx-auto mt-3 max-w-lg text-muted-foreground">{tr(`Bedankt ${firstName || "voor je aanvraag"}. We hebben je aanvraag ontvangen en doorgestuurd naar ${professional.name}. De professional reageert meestal binnen 48 uur. Je vindt de status en de reactie in je eigen dashboard.`, `Thank you${firstName ? `, ${firstName}` : ""}. We received your request and sent it to ${professional.name}. The professional usually replies within 48 hours. You can follow the status and the reply in your dashboard.`)}</p>{bookingId && <p className="mt-3 text-sm text-muted-foreground">{tr("Aanvraagnummer", "Request number")} <span className="font-mono font-medium text-foreground">#{bookingId.toString().padStart(5, "0")}</span></p>}<Button onClick={() => router.push(bookingId ? `/account/boekingen/${bookingId}` : "/account/boekingen")} className="mt-6 bg-red-700 hover:bg-red-600 text-white">{tr("Bekijk mijn boeking", "View my booking")}</Button></div>
           )}
         </div>
       </div>

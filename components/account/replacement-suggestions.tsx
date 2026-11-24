@@ -158,6 +158,13 @@ export function ReplacementSuggestions({
                 </ul>
               )}
               <div className="flex flex-col gap-1.5">
+                {item.profileHref && (
+                  <Button variant="outline" asChild className="min-h-11">
+                    <Link href={item.profileHref}>
+                      {nl ? `Bekijk profiel van ${item.name}` : `View ${item.name}'s profile`}
+                    </Link>
+                  </Button>
+                )}
                 <Button variant="brand" asChild className="h-auto min-h-11 whitespace-normal py-2">
                   <Link href={item.href}>{nl ? `Boek ${item.name} met je wensen` : `Book ${item.name} with your wishes`}</Link>
                 </Button>
