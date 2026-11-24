@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Clock3, MapPin, Star } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CalendarDays, Clock3, MapPin, Star, XCircle } from "lucide-react";
 import { MessageButton } from "@/components/chat/message-button";
 import { useLanguage } from "@/contexts/language-context";
 import {
@@ -13,6 +15,18 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { cancelBookingRequest } from "@/app/actions/customer";
 import { Separator } from "@/components/ui/separator";
 import { AccountHeading, BookingBadge, eventDate } from "./account-common";
 import { BookingPayment } from "./booking-payment";
@@ -40,6 +54,34 @@ export function AccountBookingDetail({
   reviewDone?: boolean;
 }) {
   const nl = useLanguage().language === "nl";
+  const router = useRouter();
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [cancelling, startCancel] = useTransition();
+  function cancelRequest() {
+    startCancel(async () => {
+      let ok = false;
+      try {
+        ok = (await cancelBookingRequest(b.id)).ok;
+      } catch {
+        ok = false;
+      }
+      setConfirmOpen(false);
+      if (ok) {
+        toast({ title: nl ? "Aanvraag geannuleerd" : "Request cancelled" });
+        router.refresh();
+      } else {
+        toast({
+          title: nl ? "Annuleren is niet gelukt" : "Could not cancel",
+          description: nl
+            ? "De aanvraag is al beantwoord of niet meer open."
+            : "The request has already been answered or is no longer open.",
+          variant: "destructive",
+        });
+        router.refresh();
+      }
+    });
+  }
   function detail(label: string, value: string | number | null) {
     return (
       <div className="flex flex-col gap-1">
@@ -279,6 +321,16 @@ export function AccountBookingDetail({
                 professionalId={b.professionalId}
                 label={nl ? "Stuur een bericht" : "Send a message"}
               />
+              {status === "pending" && (
+                <Button
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  <XCircle />
+                  {nl ? "Aanvraag annuleren" : "Cancel request"}
+                </Button>
+              )}
               <FavoriteButton
                 professionalId={b.professionalId}
                 professionalType={
@@ -297,6 +349,36 @@ export function AccountBookingDetail({
           </p>
         </div>
       </div>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {nl ? "Aanvraag annuleren?" : "Cancel this request?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {nl
+                ? `Je aanvraag "${b.eventName}" bij ${b.professionalName} wordt ingetrokken. Dit kun je niet ongedaan maken.`
+                : `Your request "${b.eventName}" with ${b.professionalName} will be withdrawn. This cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>
+              {nl ? "Nee, behouden" : "No, keep it"}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={cancelling}
+              onClick={(e) => {
+                e.preventDefault();
+                cancelRequest();
+              }}
+            >
+              {cancelling
+                ? nl ? "Bezig..." : "Cancelling..."
+                : nl ? "Ja, annuleren" : "Yes, cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

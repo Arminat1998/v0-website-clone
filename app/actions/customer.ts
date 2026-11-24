@@ -11,6 +11,7 @@ import {
   customerFavorites,
   customerNotifications,
   invoices,
+  notifications,
 } from "@/lib/db/schema";
 import { paymentSummary, type CustomerInvoice } from "@/lib/bookings/payments";
 import { isBookingId } from "@/lib/bookings/booking-input";
@@ -74,6 +75,48 @@ async function runSaveCustomerProfile(input: CustomerProfileInput) {
     });
   revalidatePath("/account", "layout");
   return { ok: true as const };
+}
+
+export type CancelBookingResult = { ok: true } | { ok: false; error: "NOT_FOUND" | "NOT_CANCELLABLE" };
+
+/** The customer withdraws an open request. Only the owner can do it, and only while the professional has not answered. */
+export async function cancelBookingRequest(id: number): Promise<CancelBookingResult> {
+  return withoutValues("Failed to cancel the booking request:", () => runCancelBookingRequest(id));
+}
+
+async function runCancelBookingRequest(id: number): Promise<CancelBookingResult> {
+  const account = await customerUser();
+  if (!isBookingId(id)) return { ok: false, error: "NOT_FOUND" };
+  const cancelled = await db.transaction(async (tx) => {
+    // The owner and the pending status are in the condition, so a second click or someone else's id changes nothing.
+    const updated = await tx
+      .update(bookings)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(and(eq(bookings.id, id), eq(bookings.customerId, account.id), eq(bookings.status, "pending")))
+      .returning({ professionalId: bookings.professionalId, eventName: bookings.eventName });
+    if (!updated.length) return null;
+    await tx
+      .update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.bookingId, id), eq(notifications.professionalId, updated[0].professionalId)));
+    await tx.insert(notifications).values({
+      professionalId: updated[0].professionalId,
+      bookingId: id,
+      type: "reminder",
+      title: "Aanvraag ingetrokken",
+      body: `De klant heeft de aanvraag voor ${updated[0].eventName} geannuleerd.`,
+    });
+    return updated[0];
+  });
+  revalidatePath("/account", "layout");
+  revalidatePath("/dashboard", "layout");
+  if (cancelled) return { ok: true };
+  const [existing] = await db
+    .select({ status: bookings.status })
+    .from(bookings)
+    .where(and(eq(bookings.id, id), eq(bookings.customerId, account.id)))
+    .limit(1);
+  return { ok: false, error: existing ? "NOT_CANCELLABLE" : "NOT_FOUND" };
 }
 
 export async function getCustomerBooking(id: number) {
