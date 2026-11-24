@@ -28,6 +28,10 @@ export interface BookingTemplate {
   country: string
   /** The choice for the professional's own equipment package; extras differ per professional. */
   wantsPackage: boolean
+  /** The earlier request had equipment chosen (the choice is not copied for another professional). */
+  hadEquipment: boolean
+  /** The earlier request had uploaded music files (files are never copied). */
+  hadMusicFiles: boolean
 }
 
 export interface ReplacementSuggestion {
@@ -43,7 +47,18 @@ export interface ReplacementSuggestion {
   /** 0-100. */
   match: number
   reasons: ReplacementReason[]
+  /** The genres of the wishes (or the previous act) that this professional also plays, canonical keys. */
+  sharedGenres: string[]
+  /** Rate compared with the previous professional, in whole percent (negative = cheaper); null when unknown. */
+  rateDiffPercent: number | null
   href: string
+}
+
+/** Qualitative label for a match score. */
+export type MatchLevel = "strong" | "good" | "possible"
+export const MIN_MATCH = 50
+export function matchLevel(match: number): MatchLevel {
+  return match >= 80 ? "strong" : match >= 60 ? "good" : "possible"
 }
 
 export type ReplacementReason = "type" | "genres" | "price" | "city" | "eventTypes"
@@ -114,6 +129,27 @@ export function scoreReplacement(
   }
 
   return { match: Math.min(100, score), reasons }
+}
+
+/** The genres of the wishes and the previous act that the candidate also plays (canonical keys, in the order of the wishes). */
+export function sharedGenres(previous: ReplacementProfile, candidate: ReplacementProfile, wishedGenres: string[] = []): string[] {
+  const own = genreSet(candidate.genres)
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const genre of [...wishedGenres, ...previous.genres]) {
+    const key = canonicalGenre(genre)
+    const n = norm(key)
+    if (seen.has(n)) continue
+    seen.add(n)
+    if (own.has(n)) result.push(key)
+  }
+  return result
+}
+
+/** Rate difference in whole percent against the previous professional; null when either rate is unknown. */
+export function rateDiffPercent(previous: ReplacementProfile, candidate: ReplacementProfile): number | null {
+  if (previous.hourlyRateCents <= 0 || candidate.hourlyRateCents <= 0) return null
+  return Math.round(((candidate.hourlyRateCents - previous.hourlyRateCents) / previous.hourlyRateCents) * 100)
 }
 
 export const rateCents = parseHourlyRateCents

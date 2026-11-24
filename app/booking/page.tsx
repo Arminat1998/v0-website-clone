@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import useSWR from "swr"
-import { Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2, ChevronDown } from "lucide-react"
+import { Check, MapPin, AlertTriangle, Euro, ChevronLeft, ChevronRight, Clock, Speaker, CheckCircle2, LockKeyhole, Loader2, ChevronDown, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { uploadPresigned } from "@vercel/blob/client"
@@ -284,6 +284,13 @@ export default function BookingPage() {
   )
   const templateApplied = useRef(false)
   const [templateFrom, setTemplateFrom] = useState<string | null>(null)
+  const [templateNote, setTemplateNote] = useState<{ datePassed: boolean; hadEquipment: boolean; hadMusicFiles: boolean } | null>(null)
+  const [templateDismissed, setTemplateDismissed] = useState(false)
+  // A requested template that could not be used (not loadable, not reusable, or another kind of professional).
+  const templateFailed =
+    Boolean(fromBookingId) &&
+    !templateFrom &&
+    (template === null || Boolean(template && (template.professionalType === "photographer") !== Boolean(professionalId)))
   useEffect(() => {
     if (!template || templateApplied.current) return
     if ((template.professionalType === "photographer") !== Boolean(professionalId)) return
@@ -325,6 +332,15 @@ export default function BookingPage() {
     equipmentRestored.current = true
     setCurrentStep(1)
     setTemplateFrom(template.previousProfessionalName)
+    setTemplateNote({ datePassed: !template.eventDate, hadEquipment: template.hadEquipment, hadMusicFiles: template.hadMusicFiles })
+    if (!template.eventDate) {
+      // The earlier date has passed: send the customer to the date picker.
+      setTimeout(() => {
+        const calendar = document.getElementById("booking-calendar")
+        calendar?.scrollIntoView({ behavior: "smooth", block: "center" })
+        calendar?.focus({ preventScroll: true })
+      }, 300)
+    }
   }, [template, professionalId, artistId, initialDate])
 
   // A restored or changed start time may invalidate the saved end time.
@@ -1133,12 +1149,46 @@ export default function BookingPage() {
           {/* Right Column - Content Based on Step */}
           {currentStep === 1 && (
             <div className="space-y-4 sm:space-y-6">
-              {templateFrom && (
-                <div role="status" className="rounded-lg border border-border bg-muted/50 p-4 text-sm text-foreground">
-                  {tr(
-                    `Je wensen uit de eerdere aanvraag bij ${templateFrom} zijn overgenomen. Controleer ze en kies eventueel een andere datum. Muziekbestanden en extra apparatuur moet je opnieuw kiezen.`,
-                    `Your wishes from the earlier request with ${templateFrom} were carried over. Check them and change the date if needed. Music files and extra equipment have to be chosen again.`,
-                  )}
+              {templateFrom && templateNote && !templateDismissed && (
+                <div role="status" className="relative rounded-lg border border-emerald-200 bg-emerald-50 p-4 pr-11 text-sm text-emerald-950">
+                  <button
+                    type="button"
+                    onClick={() => setTemplateDismissed(true)}
+                    aria-label={tr("Melding sluiten", "Dismiss message")}
+                    className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-md text-emerald-800 hover:bg-emerald-100 touch-manipulation"
+                  >
+                    <X className="size-4" />
+                  </button>
+                  <p className="flex items-start gap-2 font-medium">
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                    {tr(`Je wensen uit de aanvraag bij ${templateFrom} zijn overgenomen.`, `Your wishes from the request with ${templateFrom} were carried over.`)}
+                  </p>
+                  <p className="mt-1 pl-6">
+                    {tr(
+                      "Overgenomen: locatie, tijden, soort evenement, genres, beschrijving en muziekwensen.",
+                      "Carried over: location, times, event type, genres, description and music wishes.",
+                    )}
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-10">
+                    {templateNote.datePassed && (
+                      <li>{tr("Kies een nieuwe datum: de vorige datum is verstreken.", "Pick a new date: the previous date has passed.")}</li>
+                    )}
+                    <li>{tr("Reiskosten worden opnieuw berekend voor deze professional.", "Travel costs are recalculated for this professional.")}</li>
+                    {(templateNote.hadEquipment || templateNote.hadMusicFiles) && (
+                      <li>{tr("Apparatuurkeuze en muziekbestanden kies je opnieuw.", "You choose equipment and music files again.")}</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              {templateFailed && !templateDismissed && (
+                <div role="alert" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                  <p>
+                    {tr(
+                      "We konden je eerdere wensen niet overnemen. Vul het formulier gewoon in: het kost maar een paar minuten.",
+                      "We couldn't carry over your earlier wishes. Just fill in the form, it only takes a few minutes.",
+                    )}
+                  </p>
                 </div>
               )}
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">

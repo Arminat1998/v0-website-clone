@@ -156,11 +156,11 @@ export function AccountBookingDetail({
         </Alert>
       )}
       <div className="grid items-start gap-6 lg:grid-cols-[1.6fr_1fr] lg:grid-rows-[auto_1fr]">
-        {/* On mobile the payment comes first: it is what the customer has to act on */}
+        {/* On mobile the payment comes first (what the customer has to act on), then the replacement card when the booking is closed */}
         <div className="min-w-0 lg:col-start-2 lg:row-start-1">
           <BookingPayment booking={b} invoice={invoice} bank={bank} />
         </div>
-        <div className="flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+        <div className={`flex min-w-0 flex-col gap-6 lg:order-none lg:col-start-1 lg:row-span-2 lg:row-start-1${closed ? " order-3" : ""}`}>
           <Card>
             <CardHeader>
               <CardTitle>
@@ -278,11 +278,12 @@ export function AccountBookingDetail({
             </CardContent>
           </Card>
         </div>
-        <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-start-2">
+        <div className={`flex min-w-0 flex-col gap-6 lg:order-none lg:col-start-2 lg:row-start-2${closed ? " order-2" : ""}`}>
           {closed && (
             <ReplacementSuggestions
               bookingId={b.id}
               professionalName={b.professionalName}
+              datePassed={status === "expired" || b.eventDate < new Date().toISOString().slice(0, 10)}
               browseHref={b.professionalType === "photographer" ? "/photo-video" : "/artiesten"}
             />
           )}

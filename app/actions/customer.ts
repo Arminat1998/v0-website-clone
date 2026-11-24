@@ -24,12 +24,16 @@ import {
 import { resolveCustomerProfessional, resolveCustomerProfessionals } from "@/lib/customer-catalog";
 import { getProfessionalProfileSummary, listLivePhotographers, listLiveProfessionalArtists } from "@/lib/professional-artist";
 import { isAllround } from "@/lib/profile-options";
+import { hasAudioFile } from "@/lib/bookings/audio";
 import { todayIso } from "@/lib/bookings/format";
 import { PACKAGE_OPTION_ID } from "@/lib/bookings/pricing";
 import {
   rateCents,
   replacementHref,
   scoreReplacement,
+  sharedGenres,
+  rateDiffPercent,
+  MIN_MATCH,
   type BookingTemplate,
   type ReplacementProfile,
   type ReplacementSuggestion,
@@ -445,6 +449,8 @@ export async function getBookingTemplate(id: number): Promise<BookingTemplate | 
       city: row.city,
       country: row.country ?? "",
       wantsPackage: row.equipment.includes(PACKAGE_OPTION_ID),
+      hadEquipment: row.equipment.length > 0,
+      hadMusicFiles: hasAudioFile(row.openingDanceFileName) || hasAudioFile(row.lastSongFileName),
     };
   } catch (error) {
     console.error("Failed to load the booking template:", withoutValuesMessage(error));
@@ -502,15 +508,18 @@ export async function getReplacementSuggestions(id: number): Promise<Replacement
         image: candidate.avatar ?? candidate.image ?? null,
         match,
         reasons,
+        sharedGenres: sharedGenres(previous, profile, row.musicGenres),
+        rateDiffPercent: rateDiffPercent(previous, profile),
         href: replacementHref(type, candidateId, row.id),
       });
     }
     return suggestions
-      .filter((item) => item.match >= 30)
+      .filter((item) => item.match >= MIN_MATCH)
       .sort((a, b) => b.match - a.match || b.rating - a.rating || a.name.localeCompare(b.name))
       .slice(0, 4);
   } catch (error) {
     console.error("Failed to find replacements:", withoutValuesMessage(error));
-    return [];
+    // Thrown so the page can tell a failure apart from "no matches".
+    throw new Error("replacements-failed");
   }
 }
