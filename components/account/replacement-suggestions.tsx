@@ -4,8 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
-import { ArtiestCard } from "@/components/artiest-card";
-import { PhotoVideoCard } from "@/components/photo-video-card";
+import { ReplacementCard } from "@/components/account/replacement-card";
 import { ArtiestProfileModal } from "@/components/artiest-profile-modal";
 import { photographerAsArtist } from "@/lib/photographer-as-artist";
 import type { Artist, Photographer } from "@/lib/smart-search";
@@ -94,7 +93,7 @@ export function ReplacementSuggestions({
           </p>
         )}
         {data && data.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-1">
         {data.map((item) => {
           const level = LEVELS[matchLevel(item.match)];
           const genres = item.sharedGenres.map((genre) => genreLabel(genre, nl));
@@ -119,43 +118,16 @@ export function ReplacementSuggestions({
               {level[nl ? 0 : 1]}
             </Badge>
           );
-          const footer = (
-            <div className="flex flex-col gap-2">
-              {reasons.length > 0 && (
-                <ul className="flex flex-wrap gap-1.5" aria-label={nl ? "Waarom dit past" : "Why this fits"}>
-                  {reasons.map((reason) => (
-                    <li key={reason} className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                      {reason}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 whitespace-normal"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  show(item);
-                }}
-              >
-                {nl ? `Bekijk profiel van ${item.name}` : `View ${item.name}'s profile`}
-              </Button>
-              <Button variant="brand" asChild className="h-auto min-h-11 whitespace-normal py-2" onClick={(event) => event.stopPropagation()}>
-                <Link href={item.href}>{nl ? `Boek ${item.name} met je wensen` : `Book ${item.name} with your wishes`}</Link>
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                {nl ? "Je controleert alles nog voordat je verstuurt." : "You review everything before you send."}
-              </p>
-            </div>
-          );
-          return item.type === "photographer" ? (
-            <PhotoVideoCard key={item.id} professional={item.profile as Photographer} onClick={() => show(item)} badge={badge} footer={footer} />
-          ) : (
-            <ArtiestCard key={item.id} artist={item.profile as Artist} onClick={() => show(item)} badge={badge} footer={footer} />
+          return (
+            <ReplacementCard key={item.id} item={item} nl={nl} badge={badge} reasons={reasons} onView={() => show(item)} />
           );
         })}
           </div>
+        )}
+        {data && data.length > 0 && (
+          <p className="text-center text-xs text-muted-foreground">
+            {nl ? "Je controleert alles nog voordat je verstuurt." : "You review everything before you send."}
+          </p>
         )}
         <Button variant="outline" asChild className="min-h-11">
           <Link href={browseHref}>{nl ? "Alle professionals bekijken" : "Browse all professionals"}</Link>
