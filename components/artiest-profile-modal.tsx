@@ -20,9 +20,12 @@ interface ArtiestProfileModalProps {
   onOpenChange: (open: boolean) => void
   /** The professional's own page; defaults to the artist page. Null hides the link. */
   fullPageHref?: string | null
+  /** Books with these wishes instead of starting a fresh booking. */
+  bookHref?: string
+  bookLabel?: string
 }
 
-export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }: ArtiestProfileModalProps) {
+export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref, bookHref, bookLabel }: ArtiestProfileModalProps) {
   const nl = useLanguage().language !== "en"
   // The page content (cover photo, avatar, texts) of a real professional, so the modal matches their page.
   const pageId = artist && open && !isDemoProfessional(artist.id) ? String(artist.id) : null
@@ -45,6 +48,8 @@ export function ArtiestProfileModal({ artist, open, onOpenChange, fullPageHref }
           content={content}
           onNavigate={() => onOpenChange(false)}
           stickyBookBar
+          bookHref={bookHref}
+          bookLabel={bookLabel}
           heroAction={
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
               {pageHref && (

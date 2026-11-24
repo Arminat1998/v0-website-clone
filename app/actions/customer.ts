@@ -23,7 +23,7 @@ import {
 } from "@/lib/customer-types";
 import { resolveCustomerProfessional, resolveCustomerProfessionals } from "@/lib/customer-catalog";
 import { getArtistPath } from "@/lib/artist-slug";
-import type { Artist } from "@/lib/smart-search";
+import type { Artist, Photographer } from "@/lib/smart-search";
 import { getProfessionalProfileSummary, listLivePhotographers, listLiveProfessionalArtists } from "@/lib/professional-artist";
 import { isAllround } from "@/lib/profile-options";
 import { hasAudioFile } from "@/lib/bookings/audio";
@@ -517,6 +517,7 @@ export async function getReplacementSuggestions(id: number): Promise<Replacement
           type === "artist"
             ? getArtistPath(candidate as Artist)
             : (candidate as { href?: string }).href ?? null,
+        profile: candidate as Artist | Photographer,
       });
     }
     return suggestions

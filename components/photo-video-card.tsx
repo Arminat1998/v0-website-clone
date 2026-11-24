@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { MapPin, Clock, CheckCircle, Wallet } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,9 +22,13 @@ interface PhotoVideoCardProps {
   isVisited?: boolean
   /** Distance to the searched city. */
   distanceKm?: number | null
+  /** Replaces the default buttons, e.g. to book with carried-over wishes. */
+  footer?: ReactNode
+  /** A badge on the photo, top left. */
+  badge?: ReactNode
 }
 
-export function PhotoVideoCard({ professional, onClick, isVisited = false, distanceKm }: PhotoVideoCardProps) {
+export function PhotoVideoCard({ professional, onClick, isVisited = false, distanceKm, footer, badge }: PhotoVideoCardProps) {
   const { t, language } = useLanguage()
   const router = useRouter()
   const bookGuard = useBookGuard()
@@ -59,7 +64,9 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
           />
         </div>
 
-        {isVisited && (
+        {badge && <div className="absolute top-3 left-3 z-10">{badge}</div>}
+
+        {!badge && isVisited && (
           <div className="absolute top-3 left-3 z-10">
             <div
               className="flex items-center gap-1 px-2.5 py-1 rounded-full shadow-lg"
@@ -162,6 +169,9 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
         </div>
 
         {/* mt-auto: the buttons of cards next to each other stand on one line. */}
+        {footer ? (
+          <div className="mt-auto">{footer}</div>
+        ) : (
         <div className="mt-auto flex gap-2">
           <Button
             variant="outline"
@@ -188,6 +198,7 @@ export function PhotoVideoCard({ professional, onClick, isVisited = false, dista
             </Button>
           )}
         </div>
+        )}
       </CardContent>
     </Card>
   )

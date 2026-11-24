@@ -35,6 +35,9 @@ interface ArtistProfileViewProps {
   content?: ArtistPageContent | null;
   /** In the modal: a bar that stays at the bottom with the price and the book button. */
   stickyBookBar?: boolean;
+  /** Overrides the booking link and button text, e.g. to carry over the wishes of an earlier booking. */
+  bookHref?: string;
+  bookLabel?: string;
 }
 
 // The same look as the tabs of the full page: plain text with a red line under the open tab.
@@ -48,6 +51,8 @@ export function ArtistProfileView({
   heroAction,
   content,
   stickyBookBar = false,
+  bookHref,
+  bookLabel,
 }: ArtistProfileViewProps) {
   const router = useRouter();
   const bookGuard = useBookGuard();
@@ -72,7 +77,7 @@ export function ArtistProfileView({
     `/placeholder.svg?height=144&width=144&query=${encodeURIComponent(artist.name)} profile portrait`;
 
   const book = () => {
-    const href = bookingHref(artist);
+    const href = bookHref ?? bookingHref(artist);
     if (!bookGuard(href)) return;
     onNavigate?.();
     router.push(href);
@@ -264,7 +269,7 @@ export function ArtistProfileView({
               <DemoBookButton className="h-11 max-w-[55%] shrink whitespace-normal text-xs leading-tight sm:max-w-none sm:text-sm" />
             ) : (
               <Button className="h-11 shrink-0 bg-red-700 px-6 text-white hover:bg-red-600" onClick={book}>
-                {t.book}
+                {bookLabel ?? t.book}
               </Button>
             )}
           </div>

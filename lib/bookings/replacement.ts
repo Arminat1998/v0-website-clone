@@ -1,3 +1,4 @@
+import type { Artist, Photographer } from "@/lib/smart-search"
 import { canonicalEventType, canonicalGenre } from "@/lib/profile-options"
 import { parseHourlyRateCents } from "@/lib/bookings/pricing"
 
@@ -54,6 +55,8 @@ export interface ReplacementSuggestion {
   href: string
   /** The public profile page (media, bio, reviews); null when there is none. */
   profileHref: string | null
+  /** The full profile, so the card and the profile window look like the ones on the overview. */
+  profile: Artist | Photographer
 }
 
 /** Qualitative label for a match score. */

@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useBookGuard } from "@/hooks/use-book-guard"
 import { MapPin, Clock, CheckCircle, Speaker, Wallet } from "lucide-react"
 import { getArtistTypeLabels } from "@/lib/artist-types"
@@ -22,9 +23,13 @@ interface ArtiestCardProps {
   isVisited?: boolean
   /** Distance to the searched city. */
   distanceKm?: number | null
+  /** Replaces the default buttons, e.g. to book with carried-over wishes. */
+  footer?: ReactNode
+  /** A badge on the photo, top left. */
+  badge?: ReactNode
 }
 
-export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: ArtiestCardProps) {
+export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, footer, badge }: ArtiestCardProps) {
   const router = useRouter()
   const bookGuard = useBookGuard()
   const { t, language } = useLanguage()
@@ -61,7 +66,9 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
           />
         </div>
 
-        {isVisited && (
+        {badge && <div className="absolute top-3 left-3 z-10">{badge}</div>}
+
+        {!badge && isVisited && (
           <div className="absolute top-3 left-3 z-10">
             <div
               className="flex items-center gap-1 px-2.5 py-1 rounded-full shadow-lg"
@@ -196,6 +203,9 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
         </div>
 
         {/* mt-auto: the buttons of cards next to each other stand on one line. */}
+        {footer ? (
+          <div className="mt-auto">{footer}</div>
+        ) : (
         <div className="mt-auto flex gap-2">
           <Button
             variant="outline"
@@ -222,6 +232,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm }: 
             </Button>
           )}
         </div>
+        )}
       </CardContent>
     </Card>
   )
