@@ -39,6 +39,7 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, fo
 
   const nl = language === "nl"
   const genres = tagLabels(artist.musicStyles, styleLabel, nl)
+  // An Allround DJ gets a prominent badge and at most two specialties next to it.
   const displayedGenres = genres.slice(0, 2)
   const remainingGenres = genres.length - 2
 
@@ -166,6 +167,9 @@ export function ArtiestCard({ artist, onClick, isVisited = false, distanceKm, fo
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">{t.musicGenresLabel}</p>
             <div className="flex flex-wrap gap-1.5">
+              {artist.allround && (
+                <Badge className="text-xs px-2.5 py-0.5 bg-primary text-primary-foreground font-semibold">Allround</Badge>
+              )}
               {displayedGenres.map((genre) => (
                 <Badge
                   key={genre}

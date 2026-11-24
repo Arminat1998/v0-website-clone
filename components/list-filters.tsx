@@ -15,7 +15,7 @@ import { formatEventDate } from "@/lib/bookings/format"
 import { CALENDAR_MONTHS, calendarStart, calendarYears, isPastDate, mondayOffset } from "@/lib/filter-calendar"
 import { lettersOnly } from "@/lib/input-filters"
 import { PRICE_MAX, PRICE_MIN, cleanDuration, styleLabel, typeLabel, type ListFilters as Filters, type ProfessionalKind } from "@/lib/list-filters"
-import { ARTIST_TYPES, EVENT_TYPE_GROUPS, GENRE_GROUPS, PHOTO_VIDEO_TYPES } from "@/lib/profile-options"
+import { ALLROUND, ARTIST_TYPES, EVENT_TYPE_GROUPS, GENRE_GROUPS, PHOTO_VIDEO_TYPES } from "@/lib/profile-options"
 
 interface ListFiltersProps {
   kind: ProfessionalKind
@@ -151,7 +151,7 @@ export function ListFilters({ kind, filters, onChange, onClear, fromSearch, isMo
             placeholder={t.selectGenres}
             searchPlaceholder={nl ? "Zoek een genre..." : "Search a genre..."}
             labelFor={(value) => styleLabel(value, nl)}
-            groups={comboGroups(GENRE_GROUPS, nl)}
+            groups={comboGroups([{ nl: "Algemeen", en: "General", options: [{ value: ALLROUND, nl: "Allround", en: "Allround" }] }, ...GENRE_GROUPS], nl)}
           />
         </Section>
       )}

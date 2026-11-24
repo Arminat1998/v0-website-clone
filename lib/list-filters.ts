@@ -7,6 +7,7 @@ import type { Language } from "@/lib/i18n"
 import { formatEventDate, todayIso } from "@/lib/bookings/format"
 import { formatEuro, parseHourlyRateCents } from "@/lib/bookings/pricing"
 import {
+  ALLROUND,
   ARTIST_TYPES,
   PHOTO_SPECIALTY_GROUPS,
   PHOTO_VIDEO_TYPES,
@@ -56,7 +57,7 @@ export type FilterKey = keyof ListFilters
 /** The parts of an artist or photographer the lists filter and sort on. */
 export type ListedProfessional = Pick<
   Artist,
-  "id" | "name" | "price" | "location" | "specialty" | "rating" | "reviews" | "available" | "category" | "artistTypes" | "musicStyles" | "eventTypes" | "availableDates" | "unavailableDates" | "minHours" | "maxHours" | "rangeKm"
+  "id" | "name" | "price" | "location" | "specialty" | "rating" | "reviews" | "available" | "category" | "artistTypes" | "musicStyles" | "allround" | "eventTypes" | "availableDates" | "unavailableDates" | "minHours" | "maxHours" | "rangeKm"
 >
 
 function hasPriceFilter([min, max]: [number, number]) {
@@ -119,8 +120,11 @@ export function filterProfessionals<T extends ListedProfessional>(list: T[], fil
       genres.length > 0 &&
       !genres.some(
         (genre) =>
-          professional.musicStyles?.some((style) => sameTag(style, genre)) ||
-          professional.specialty.toLowerCase().includes(genre.toLowerCase()),
+          // An Allround DJ offers every genre; "Allround" itself selects only those DJs.
+          professional.allround ||
+          (genre !== ALLROUND &&
+            (professional.musicStyles?.some((style) => sameTag(style, genre)) ||
+              professional.specialty.toLowerCase().includes(genre.toLowerCase()))),
       )
     ) {
       return false
