@@ -57,8 +57,7 @@ export function ForgotPasswordModal({ open, onOpenChange, onBackToLogin }: Forgo
         }}
         onCloseAutoFocus={(event) => {
           // Opened from the login window, which is gone by now: back to the button that started it.
-          const trigger = Array.from(document.querySelectorAll<HTMLElement>("[data-login-trigger]"))
-            .find((element) => element.getClientRects().length > 0)
+          const trigger = document.querySelector<HTMLElement>("[data-login-trigger]")
           if (trigger) {
             event.preventDefault()
             trigger.focus()
