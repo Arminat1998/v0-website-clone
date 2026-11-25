@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import { Fragment, useLayoutEffect, useRef, useState, useTransition } from "react"
 import useSWR from "swr"
 import { ArrowLeft, LifeBuoy, MessageSquare, Send } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { getInbox, getThread, openConversation, sendMessage, type InboxItem } from "@/app/actions/messages"
 import { AccountHeading } from "@/components/account/account-common"
 import { cn } from "@/lib/utils"
@@ -14,6 +14,17 @@ function formatTime(iso: string, locale: string) {
   const date = new Date(iso)
   const today = new Date().toDateString() === date.toDateString()
   return date.toLocaleString(locale, today ? { hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short" })
+}
+
+function dateLabel(date: Date, today: Date, yesterday: Date, nl: boolean, locale: string) {
+  const day = date.toDateString()
+  if (day === today.toDateString()) return nl ? "Vandaag" : "Today"
+  if (day === yesterday.toDateString()) return nl ? "Gisteren" : "Yesterday"
+  return date.toLocaleDateString(locale, {
+    day: "numeric",
+    month: "short",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  })
 }
 
 export function ChatHeading({ audience }: { audience: "admin" | "professional" }) {
@@ -67,6 +78,11 @@ export function ChatInbox({
   const [problem, setProblem] = useState<{ id: number | null; text: string } | null>(null)
   const [pending, startTransition] = useTransition()
   const threadRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const nearBottom = useRef(true)
+  const previousThread = useRef<number | undefined>(undefined)
+  const [sent, setSent] = useState<{ conversationId: number } | null>(null)
+  const handledSend = useRef<typeof sent>(null)
 
   const inbox = useSWR("chat-inbox", () => getInbox(), { fallbackData: initialInbox, refreshInterval: 10000 })
   const items = inbox.data ?? []
@@ -79,10 +95,32 @@ export function ChatInbox({
   const error = problem && problem.id === (selected?.id ?? null) ? problem.text : ""
   const notFound = selectedId !== null && !selected
 
-  useEffect(() => {
+  const activeId = selected?.id
+  const lastMessageId = thread.data?.at(-1)?.id
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+
+  useLayoutEffect(() => {
+    const field = textareaRef.current
+    if (!field) return
+    field.style.height = "auto"
+    const borderHeight = field.offsetHeight - field.clientHeight
+    field.style.height = `${field.scrollHeight + borderHeight}px`
+  }, [draft, activeId])
+
+  useLayoutEffect(() => {
+    const changedConversation = previousThread.current !== activeId
+    previousThread.current = activeId
+    const justSent = sent !== handledSend.current && sent?.conversationId === activeId
+    handledSend.current = sent
+
     const panel = threadRef.current
-    if (panel) panel.scrollTop = panel.scrollHeight
-  }, [thread.data?.length, selectedId])
+    if (panel && (changedConversation || justSent || nearBottom.current)) {
+      panel.scrollTop = panel.scrollHeight
+      nearBottom.current = true
+    }
+  }, [activeId, lastMessageId, sent])
 
   function select(id: number) {
     setSelectedId(id)
@@ -132,7 +170,11 @@ export function ChatInbox({
         return
       }
       setDrafts((current) => (current[id] === body ? { ...current, [id]: "" } : current))
-      await Promise.all([thread.mutate(), inbox.mutate()])
+      try {
+        await Promise.all([thread.mutate(), inbox.mutate()])
+      } finally {
+        setSent({ conversationId: id })
+      }
     })
   }
 
@@ -223,7 +265,7 @@ export function ChatInbox({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="@2xl:hidden"
+                  className="size-11 shrink-0 @2xl:hidden"
                   onClick={() => setSelectedId(null)}
                   aria-label={nl ? "Terug naar gesprekken" : "Back to conversations"}
                 >
@@ -235,7 +277,15 @@ export function ChatInbox({
                   <p className={roleBadge}>{kindLabel(selected.kind)}</p>
                 </div>
               </header>
-              <div ref={threadRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-muted/20 p-4" aria-live="polite">
+              <div
+                ref={threadRef}
+                className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-muted/20 p-4"
+                aria-live="polite"
+                onScroll={(e) => {
+                  const panel = e.currentTarget
+                  nearBottom.current = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 80
+                }}
+              >
                 {thread.data === undefined && !thread.error && (
                   <p role="status" className="m-auto text-center text-sm text-muted-foreground">
                     {nl ? "Gesprek laden..." : "Loading conversation..."}
@@ -260,22 +310,34 @@ export function ChatInbox({
                     <p>{nl ? "Stuur het eerste bericht om het gesprek te starten." : "Send the first message to start the conversation."}</p>
                   </div>
                 )}
-                {thread.data?.map((message) => (
-                  <div key={message.id} className={cn("flex flex-col gap-1", message.mine ? "items-end" : "items-start")}>
-                    {!message.mine && message.role === "admin" && <span className={roleBadge}>ARSI Support</span>}
-                    <p
-                      className={cn(
-                        "max-w-[min(85%,28rem)] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-xs",
-                        message.mine ? "rounded-tr-xs bg-red-700 text-white" : "rounded-tl-xs border border-border/50 bg-muted text-foreground",
+                {thread.data?.map((message, index, allMessages) => {
+                  const date = new Date(message.createdAt)
+                  const previous = allMessages[index - 1]
+                  const newDay = !previous || new Date(previous.createdAt).toDateString() !== date.toDateString()
+                  return (
+                    <Fragment key={message.id}>
+                      {newDay && (
+                        <span className="mx-auto my-2 rounded-full bg-muted/50 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {dateLabel(date, today, yesterday, nl, locale)}
+                        </span>
                       )}
-                    >
-                      {message.body}
-                    </p>
-                    <time dateTime={message.createdAt} className="text-xs text-muted-foreground">
-                      {formatTime(message.createdAt, locale)}
-                    </time>
-                  </div>
-                ))}
+                        <div className={cn("flex flex-col gap-1", message.mine ? "items-end" : "items-start")}>
+                          {!message.mine && message.role === "admin" && <span className={roleBadge}>ARSI Support</span>}
+                          <p
+                            className={cn(
+                              "max-w-[min(85%,28rem)] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-xs",
+                              message.mine ? "rounded-tr-xs bg-brand text-brand-foreground" : "rounded-tl-xs border border-border/60 bg-muted/80 text-foreground dark:bg-muted",
+                            )}
+                          >
+                            {message.body}
+                          </p>
+                          <time dateTime={message.createdAt} className="mt-0.5 text-[10px] text-muted-foreground">
+                            {date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+                          </time>
+                        </div>
+                    </Fragment>
+                  )
+                })}
               </div>
               <form
                 className="flex flex-col gap-2 border-t p-4"
@@ -284,13 +346,15 @@ export function ChatInbox({
                   submit()
                 }}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-end gap-2">
                   <label htmlFor="chat-message" className="sr-only">
                     {nl ? "Bericht" : "Message"}
                   </label>
-                  <Input
+                  <Textarea
+                    ref={textareaRef}
                     id="chat-message"
-                    className="min-h-11 bg-background"
+                    rows={1}
+                    className="field-sizing-fixed min-h-11 max-h-32 min-w-0 resize-none overflow-y-auto bg-background"
                     value={draft}
                     maxLength={2000}
                     autoComplete="off"
@@ -299,11 +363,13 @@ export function ChatInbox({
                       setDrafts((current) => ({ ...current, [selected.id]: text }))
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.nativeEvent.isComposing || e.keyCode === 229)) e.preventDefault()
+                      if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing || e.keyCode === 229) return
+                      e.preventDefault()
+                      submit()
                     }}
                     placeholder={nl ? "Typ een bericht..." : "Type a message..."}
                   />
-                  <Button type="submit" className="min-h-11 bg-red-700 text-white hover:bg-red-800" disabled={!draft.trim() || pending} aria-label={nl ? "Versturen" : "Send"}>
+                  <Button type="submit" className="min-h-11 min-w-11 bg-red-700 text-white hover:bg-red-800" disabled={!draft.trim() || pending} aria-label={nl ? "Versturen" : "Send"}>
                     <Send />
                     <span className="hidden sm:inline">{nl ? "Versturen" : "Send"}</span>
                   </Button>
