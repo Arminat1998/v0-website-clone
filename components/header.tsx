@@ -14,22 +14,7 @@ import { ProfileDropdown } from "@/components/profile-dropdown"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/contexts/language-context"
 import { useTheme } from "@/contexts/theme-context"
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { cn } from "@/lib/utils"
-import { Menu, Moon, Sun, X } from "lucide-react"
-
-/** The main sections of the site. `match` lists the paths that belong to a section, such as a profile page. */
-const NAV_ITEMS = [
-  { href: "/artiesten", nl: "Artiesten", en: "Artists", match: ["/artiesten", "/artiest"] },
-  { href: "/photo-video", nl: "Foto & video", en: "Photo & video", match: ["/photo-video", "/foto-video"] },
-  { href: "/#hoe-het-werkt", nl: "Hoe het werkt", en: "How it works", match: [] as string[] },
-]
-
-/** "page" on the page itself, "true" on pages below it (a profile), undefined elsewhere. */
-function currentState(item: (typeof NAV_ITEMS)[number], pathname: string) {
-  if (pathname === item.href) return "page" as const
-  return item.match.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ? ("true" as const) : undefined
-}
+import { Moon, Sun } from "lucide-react"
 
 // The server sends Dutch titles; these follow the language the visitor chose.
 const PAGE_TITLES: Record<string, { nl: string; en: string }> = {
@@ -148,62 +133,52 @@ export function Header() {
     observer.observe(document.head, { childList: true, subtree: true, characterData: true })
     return () => observer.disconnect()
   }, [pathname, nl])
-  const [menuOpen, setMenuOpen] = useState(false)
   const themeLabel = nl ? "Licht of donker thema" : "Light or dark theme"
 
   const openLoginModal = () => {
     afterLoginRef.current = null
-    setMenuOpen(false)
     setLoginModalOpen(true)
   }
-
-  const themeToggle = (className: string) => (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={toggleTheme}
-      className={cn("size-11 text-foreground hover:bg-accent", className)}
-      title={themeLabel}
-      aria-label={themeLabel}
-      suppressHydrationWarning
-    >
-      <Moon className="size-5 dark:hidden" />
-      <Sun className="hidden size-5 dark:block" />
-    </Button>
-  )
 
   return (
     <>
       <header
         suppressHydrationWarning
-        className="flex items-center justify-between gap-2 border-b border-border bg-background px-3 py-2 sm:gap-4 sm:px-6 sm:py-3"
+        className="flex items-center justify-between gap-1 border-b border-border bg-background px-2 py-2 sm:gap-4 sm:px-6 sm:py-3"
       >
-        <div className="flex min-w-0 items-center gap-8">
-          <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label={nl ? "ARSI Events, naar home" : "ARSI Events, go to home"}>
-            <Image
-              src="/arsi-logo.png"
-              alt=""
-              width={120}
-              height={60}
-              priority
-              className="h-8 w-auto sm:h-12 dark:hidden"
-            />
-            <Image
-              src="/arsi-logo-dark.png"
-              alt=""
-              width={120}
-              height={60}
-              priority
-              className="hidden h-8 w-auto sm:h-12 dark:block"
-            />
-          </Link>
-        </div>
+        <Link href="/" className="flex min-h-11 shrink-0 items-center" aria-label={nl ? "ARSI Events, naar home" : "ARSI Events, go to home"}>
+          <Image
+            src="/arsi-logo.png"
+            alt=""
+            width={120}
+            height={60}
+            priority
+            className="h-7 w-14 object-contain sm:h-12 sm:w-auto dark:hidden"
+          />
+          <Image
+            src="/arsi-logo-dark.png"
+            alt=""
+            width={120}
+            height={60}
+            priority
+            className="hidden h-7 w-14 object-contain sm:h-12 sm:w-auto dark:block"
+          />
+        </Link>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
-          </div>
-          {themeToggle("hidden sm:inline-flex")}
+        <div className="flex shrink-0 items-center sm:gap-2">
+          <LanguageSwitcher />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="size-11 text-foreground hover:bg-accent"
+            title={themeLabel}
+            aria-label={themeLabel}
+            suppressHydrationWarning
+          >
+            <Moon className="size-5 dark:hidden" />
+            <Sun className="hidden size-5 dark:block" />
+          </Button>
 
           {isPending ? (
             <div className="h-11 w-24 sm:w-40" aria-hidden="true" />
@@ -219,13 +194,13 @@ export function Header() {
               <Button
                 variant="ghost"
                 data-login-trigger
-                className="h-11 px-2 text-sm text-red-700 max-[359px]:hidden hover:bg-red-50 hover:text-red-700 sm:px-4 sm:text-base dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
+                className="h-11 px-1.5 text-xs text-red-700 hover:bg-red-50 hover:text-red-700 sm:px-4 sm:text-base dark:text-red-400 dark:hover:bg-red-950/30 dark:hover:text-red-300"
                 onClick={openLoginModal}
               >
                 {nl ? "Inloggen" : "Log in"}
               </Button>
               <Button
-                className="h-11 bg-red-700 px-3 text-sm text-white hover:bg-red-600 sm:px-6 sm:text-base"
+                className="h-11 bg-red-700 px-2 text-xs text-white hover:bg-red-600 sm:px-6 sm:text-base"
                 onClick={() => {
                   afterLoginRef.current = null
                   setSignupModalOpen(true)
@@ -235,65 +210,6 @@ export function Header() {
               </Button>
             </>
           )}
-
-          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-11" aria-label={nl ? "Menu openen" : "Open menu"}>
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            {/* The sheet's own close button is 16 px and English only, so it is replaced by the one below. */}
-            <SheetContent side="right" className="[&>button]:hidden">
-              <SheetHeader className="flex-row items-center justify-between">
-                <SheetTitle>Menu</SheetTitle>
-                <SheetDescription className="sr-only">
-                  {nl ? "Navigatie, taal en thema" : "Navigation, language and theme"}
-                </SheetDescription>
-                <div>
-                  <SheetClose asChild>
-                    <Button variant="ghost" size="icon" className="size-11" aria-label={nl ? "Menu sluiten" : "Close menu"}>
-                      <X className="size-5" />
-                    </Button>
-                  </SheetClose>
-                </div>
-              </SheetHeader>
-              <nav aria-label={nl ? "Hoofdnavigatie" : "Main navigation"} className="px-4">
-                <ul className="flex flex-col gap-1">
-                  {NAV_ITEMS.map((item) => {
-                    const current = currentState(item, pathname)
-                    return (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          aria-current={current}
-                          onClick={() => setMenuOpen(false)}
-                          className={cn(
-                            "flex min-h-12 items-center rounded-lg border-l-4 px-4 text-base transition-colors focus-visible:outline-2 focus-visible:outline-ring",
-                            current
-                              ? "border-red-600 bg-accent font-semibold text-foreground"
-                              : "border-transparent text-foreground hover:bg-accent",
-                          )}
-                        >
-                          {nl ? item.nl : item.en}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </nav>
-              {!isPending && !isLoggedIn && (
-                <div className="px-4 min-[360px]:hidden">
-                  <Button variant="outline" className="h-11 w-full" onClick={openLoginModal}>
-                    {nl ? "Inloggen" : "Log in"}
-                  </Button>
-                </div>
-              )}
-              <div className="mt-auto flex items-center justify-between border-t border-border p-4 sm:hidden">
-                <LanguageSwitcher showLabel />
-                {themeToggle("")}
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       </header>
 
