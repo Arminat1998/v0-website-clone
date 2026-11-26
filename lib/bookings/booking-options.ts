@@ -68,3 +68,13 @@ export async function loadProfessionalCity(professionalId: string) {
     .limit(1)
   return row?.city?.trim() || null
 }
+
+/** The professional's own travel range in km, as set on the profile; null without a profile. */
+export async function loadProfessionalRangeKm(professionalId: string) {
+  const [row] = await db
+    .select({ rangeKm: professionalProfiles.rangeKm })
+    .from(professionalProfiles)
+    .where(eq(professionalProfiles.professionalId, professionalId))
+    .limit(1)
+  return typeof row?.rangeKm === "number" ? row.rangeKm : null
+}

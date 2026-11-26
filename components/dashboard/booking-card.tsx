@@ -10,13 +10,14 @@ import { canonicalEventType, eventTypeLabel } from "@/lib/profile-options"
 import { formatEuro } from "@/lib/bookings/pricing"
 import { clientName, daysUntil, formatEventDate, formatShortDate } from "@/lib/bookings/format"
 import { BookingStatusBadge, InvoiceStatusBadge, PayoutStatusBadge } from "./booking-status-badge"
+import { OutsideRange } from "./outside-range"
 
 /** `headingLevel`: 2 in a list right below the page title, 3 inside a section with its own heading. */
 export function BookingCard({
   booking,
   headingLevel = 2,
 }: {
-  booking: Booking & { invoice?: InvoiceSummary | null }
+  booking: Booking & { invoice?: InvoiceSummary | null; rangeKm?: number | null }
   headingLevel?: 2 | 3
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3"
@@ -87,6 +88,7 @@ export function BookingCard({
               </div>
             )}
           </dl>
+          {booking.status === "pending" && <OutsideRange distanceKm={booking.distanceKm} rangeKm={booking.rangeKm} />}
 
           {booking.eventTypes.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">

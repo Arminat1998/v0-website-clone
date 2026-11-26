@@ -122,6 +122,8 @@ export default function BookingPage() {
   const [lookupNumber, setLookupNumber] = useState("")
   const [lookupExt, setLookupExt] = useState("")
   const [addressFound, setAddressFound] = useState(false)
+  // Further than the professional's own range: still allowed, but the customer is told and the professional sees it.
+  const [rangeKm, setRangeKm] = useState<number | null>(null)
   
   // Step 2 - Event Details
   const [eventName, setEventName] = useState("")
@@ -242,7 +244,7 @@ export default function BookingPage() {
       step: currentStep, eventDate, eventLocation, distance, eventName, startTime, endTime, selectedEventTypes, selectedMusicGenres, capacity,
       description, specialRequests, playlistLink, openingDanceOption, openingDanceLink, lastSongOption, lastSongLink, dressCode,
       streetName, houseNumber, houseNumberExt, postalCode, city, country, selectedEquipment,
-      abroad, lookupPostcode, lookupNumber, lookupExt, addressFound,
+      abroad, lookupPostcode, lookupNumber, lookupExt, addressFound, rangeKm,
     },
     (saved) => {
       const text = (value: unknown) => (typeof value === "string" ? value : "")
@@ -283,6 +285,7 @@ export default function BookingPage() {
       setLookupNumber(text(saved.lookupNumber))
       setLookupExt(text(saved.lookupExt))
       setAddressFound(saved.addressFound === true && km !== null)
+      setRangeKm(typeof saved.rangeKm === "number" ? saved.rangeKm : null)
       equipmentRestored.current = true
       // Files and personal details are not kept, so never further than step 2.
       if (date && km !== null && Number(saved.step) >= 2) setCurrentStep(2)
@@ -576,6 +579,7 @@ export default function BookingPage() {
   const shownTotal = changedTotal ?? pricing?.totalCents ?? 0
 
   // The place of step 1 decides the travel costs, so the address of step 2 takes it over. It may be a postal code too.
+  const outsideRange = distance !== null && rangeKm !== null && distance > rangeKm
   const locationIsPostcode = /\d/.test(eventLocation)
   const eventPostalCode = locationIsPostcode ? eventLocation.trim().toUpperCase() : postalCode
   const eventCity = locationIsPostcode ? city.trim() || eventLocation.trim() : eventLocation.trim()
@@ -900,11 +904,13 @@ export default function BookingPage() {
       const result = await calculateBookingDistance(String(professional.id), place)
       // A newer search has started: this answer is outdated.
       if (requestId !== distanceRequest.current) return
-      if (result.ok) setDistance(result.distanceKm)
-      else
+      if (result.ok) {
+        setDistance(result.distanceKm)
+        setRangeKm(result.rangeKm)
+      } else
         setDistanceError(
           result.error === "OUT_OF_RANGE"
-            ? tr(`Deze locatie ligt buiten het werkgebied van ${professional.name} (maximaal ${result.rangeKm} km).`, `This location is outside ${professional.name}'s travel range (up to ${result.rangeKm} km).`)
+            ? tr("Deze locatie ligt te ver weg (meer dan 1.500 km).", "This location is too far away (more than 1,500 km).")
             : result.error === "TOO_MANY"
               ? tr("Je hebt de afstand vaak berekend. Probeer het over een paar minuten opnieuw.", "You calculated the distance many times. Try again in a few minutes.")
               : result.error === "UNAUTHORIZED"
@@ -958,13 +964,14 @@ export default function BookingPage() {
         setCountry(a.country)
         setEventLocation(a.city)
         setDistance(result.distanceKm)
+        setRangeKm(result.rangeKm)
         setAddressFound(true)
       } else {
         setDistanceError(
           result.error === "ADDRESS_NOT_FOUND"
             ? tr("We vinden dit adres niet. Controleer postcode, huisnummer en toevoeging.", "We can't find this address. Check the postal code, house number and addition.")
             : result.error === "OUT_OF_RANGE"
-              ? tr(`Deze locatie ligt buiten het werkgebied van ${professional.name} (maximaal ${result.rangeKm} km).`, `This location is outside ${professional.name}'s travel range (up to ${result.rangeKm} km).`)
+              ? tr("Deze locatie ligt te ver weg (meer dan 1.500 km).", "This location is too far away (more than 1,500 km).")
               : result.error === "TOO_MANY"
                 ? tr("Je hebt vaak gezocht. Probeer het over een paar minuten opnieuw.", "You searched many times. Try again in a few minutes.")
                 : result.error === "UNAUTHORIZED"
@@ -1495,6 +1502,30 @@ export default function BookingPage() {
                   <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">{distanceError}</p>
                 )}
                   </>
+                )}
+                {distance !== null && outsideRange && rangeKm !== null && (
+                  <div role="status" className="mt-4 rounded-lg border border-amber-500/60 bg-amber-500/10 p-4 text-sm text-foreground">
+                    <p className="font-semibold">
+                      {tr(
+                        `Buiten het werkgebied van ${professional.name}`,
+                        `Outside ${professional.name}'s travel range`,
+                      )}
+                    </p>
+                    <p className="mt-1 leading-relaxed">
+                      {tr(
+                        `Deze locatie ligt ${distance - rangeKm} km verder dan de ${rangeKm} km die ${professional.name} normaal reist. Je kunt de aanvraag toch versturen: ${professional.name} ziet dat het verder weg is en beslist zelf of die gaat. De reiskosten gelden voor de hele afstand.`,
+                        `This location is ${distance - rangeKm} km further than the ${rangeKm} km ${professional.name} usually travels. You can still send the request: ${professional.name} sees that it is further away and decides whether to go. Travel costs apply to the full distance.`,
+                      )}
+                    </p>
+                    {(city || eventLocation) && (
+                      <Link
+                        href={`/${artist ? "artiesten" : "photo-video"}?location=${encodeURIComponent(city || eventLocation)}`}
+                        className="mt-3 inline-flex min-h-11 items-center rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground hover:bg-muted"
+                      >
+                        {tr(`Bekijk wie wel in ${city || eventLocation} werkt`, `See who works in ${city || eventLocation}`)}
+                      </Link>
+                    )}
+                  </div>
                 )}
                 {distance !== null && (
                   <div className="mt-4 p-4 bg-muted border border-border rounded-lg">
@@ -2120,6 +2151,11 @@ export default function BookingPage() {
                   <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Datum", "Date")}</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Locatie", "Location")}</span><span className="text-right font-medium text-foreground">{addressFound ? `${streetName} ${houseNumber}${houseNumberExt ? ` ${houseNumberExt}` : ""}, ${postalCode} ${city}` : eventLocation}</span></div>
+                  {outsideRange && rangeKm !== null && (
+                    <p className="rounded-md bg-amber-500/10 px-3 py-2 text-xs text-foreground">
+                      {tr(`Buiten het werkgebied (${distance} km, normaal tot ${rangeKm} km). ${professional.name} beslist of die zo ver reist.`, `Outside the travel range (${distance} km, usually up to ${rangeKm} km). ${professional.name} decides whether to travel this far.`)}
+                    </p>
+                  )}
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Factuuradres", "Billing address")}</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw-nummer", "VAT number")}</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   {pricing && <>
