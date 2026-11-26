@@ -17,7 +17,7 @@ import { Header } from "@/components/header"
 import { useLanguage } from "@/contexts/language-context"
 import { depositCents } from "@/lib/bookings/payments"
 import { PaymentMoments, paymentMoments } from "@/components/booking/payment-moments"
-import { calculateBookingDistance, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
+import { calculateBookingDistance, lookupBookingAddress, createBooking, getBlockedDates, getBookingOptions, type CreateBookingInput } from "@/app/actions/bookings"
 import { useLiveProfessionals } from "@/hooks/use-live-professionals"
 import { bookingErrorMessage, readBookingResult } from "./submit-result"
 import { reachUserTestGoal, trackUserTest } from "@/lib/usertest"
@@ -115,6 +115,13 @@ export default function BookingPage() {
   const [eventLocation, setEventLocation] = useState("")
   const [distance, setDistance] = useState<number | null>(null)
   const [calculating, setCalculating] = useState(false)
+  // Step 1 asks a Dutch postal code and house number; the register fills in the rest of the address.
+  // Abroad, the customer types the place instead, as before.
+  const [abroad, setAbroad] = useState(false)
+  const [lookupPostcode, setLookupPostcode] = useState("")
+  const [lookupNumber, setLookupNumber] = useState("")
+  const [lookupExt, setLookupExt] = useState("")
+  const [addressFound, setAddressFound] = useState(false)
   
   // Step 2 - Event Details
   const [eventName, setEventName] = useState("")
@@ -235,6 +242,7 @@ export default function BookingPage() {
       step: currentStep, eventDate, eventLocation, distance, eventName, startTime, endTime, selectedEventTypes, selectedMusicGenres, capacity,
       description, specialRequests, playlistLink, openingDanceOption, openingDanceLink, lastSongOption, lastSongLink, dressCode,
       streetName, houseNumber, houseNumberExt, postalCode, city, country, selectedEquipment,
+      abroad, lookupPostcode, lookupNumber, lookupExt, addressFound,
     },
     (saved) => {
       const text = (value: unknown) => (typeof value === "string" ? value : "")
@@ -270,6 +278,11 @@ export default function BookingPage() {
       setCity(text(saved.city))
       setCountry(text(saved.country))
       setSelectedEquipment(list(saved.selectedEquipment))
+      setAbroad(saved.abroad === true)
+      setLookupPostcode(text(saved.lookupPostcode))
+      setLookupNumber(text(saved.lookupNumber))
+      setLookupExt(text(saved.lookupExt))
+      setAddressFound(saved.addressFound === true && km !== null)
       equipmentRestored.current = true
       // Files and personal details are not kept, so never further than step 2.
       if (date && km !== null && Number(saved.step) >= 2) setCurrentStep(2)
@@ -329,6 +342,15 @@ export default function BookingPage() {
     setPostalCode(template.postalCode)
     setCity(template.city)
     setCountry(template.country)
+    // A Dutch venue is looked up again from its postal code and house number; abroad the place is typed again.
+    if (/^[1-9]\d{3}\s?[A-Z]{2}$/i.test(template.postalCode.trim()) && template.houseNumber) {
+      setAbroad(false)
+      setLookupPostcode(template.postalCode.toUpperCase())
+      setLookupNumber(template.houseNumber.replace(/\D/g, ""))
+      setLookupExt(template.houseNumberExt)
+    } else if (template.country && !/^(nederland|netherlands|nl)$/i.test(template.country.trim())) {
+      setAbroad(true)
+    }
     setSelectedEquipment(template.wantsPackage && artistId ? [PACKAGE_OPTION_ID] : [])
     equipmentRestored.current = true
     setCurrentStep(1)
@@ -397,13 +419,23 @@ export default function BookingPage() {
   // This hook must stay above the early returns below: hooks have to run in the same order on every render,
   // also while the professional is still loading after a refresh.
   const calculateDistanceRef = useRef<() => void>(() => {})
+  const findAddressRef = useRef<() => void>(() => {})
+  // A complete Dutch postal code plus house number is looked up by itself, shortly after typing stops.
+  useEffect(() => {
+    const postcode = lookupPostcode.replace(/\s+/g, "").toUpperCase()
+    const key = `${postcode}|${lookupNumber}|${lookupExt.trim()}`
+    if (!professional || abroad || addressFound || calculating || !/^[1-9]\d{3}[A-Z]{2}$/.test(postcode) || !lookupNumber || key === lastCheckedPlace.current) return
+    const timer = setTimeout(() => findAddressRef.current(), 700)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(professional), abroad, lookupPostcode, lookupNumber, lookupExt, addressFound, calculating])
   useEffect(() => {
     const place = eventLocation.trim()
-    if (!professional || place.length < 3 || distance !== null || calculating || place === lastCheckedPlace.current) return
+    if (!professional || !abroad || place.length < 3 || distance !== null || calculating || place === lastCheckedPlace.current) return
     const timer = setTimeout(() => calculateDistanceRef.current(), 900)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [Boolean(professional), eventLocation, distance, calculating])
+  }, [Boolean(professional), abroad, eventLocation, distance, calculating])
 
   const notFound = !professional && !lookupFailed && !liveArtists.isLoading && !livePhotographers.isLoading
 
@@ -581,8 +613,9 @@ export default function BookingPage() {
   // What still blocks the "continue" button of each step, so a grey button never goes unexplained.
   const missingStep1 = [
     !eventDate && tr("een datum in de kalender", "a date in the calendar"),
-    !eventLocation.trim() && tr("de plaats van je evenement", "the place of your event"),
-    eventLocation.trim() && distance === null && tr("de afstand (klik op de knop naast de plaats)", "the distance (click the button next to the place)"),
+    !abroad && !addressFound && tr("postcode en huisnummer van de locatie", "postal code and house number of the venue"),
+    abroad && !eventLocation.trim() && tr("de plaats van je evenement", "the place of your event"),
+    abroad && eventLocation.trim() && distance === null && tr("de afstand (klik op de knop naast de plaats)", "the distance (click the button next to the place)"),
   ].filter(Boolean) as string[]
   const missingStep2 = [
     !eventDate && tr("een datum (stap 1)", "a date (step 1)"),
@@ -602,7 +635,7 @@ export default function BookingPage() {
     customerType === "business" && !companyName.trim() && tr("bedrijfsnaam", "company name"),
     customerType === "business" && !vatNumber.trim() && tr("btw-nummer", "VAT number"),
   ].filter(Boolean) as string[]
-  const blocked1 = !eventDate || !eventLocation.trim() || distance === null
+  const blocked1 = !eventDate || !eventLocation.trim() || distance === null || (!abroad && !addressFound)
   const blocked2 = !eventDate || !eventName || eventName.length < 3 || !startTime || !endTime || sameTime || Boolean(hoursIssue) || !linksOk || !bookingOptions
   const blocked3 = !firstName.trim() || !lastName.trim() || !isEmail(email) || !isPhone(phone) || !billingStreet.trim() || !billingHouseNumber.trim() || !billingPostalCode.trim() || !billingCity.trim() || (customerType === "business" && (!companyName.trim() || !vatNumber.trim()))
   // Scroll smoothly to the first invalid field of a step and focus it.
@@ -615,7 +648,7 @@ export default function BookingPage() {
   }
   const continueFrom = (step: 1 | 2 | 3) => {
     if (step === 1) {
-      if (blocked1) return focusFirstInvalid([!eventDate && "booking-calendar", "booking-location"])
+      if (blocked1) return focusFirstInvalid([!eventDate && "booking-calendar", abroad ? "booking-location" : !lookupPostcode.trim() ? "booking-lookup-postcode" : "booking-lookup-number"])
       return goToStep(2)
     }
     if (step === 2) {
@@ -894,6 +927,88 @@ export default function BookingPage() {
   const extrasInvalid = Boolean(artist) && !(isWebLink(playlistLink) && (openingDanceOption === "upload" || isWebLink(openingDanceLink)) && (lastSongOption === "upload" || isWebLink(lastSongLink)))
 
   calculateDistanceRef.current = () => { void calculateDistance() }
+
+  // Looks up the venue in the Dutch address register and fills in the address for step 2.
+  const findAddress = async () => {
+    const postcode = lookupPostcode.replace(/\s+/g, "").toUpperCase()
+    if (!/^[1-9]\d{3}[A-Z]{2}$/.test(postcode)) {
+      setDistanceError(tr("Vul een Nederlandse postcode in, zoals 3511 AB.", "Enter a Dutch postal code, such as 3511 AB."))
+      return
+    }
+    if (!lookupNumber) {
+      setDistanceError(tr("Vul het huisnummer in.", "Enter the house number."))
+      return
+    }
+    lastCheckedPlace.current = `${postcode}|${lookupNumber}|${lookupExt.trim()}`
+    const requestId = ++distanceRequest.current
+    setCalculating(true)
+    setDistance(null)
+    setDistanceError(null)
+    setAddressFound(false)
+    try {
+      const result = await lookupBookingAddress(String(professional.id), postcode, lookupNumber, lookupExt.trim())
+      if (requestId !== distanceRequest.current) return
+      if (result.ok) {
+        const a = result.address
+        setStreetName(a.street)
+        setHouseNumber(a.houseNumber)
+        setHouseNumberExt(a.houseNumberExt)
+        setPostalCode(a.postalCode)
+        setCity(a.city)
+        setCountry(a.country)
+        setEventLocation(a.city)
+        setDistance(result.distanceKm)
+        setAddressFound(true)
+      } else {
+        setDistanceError(
+          result.error === "ADDRESS_NOT_FOUND"
+            ? tr("We vinden dit adres niet. Controleer postcode, huisnummer en toevoeging.", "We can't find this address. Check the postal code, house number and addition.")
+            : result.error === "OUT_OF_RANGE"
+              ? tr(`Deze locatie ligt buiten het werkgebied van ${professional.name} (maximaal ${result.rangeKm} km).`, `This location is outside ${professional.name}'s travel range (up to ${result.rangeKm} km).`)
+              : result.error === "TOO_MANY"
+                ? tr("Je hebt vaak gezocht. Probeer het over een paar minuten opnieuw.", "You searched many times. Try again in a few minutes.")
+                : result.error === "UNAUTHORIZED"
+                  ? tr("Log in om het adres op te zoeken.", "Log in to look up the address.")
+                  : tr("Het adres opzoeken lukt nu niet. Probeer het zo opnieuw.", "Looking up the address doesn't work right now. Try again shortly."),
+        )
+      }
+    } catch (error) {
+      console.error("Address lookup failed:", error)
+      setDistanceError(t.distanceCalculationError)
+    } finally {
+      if (requestId === distanceRequest.current) setCalculating(false)
+    }
+  }
+  findAddressRef.current = () => { void findAddress() }
+  // A changed postal code or house number makes the found address and distance outdated.
+  const editLookup = (update: () => void) => {
+    update()
+    distanceRequest.current++
+    setCalculating(false)
+    setDistance(null)
+    setDistanceError(null)
+    setAddressFound(false)
+    setEventLocation("")
+  }
+  const switchAbroad = (next: boolean) => {
+    distanceRequest.current++
+    setAbroad(next)
+    setCalculating(false)
+    setDistance(null)
+    setDistanceError(null)
+    setAddressFound(false)
+    setEventLocation("")
+    lastCheckedPlace.current = ""
+    if (!next) return
+    // Abroad the address is typed by hand in step 2.
+    setStreetName("")
+    setHouseNumber("")
+    setHouseNumberExt("")
+    setPostalCode("")
+    setCity("")
+    setCountry("")
+  }
+  const inputClass = "w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent bg-background text-foreground"
 
   const formatSelectedDate = () => {
     return eventDate ? formatEventDate(eventDate, dateLocale) : tr("Niet gekozen", "Not selected")
@@ -1261,6 +1376,79 @@ export default function BookingPage() {
               {/* Event Location */}
               <div className="bg-card rounded-lg shadow border border-border p-4 sm:p-6">
                 <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-foreground">{t.eventLocationLabel}</h3>
+                {!abroad ? (
+                  <>
+                    <p className="-mt-2 mb-3 text-sm text-muted-foreground">
+                      {tr("Vul postcode en huisnummer in. Wij zoeken het adres en berekenen de reisafstand.", "Enter the postal code and house number. We look up the address and calculate the travel distance.")}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+                      <div className="col-span-2 sm:col-span-1">
+                        <label htmlFor="booking-lookup-postcode" className="mb-1.5 block text-sm font-medium text-foreground">{tr("Postcode", "Postal code")}</label>
+                        <input
+                          id="booking-lookup-postcode"
+                          type="text"
+                          inputMode="text"
+                          autoComplete="postal-code"
+                          autoCapitalize="characters"
+                          maxLength={7}
+                          placeholder="3511 AB"
+                          value={lookupPostcode}
+                          onChange={(e) => editLookup(() => setLookupPostcode(e.target.value.toUpperCase().replace(/[^0-9A-Z ]/g, "")))}
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="booking-lookup-number" className="mb-1.5 block text-sm font-medium text-foreground">{tr("Huisnummer", "House number")}</label>
+                        <input
+                          id="booking-lookup-number"
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={5}
+                          placeholder="1"
+                          value={lookupNumber}
+                          onChange={(e) => editLookup(() => setLookupNumber(e.target.value.replace(/\D/g, "")))}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter") return
+                            e.preventDefault()
+                            if (!calculating) void findAddress()
+                          }}
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="booking-lookup-ext" className="mb-1.5 block text-sm font-medium text-foreground">
+                          {tr("Toevoeging", "Addition")} <span className="font-normal text-muted-foreground">({tr("optioneel", "optional")})</span>
+                        </label>
+                        <input
+                          id="booking-lookup-ext"
+                          type="text"
+                          maxLength={6}
+                          placeholder="A"
+                          value={lookupExt}
+                          onChange={(e) => editLookup(() => setLookupExt(e.target.value.replace(/[^0-9A-Za-z -]/g, "")))}
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs text-muted-foreground" aria-live="polite">
+                        {calculating ? tr("Adres zoeken...", "Looking up the address...") : tr("Het adres wordt vanzelf gezocht zodra postcode en huisnummer kloppen.", "The address is looked up as soon as the postal code and house number are complete.")}
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={() => void findAddress()}
+                        disabled={calculating || !lookupPostcode.trim() || !lookupNumber}
+                        className="min-h-11 bg-red-700 px-5 text-white hover:bg-red-600"
+                      >
+                        {calculating ? tr("Zoeken...", "Searching...") : tr("Adres zoeken", "Find address")}
+                      </Button>
+                    </div>
+                    {distanceError && (
+                      <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">{distanceError}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <input
@@ -1306,10 +1494,12 @@ export default function BookingPage() {
                 {distanceError && (
                   <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">{distanceError}</p>
                 )}
+                  </>
+                )}
                 {distance !== null && (
                   <div className="mt-4 p-4 bg-muted border border-border rounded-lg">
                     <p className="text-sm font-medium text-foreground">
-                      {t.distanceFromTo} {professional.location} {tr("naar", "to")} {eventLocation}:
+                      {t.distanceFromTo} {professional.location} {tr("naar", "to")} {addressFound ? `${streetName} ${houseNumber}${houseNumberExt ? ` ${houseNumberExt}` : ""}, ${postalCode} ${city}` : eventLocation}:
                     </p>
                     <p className="mt-1 text-2xl font-bold text-foreground">{distance} km</p>
                     <p className="text-xs text-foreground mt-2">
@@ -1317,6 +1507,13 @@ export default function BookingPage() {
                     </p>
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => switchAbroad(!abroad)}
+                  className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-red-700 underline-offset-4 hover:underline dark:text-red-400"
+                >
+                  {abroad ? tr("Toch in Nederland? Zoek op postcode", "In the Netherlands after all? Search by postal code") : tr("Evenement buiten Nederland?", "Event outside the Netherlands?")}
+                </button>
               </div>
               
               {/* Continue Button */}
@@ -1671,6 +1868,18 @@ export default function BookingPage() {
                 <div className="border-t border-border pt-4">
                   <h3 className="text-lg font-semibold text-foreground mb-3">{tr("Adres van de locatie", "Event Venue Address")}</h3>
                   
+                  {addressFound ? (
+                    <div className="flex items-start justify-between gap-3 rounded-lg border border-border bg-muted px-4 py-3">
+                      <address className="not-italic text-sm leading-relaxed text-foreground sm:text-base">
+                        {streetName} {houseNumber}{houseNumberExt ? ` ${houseNumberExt}` : ""}
+                        <br />
+                        {postalCode} {city}
+                        <br />
+                        {country}
+                      </address>
+                      {changeInStep1(tr("Adres wijzigen", "Change address"))}
+                    </div>
+                  ) : (
                   <div className="space-y-3">
                     <div>
                       <label htmlFor="booking-street" className="block text-sm font-medium text-foreground mb-2">{tr("Straat", "Street Name")}</label>
@@ -1765,6 +1974,7 @@ export default function BookingPage() {
                       />
                     </div>
                   </div>
+                  )}
                 </div>
               </div>
               
@@ -1909,7 +2119,7 @@ export default function BookingPage() {
                 <div className="space-y-3 text-sm border-b border-border pb-4">
                   <div className="flex justify-between"><span className="text-muted-foreground">Professional</span><span className="font-medium text-foreground">{professional.name}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{tr("Datum", "Date")}</span><span className="font-medium text-foreground">{formatSelectedDate()}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">{tr("Locatie", "Location")}</span><span className="font-medium text-foreground">{eventLocation}</span></div>
+                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Locatie", "Location")}</span><span className="text-right font-medium text-foreground">{addressFound ? `${streetName} ${houseNumber}${houseNumberExt ? ` ${houseNumberExt}` : ""}, ${postalCode} ${city}` : eventLocation}</span></div>
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">{tr("Factuuradres", "Billing address")}</span><span className="text-right font-medium text-foreground">{customerType === "business" ? `${companyName}, ` : ""}{billingStreet} {billingHouseNumber}, {billingPostalCode} {billingCity}, {billingCountry}</span></div>
                   {customerType === "business" && <div className="flex justify-between"><span className="text-muted-foreground">{tr("Btw-nummer", "VAT number")}</span><span className="font-medium text-foreground">{vatNumber}</span></div>}
                   {pricing && <>

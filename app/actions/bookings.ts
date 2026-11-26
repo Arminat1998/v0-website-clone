@@ -6,7 +6,8 @@ import { db } from "@/lib/db"
 import { bookings, customerNotifications, invoices, notifications, type Booking, type Invoice, type Notification } from "@/lib/db/schema"
 import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
 import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
-import { distanceBetween } from "@/lib/bookings/distance"
+import { distanceBetween, distanceToPoint } from "@/lib/bookings/distance"
+import { lookupDutchAddress, normalizePostcode } from "@/lib/bookings/address"
 import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
 import { BookingError, isBookingId, optionalText, parseBookingInput, type CreateBookingResult } from "@/lib/bookings/booking-input"
 import { todayIso } from "@/lib/bookings/format"
@@ -131,8 +132,28 @@ const orNull = (value: string) => value || null
  * Only when the geocoder fails, the distance from the browser is used. A place that does not exist or lies beyond
  * the professional's travel range is refused.
  */
-async function resolveDistance(professionalId: string, eventLocation: string, clientKm: number, options: BookingOptions) {
+async function resolveDistance(
+  professionalId: string,
+  eventLocation: string,
+  clientKm: number,
+  options: BookingOptions,
+  address?: { postalCode: string; houseNumber: string; houseNumberExt: string; city: string },
+) {
   const from = await loadProfessionalCity(professionalId)
+  // A Dutch address is looked up again in the address register, so the distance runs to the exact venue.
+  if (from && address && normalizePostcode(address.postalCode) && address.houseNumber) {
+    const found = await lookupDutchAddress(address.postalCode, address.houseNumber, address.houseNumberExt)
+    if (found === null) throw new BookingError("INVALID_DETAILS", "eventLocation")
+    if (found !== "unavailable") {
+      const plain = (value: string) => value.replace(/\s+/g, "").toLowerCase()
+      if (plain(found.city) !== plain(address.city)) throw new BookingError("INVALID_DETAILS", "eventLocation")
+      const distance = await distanceToPoint(from, found)
+      if (distance === "unknown_from") throw new BookingError("UNAVAILABLE")
+      const km = typeof distance === "number" ? distance : Math.round(clientKm)
+      if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
+      return km
+    }
+  }
   const place = eventLocation.slice(0, 120)
   if (!place) throw new BookingError("INVALID_DETAILS", "eventLocation")
   const distance = from ? await distanceBetween(from, place) : "unknown_from"
@@ -160,6 +181,33 @@ export type BookingDistanceResult =
   | { ok: false; error: "UNAUTHORIZED" | "NOT_FOUND" | "OUT_OF_RANGE" | "TOO_MANY"; rangeKm?: number }
 
 /** Distance from the professional's city to the event location, calculated on the server like at booking time. */
+export type BookingAddressResult =
+  | { ok: true; distanceKm: number; rangeKm: number; address: { street: string; houseNumber: string; houseNumberExt: string; postalCode: string; city: string; country: string } }
+  | { ok: false; error: "UNAUTHORIZED" | "NOT_FOUND" | "ADDRESS_NOT_FOUND" | "OUT_OF_RANGE" | "TOO_MANY" | "UNAVAILABLE"; rangeKm?: number }
+
+/** The exact venue address for a Dutch postal code and house number, and the distance to it from the professional's town. */
+export async function lookupBookingAddress(
+  professionalId: string,
+  postalCode: string,
+  houseNumber: string,
+  houseNumberExt = "",
+): Promise<BookingAddressResult> {
+  const session = await getSession()
+  if (!session?.user) return { ok: false, error: "UNAUTHORIZED" }
+  if (!takeToken(`distance:${session.user.id}`, 20, 10 * 60 * 1000)) return { ok: false, error: "TOO_MANY" }
+  const options = await getBookingOptions(professionalId)
+  const from = options ? await loadProfessionalCity(professionalId) : null
+  if (!options || !from) return { ok: false, error: "NOT_FOUND" }
+  const found = await lookupDutchAddress(String(postalCode ?? "").slice(0, 10), String(houseNumber ?? "").slice(0, 6), String(houseNumberExt ?? "").slice(0, 10))
+  if (found === null) return { ok: false, error: "ADDRESS_NOT_FOUND" }
+  if (found === "unavailable") return { ok: false, error: "UNAVAILABLE" }
+  const distanceKm = await distanceToPoint(from, found)
+  if (typeof distanceKm !== "number") return { ok: false, error: "UNAVAILABLE" }
+  if (distanceKm > options.rangeKm) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
+  const { lat: _lat, lon: _lon, ...address } = found
+  return { ok: true, distanceKm, rangeKm: options.rangeKm, address }
+}
+
 export async function calculateBookingDistance(professionalId: string, eventLocation: string): Promise<BookingDistanceResult> {
   const session = await getSession()
   if (!session?.user) return { ok: false, error: "UNAUTHORIZED" }
@@ -214,7 +262,12 @@ async function placeBooking(raw: CreateBookingInput): Promise<CreateBookingResul
   const statedPlace = /\d/.test(input.eventLocation) ? input.postalCode : input.city
   const plainPlace = (value: string) => value.replace(/\s+/g, "").toLowerCase()
   if (plainPlace(statedPlace) !== plainPlace(input.eventLocation)) throw new BookingError("INVALID_DETAILS", "eventLocation")
-  const distanceKm = await resolveDistance(input.professionalId, input.eventLocation, input.distanceKm, options)
+  const distanceKm = await resolveDistance(input.professionalId, input.eventLocation, input.distanceKm, options, {
+    postalCode: input.postalCode,
+    houseNumber: input.houseNumber,
+    houseNumberExt: input.houseNumberExt,
+    city: input.city,
+  })
   const pricing = priceBooking(options, {
     startTime: input.startTime,
     endTime: input.endTime,
