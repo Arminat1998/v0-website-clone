@@ -48,8 +48,8 @@ export function bookingErrorMessage(
     case "OUT_OF_RANGE":
       return {
         text: nl
-          ? "Deze locatie ligt buiten het werkgebied van de professional. Kies in stap 1 een andere plaats."
-          : "This location is outside the professional's travel range. Choose another place in step 1.",
+          ? "Deze locatie ligt te ver weg (meer dan 1.500 km). Kies in stap 1 een andere locatie."
+          : "This location is too far away (more than 1,500 km). Choose another location in step 1.",
         step: 1,
       }
     case "INVALID_HOURS":

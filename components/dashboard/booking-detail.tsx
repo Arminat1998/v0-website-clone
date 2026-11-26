@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { OutsideRange } from "./outside-range"
 import type { ReactNode } from "react"
 import {
   ArrowLeft,
@@ -96,7 +97,7 @@ function ExternalRef({ href, label }: { href: string; label: string }) {
   )
 }
 
-export function BookingDetail({ booking, invoice = null }: { booking: Booking; invoice?: Invoice | null }) {
+export function BookingDetail({ booking, invoice = null }: { booking: Booking & { rangeKm?: number | null }; invoice?: Invoice | null }) {
   const { t, locale } = useBookingT()
   const status = displayStatus(booking)
   const isActive = isContactUnlocked(booking.status)
@@ -345,6 +346,7 @@ export function BookingDetail({ booking, invoice = null }: { booking: Booking; i
                   {booking.distanceKm} {t.common.km} ({booking.distanceKm * 2} {t.common.km} {t.detail.travelDetail})
                 </Field>
               </dl>
+              <OutsideRange distanceKm={booking.distanceKm} rangeKm={booking.rangeKm} detailed />
               <a
                 href={mapsUrl(booking)}
                 target="_blank"

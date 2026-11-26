@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { bookings, customerNotifications, invoices, notifications, type Booking, type Invoice, type Notification } from "@/lib/db/schema"
 import { hoursBetween, hoursProblem, priceBooking, type BookingOptions } from "@/lib/bookings/pricing"
-import { loadBookingOptions, loadProfessionalCity } from "@/lib/bookings/booking-options"
+import { loadBookingOptions, loadProfessionalCity, loadProfessionalRangeKm } from "@/lib/bookings/booking-options"
+import { MAX_DISTANCE_KM } from "@/lib/bookings/invoicing"
 import { distanceBetween, distanceToPoint } from "@/lib/bookings/distance"
 import { lookupDutchAddress, normalizePostcode } from "@/lib/bookings/address"
 import { dateProblem, hasUnavailableDatesTable, loadUnavailableDates, lockDate } from "@/lib/bookings/availability"
@@ -150,7 +151,8 @@ async function resolveDistance(
       const distance = await distanceToPoint(from, found)
       if (distance === "unknown_from") throw new BookingError("UNAVAILABLE")
       const km = typeof distance === "number" ? distance : Math.round(clientKm)
-      if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
+      // Beyond the professional's range is allowed (they decide); only absurd distances are refused.
+      if (km > MAX_DISTANCE_KM) throw new BookingError("OUT_OF_RANGE")
       return km
     }
   }
@@ -160,7 +162,7 @@ async function resolveDistance(
   if (distance === "unknown_to") throw new BookingError("INVALID_DETAILS", "eventLocation")
   if (distance === "unknown_from") throw new BookingError("UNAVAILABLE")
   const km = distance === "unavailable" ? Math.round(clientKm) : distance
-  if (km > options.rangeKm) throw new BookingError("OUT_OF_RANGE")
+  if (km > MAX_DISTANCE_KM) throw new BookingError("OUT_OF_RANGE")
   return km
 }
 
@@ -177,12 +179,12 @@ export async function getBookingOptions(professionalId: string): Promise<Booking
 }
 
 export type BookingDistanceResult =
-  | { ok: true; distanceKm: number; rangeKm: number }
+  | { ok: true; distanceKm: number; rangeKm: number; outsideRange: boolean }
   | { ok: false; error: "UNAUTHORIZED" | "NOT_FOUND" | "OUT_OF_RANGE" | "TOO_MANY"; rangeKm?: number }
 
 /** Distance from the professional's city to the event location, calculated on the server like at booking time. */
 export type BookingAddressResult =
-  | { ok: true; distanceKm: number; rangeKm: number; address: { street: string; houseNumber: string; houseNumberExt: string; postalCode: string; city: string; country: string } }
+  | { ok: true; distanceKm: number; rangeKm: number; outsideRange: boolean; address: { street: string; houseNumber: string; houseNumberExt: string; postalCode: string; city: string; country: string } }
   | { ok: false; error: "UNAUTHORIZED" | "NOT_FOUND" | "ADDRESS_NOT_FOUND" | "OUT_OF_RANGE" | "TOO_MANY" | "UNAVAILABLE"; rangeKm?: number }
 
 /** The exact venue address for a Dutch postal code and house number, and the distance to it from the professional's town. */
@@ -203,9 +205,9 @@ export async function lookupBookingAddress(
   if (found === "unavailable") return { ok: false, error: "UNAVAILABLE" }
   const distanceKm = await distanceToPoint(from, found)
   if (typeof distanceKm !== "number") return { ok: false, error: "UNAVAILABLE" }
-  if (distanceKm > options.rangeKm) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
+  if (distanceKm > MAX_DISTANCE_KM) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
   const { lat: _lat, lon: _lon, ...address } = found
-  return { ok: true, distanceKm, rangeKm: options.rangeKm, address }
+  return { ok: true, distanceKm, rangeKm: options.rangeKm, outsideRange: distanceKm > options.rangeKm, address }
 }
 
 export async function calculateBookingDistance(professionalId: string, eventLocation: string): Promise<BookingDistanceResult> {
@@ -218,8 +220,8 @@ export async function calculateBookingDistance(professionalId: string, eventLoca
   if (!options || !from || !place) return { ok: false, error: "NOT_FOUND" }
   const distanceKm = await distanceBetween(from, place)
   if (typeof distanceKm !== "number") return { ok: false, error: "NOT_FOUND" }
-  if (distanceKm > options.rangeKm) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
-  return { ok: true, distanceKm, rangeKm: options.rangeKm }
+  if (distanceKm > MAX_DISTANCE_KM) return { ok: false, error: "OUT_OF_RANGE", rangeKm: options.rangeKm }
+  return { ok: true, distanceKm, rangeKm: options.rangeKm, outsideRange: distanceKm > options.rangeKm }
 }
 
 /** Sends a booking request. Refusals are returned: server actions hide thrown messages in production. */
@@ -393,7 +395,7 @@ function formatDutchDate(iso: string) {
 }
 
 export type InvoiceSummary = Pick<Invoice, "id" | "status" | "invoiceNumber" | "method">
-export type BookingListItem = Booking & { invoice: InvoiceSummary | null }
+export type BookingListItem = Booking & { invoice: InvoiceSummary | null; rangeKm: number | null }
 
 export async function getBookingsByStatus(status: Booking["status"] | Booking["status"][]): Promise<BookingListItem[]> {
   const professionalId = await getProfessionalId()
@@ -407,7 +409,9 @@ export async function getBookingsByStatus(status: Booking["status"] | Booking["s
     .leftJoin(invoices, eq(invoices.bookingId, bookings.id))
     .where(and(eq(bookings.professionalId, professionalId), inArray(bookings.status, statuses)))
     .orderBy(status === "completed" ? desc(bookings.eventDate) : asc(bookings.eventDate))
-  return rows.map(({ booking, invoice }) => ({ ...redactContactDetails(booking), invoice: invoice?.id ? invoice : null }))
+  // The professional's current range, so a request from further away can be marked as such.
+  const rangeKm = await loadProfessionalRangeKm(professionalId)
+  return rows.map(({ booking, invoice }) => ({ ...redactContactDetails(booking), invoice: invoice?.id ? invoice : null, rangeKm }))
 }
 
 export async function getBooking(id: number) {
@@ -418,7 +422,7 @@ export async function getBooking(id: number) {
     .from(bookings)
     .where(and(eq(bookings.id, id), eq(bookings.professionalId, professionalId)))
     .limit(1)
-  return booking ? redactContactDetails(booking) : null
+  return booking ? { ...redactContactDetails(booking), rangeKm: await loadProfessionalRangeKm(professionalId) } : null
 }
 
 /** DATE_TAKEN with `blocked`: the professional blocked the date by hand instead of having a booking on it. */
