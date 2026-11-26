@@ -44,15 +44,27 @@ async function geocode(place: string, allowNamesake = false): Promise<Point | nu
 
 export type Distance = number | "unknown_from" | "unknown_to" | "unavailable"
 
+function kmBetween(a: Point, b: Point) {
+  const R = 6371
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLon = ((b.lon - a.lon) * Math.PI) / 180
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)))
+}
+
 /** Straight-line distance in whole km from the professional's town to the event; "unavailable" when the geocoder fails. */
 export async function distanceBetween(from: string, to: string): Promise<Distance> {
   const [a, b] = await Promise.all([geocode(from, true), geocode(to)])
   if (b === null) return "unknown_to"
   if (a === null) return "unknown_from"
   if (a === "unavailable" || b === "unavailable") return "unavailable"
-  const R = 6371
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180
-  const dLon = ((b.lon - a.lon) * Math.PI) / 180
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)))
+  return kmBetween(a, b)
+}
+
+/** Distance in whole km from the professional's town to an exact point, such as a looked-up address. */
+export async function distanceToPoint(from: string, to: Point): Promise<Distance> {
+  const a = await geocode(from, true)
+  if (a === null) return "unknown_from"
+  if (a === "unavailable") return "unavailable"
+  return kmBetween(a, to)
 }
