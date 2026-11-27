@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils"
 
 export const statusStyles: Record<DisplayStatus, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
-  accepted: "bg-green-500/10 text-green-800 dark:text-green-500",
+  accepted: "bg-amber-500/10 text-amber-800 dark:text-amber-500",
+  confirmed: "bg-green-500/10 text-green-800 dark:text-green-500",
   rejected: "bg-muted text-muted-foreground",
   completed: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   cancelled: "bg-muted text-muted-foreground",

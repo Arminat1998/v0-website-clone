@@ -32,6 +32,7 @@ export type CustomerBooking = Pick<
   | "professionalName"
   | "professionalType"
   | "status"
+  | "paymentStatus"
   | "eventName"
   | "eventDate"
   | "startTime"
@@ -51,6 +52,7 @@ export async function getMyBookings(): Promise<CustomerBooking[]> {
       professionalName: bookings.professionalName,
       professionalType: bookings.professionalType,
       status: bookings.status,
+      paymentStatus: bookings.paymentStatus,
       eventName: bookings.eventName,
       eventDate: bookings.eventDate,
       startTime: bookings.startTime,

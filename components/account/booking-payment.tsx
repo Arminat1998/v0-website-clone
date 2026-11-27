@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import Link from "next/link";
+import { Check, CheckCircle2, Copy } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import {
   Card,
@@ -287,13 +288,37 @@ export function BookingPayment({
                   : nl ? "Betaal je factuur" : "Pay your invoice"}</h2>
           </CardTitle>
             <CardDescription>
-              {nl
-                ? "Maak het bedrag over met je eigen bank-app. Zodra ARSI Events je betaling heeft ontvangen, zie je dat hier terug."
-                : "Transfer the amount with your own banking app. Once ARSI Events has received your payment, you will see it here."}
+              {s.due.part === "deposit"
+                ? nl
+                  ? "Voldoe de aanbetaling van 25% om je boeking definitief te bevestigen."
+                  : "Pay the 25% deposit to confirm your booking."
+                : nl
+                  ? "Maak het bedrag over met je eigen bank-app. Zodra ARSI Events je betaling heeft ontvangen, zie je dat hier terug."
+                  : "Transfer the amount with your own banking app. Once ARSI Events has received your payment, you will see it here."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {bank ? (
+            {s.due.part === "deposit" ? (
+              <div className="flex flex-col gap-4">
+                <Row
+                  label={nl ? "Aanbetaling (25%)" : "Deposit (25%)"}
+                  value={euro(s.due.cents, nl)}
+                  strong
+                />
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {nl
+                    ? "Je boeking wordt direct definitief bevestigd zodra de aanbetaling is ontvangen."
+                    : "Your booking is immediately confirmed once the deposit is received."}
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <Button asChild size="lg" className="bg-red-700 hover:bg-red-600 text-white font-semibold shadow-sm">
+                    <Link href={`/checkout/test-pay?bookingId=${b.id}`}>
+                      {nl ? `Betaal aanbetaling (${euro(s.due.cents, nl)})` : `Pay deposit (${euro(s.due.cents, nl)})`}
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : bank ? (
               <dl className="flex flex-col gap-4">
                 <CopyRow
                   label={nl ? "Bedrag" : "Amount"}
@@ -328,6 +353,37 @@ export function BookingPayment({
                 <MessageButton variant="brand" label={supportLabel} />
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {s.depositPaid && !s.paid && (
+        <Card id="betaling" className="scroll-mt-24 border-green-600/30 bg-green-500/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="size-5 text-green-600" />
+              <CardTitle>
+                <h2>{nl ? "Aanbetaling voldaan – Boeking bevestigd" : "Deposit paid – Booking confirmed"}</h2>
+              </CardTitle>
+            </div>
+            <CardDescription>
+              {nl
+                ? "Je aanbetaling van 25% is succesvol ontvangen. Je boeking staat vast. Het resterende bedrag voldoe je na afloop van het evenement."
+                : "Your 25% deposit was received. Your booking is confirmed. The remaining balance is due after the event."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3">
+              <Row
+                label={nl ? "Betaalde aanbetaling" : "Paid deposit"}
+                value={euro(s.depositCents, nl)}
+              />
+              <Row
+                label={nl ? "Openstaand restant" : "Remaining balance"}
+                value={euro(s.balanceCents, nl)}
+                strong
+              />
+            </div>
           </CardContent>
         </Card>
       )}

@@ -6,7 +6,8 @@ import type { Language } from "@/lib/i18n"
 const nl = {
   status: {
     pending: "In afwachting",
-    accepted: "Geaccepteerd",
+    accepted: "Geaccepteerd – aanbetaling openstaand",
+    confirmed: "Bevestigd",
     rejected: "Afgewezen",
     completed: "Afgerond",
     cancelled: "Geannuleerd",
@@ -314,7 +315,8 @@ export type BookingTranslations = typeof nl
 const en: BookingTranslations = {
   status: {
     pending: "Pending",
-    accepted: "Accepted",
+    accepted: "Accepted – deposit pending",
+    confirmed: "Confirmed",
     rejected: "Declined",
     completed: "Completed",
     cancelled: "Cancelled",
