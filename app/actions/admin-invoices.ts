@@ -9,6 +9,7 @@ import {
   bookings,
   customerNotifications,
   invoices,
+  notifications,
   type InvoiceLine,
   type InvoiceStatus,
   type PaymentStatus,
@@ -271,29 +272,80 @@ export async function setInvoiceStatus(input: {
   note?: string
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = await requireAdmin()
-  const [existing] = await db.select().from(invoices).where(eq(invoices.id, input.invoiceId)).limit(1)
-  if (!existing) return { ok: false, error: "Factuur niet gevonden." }
+  if (input.status !== "approved" && input.status !== "rejected") {
+    return { ok: false, error: "Ongeldige status." }
+  }
 
-  await db
-    .update(invoices)
-    .set({
-      status: input.status,
-      note: input.note?.trim() || null,
-      updatedAt: new Date(),
+  try {
+    const result = await db.transaction(async (tx): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const [existing] = await tx
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, input.invoiceId))
+        .limit(1)
+        .for("update")
+
+      if (!existing) return { ok: false, error: "Factuur niet gevonden." }
+
+      const [booking] = await tx
+        .select({
+          payoutStatus: bookings.payoutStatus,
+          professionalId: bookings.professionalId,
+          eventName: bookings.eventName,
+        })
+        .from(bookings)
+        .where(eq(bookings.id, existing.bookingId))
+        .limit(1)
+
+      if (booking?.payoutStatus === "paid" && input.status === "rejected") {
+        return {
+          ok: false,
+          error: "Deze factuur kan niet worden afgewezen omdat de uitbetaling aan de artiest al is verwerkt.",
+        }
+      }
+
+      await tx
+        .update(invoices)
+        .set({
+          status: input.status,
+          note: input.note?.trim() || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(invoices.id, input.invoiceId))
+
+      if (input.status === "rejected" && booking) {
+        await tx.insert(notifications).values({
+          professionalId: booking.professionalId,
+          bookingId: existing.bookingId,
+          type: "reminder",
+          title: "Factuur afgewezen",
+          body: `Factuur ${existing.invoiceNumber || ""} voor ${booking.eventName} is afgewezen door beheer. ${input.note ? `Reden: ${input.note}` : ""}`.trim(),
+        })
+      }
+
+      await logAdminAction(
+        {
+          adminId: admin.id,
+          adminName: admin.name,
+          action: "update_invoice_status",
+          targetLabel: String(input.invoiceId),
+          details: JSON.stringify({
+            previousStatus: existing.status,
+            newStatus: input.status,
+            note: input.note,
+          }),
+        },
+        tx,
+      )
+
+      return { ok: true }
     })
-    .where(eq(invoices.id, input.invoiceId))
 
-  await logAdminAction({
-    adminId: admin.id,
-    adminName: admin.name,
-    action: "update_invoice_status",
-    targetLabel: String(input.invoiceId),
-    details: JSON.stringify({
-      previousStatus: existing.status,
-      newStatus: input.status,
-      note: input.note,
-    }),
-  })
+    if (!result.ok) return result
+  } catch (err) {
+    console.error("Failed to update invoice status:", err)
+    return { ok: false, error: "Bijwerken van factuurstatus is mislukt." }
+  }
 
   revalidatePath("/admin/facturen")
   revalidatePath("/admin/betalingen")
@@ -311,13 +363,19 @@ export async function sendPaymentReminder(input: {
   const [booking] = await db.select().from(bookings).where(eq(bookings.id, input.bookingId)).limit(1)
   if (!booking) return { ok: false, error: "Boeking niet gevonden." }
 
+  if (input.part === "deposit" && (booking.paymentStatus === "deposit_paid" || booking.paymentStatus === "paid")) {
+    return { ok: false, error: "De aanbetaling voor deze boeking is reeds voldaan." }
+  }
+  if (input.part === "balance" && booking.paymentStatus === "paid") {
+    return { ok: false, error: "Het restant voor deze boeking is reeds voldaan." }
+  }
+
   if (booking.customerId) {
-    const noticeStatus = input.part === "deposit" ? "deposit_received" : "invoice_ready"
     try {
       await db.insert(customerNotifications).values({
         userId: booking.customerId,
         bookingId: booking.id,
-        status: noticeStatus,
+        status: "invoice_ready",
       })
     } catch (err) {
       console.error("Failed to insert customer notice:", err)

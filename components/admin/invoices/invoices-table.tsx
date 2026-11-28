@@ -279,20 +279,20 @@ export function InvoicesTable({ initialItems, totalCount }: Props) {
               <div className="space-y-3">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Boeking & Betalingsstroom</h4>
                 <div className="p-4 rounded-xl border border-border bg-card space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Boeking:</span>
-                    <span className="font-medium">#{detailData.booking.id} ({detailData.booking.eventName})</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-muted-foreground shrink-0">Boeking:</span>
+                    <span className="font-medium break-words sm:text-right">#{detailData.booking.id} ({detailData.booking.eventName})</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Klant:</span>
-                    <span className="font-medium">{detailData.booking.customerFullName} ({detailData.booking.email})</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span className="text-muted-foreground shrink-0">Klant:</span>
+                    <span className="font-medium break-words sm:text-right">{detailData.booking.customerFullName} ({detailData.booking.email})</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Aanbetaling (25%):</span>
                     <span className="font-medium tabular-nums">{formatEuro(detailData.booking.depositCents)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Restantbedrag (75%):</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Openstaand restbedrag:</span>
                     <span className="font-medium tabular-nums">{formatEuro(detailData.booking.balanceCents)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-border">

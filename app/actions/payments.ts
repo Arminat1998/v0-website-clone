@@ -3,7 +3,7 @@
 import { and, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { bookings, customerNotifications, notifications } from "@/lib/db/schema"
+import { bookings, customerNotifications, invoices, notifications } from "@/lib/db/schema"
 import { getSession } from "@/lib/session"
 import { depositCents } from "@/lib/bookings/payments"
 import { isBookingId } from "@/lib/bookings/booking-input"
@@ -54,12 +54,20 @@ export async function getCheckoutDetails(bookingId: number): Promise<CheckoutDet
     .limit(1)
 
   if (!booking) return { ok: false, error: "Boeking niet gevonden." }
-  if (session.user.role !== "admin" && booking.customerId && booking.customerId !== session.user.id) {
+  if (session.user.role !== "admin" && (!booking.customerId || booking.customerId !== session.user.id)) {
     return { ok: false, error: "Geen toegang tot deze boeking." }
   }
 
+  // Check if an invoice exists for this booking to calculate the exact balance
+  const [invoice] = await db
+    .select({ totalCents: invoices.totalCents })
+    .from(invoices)
+    .where(eq(invoices.bookingId, bookingId))
+    .limit(1)
+
+  const finalTotal = invoice ? invoice.totalCents : booking.totalCents
   const deposit = depositCents(booking.totalCents)
-  const balance = Math.max(booking.totalCents - deposit, 0)
+  const balance = Math.max(finalTotal - deposit, 0)
 
   return {
     ok: true,
@@ -72,7 +80,7 @@ export async function getCheckoutDetails(bookingId: number): Promise<CheckoutDet
       startTime: booking.startTime,
       endTime: booking.endTime,
       city: booking.city,
-      totalCents: booking.totalCents,
+      totalCents: finalTotal,
       depositCents: deposit,
       balanceCents: balance,
       paymentStatus: booking.paymentStatus,
@@ -103,7 +111,7 @@ export async function confirmDeposit(bookingId: number, providerRef?: string): P
         .for("update")
 
       if (!booking) return { ok: false, error: "Boeking niet gevonden." }
-      if (session.user.role !== "admin" && booking.customerId && booking.customerId !== session.user.id) {
+      if (session.user.role !== "admin" && (!booking.customerId || booking.customerId !== session.user.id)) {
         return { ok: false, error: "Geen toegang tot deze boeking." }
       }
       if (booking.status !== "accepted") {
@@ -163,7 +171,6 @@ export async function confirmDeposit(bookingId: number, providerRef?: string): P
   return { ok: true, bookingId }
 }
 
-
 export async function confirmBalance(bookingId: number, providerRef?: string): Promise<ConfirmDepositResult> {
   if (!isBookingId(bookingId)) return { ok: false, error: "Ongeldig boekingsnummer." }
   const session = await getSession()
@@ -179,13 +186,21 @@ export async function confirmBalance(bookingId: number, providerRef?: string): P
         .for("update")
 
       if (!booking) return { ok: false, error: "Boeking niet gevonden." }
-      if (session.user.role !== "admin" && booking.customerId && booking.customerId !== session.user.id) {
+      if (session.user.role !== "admin" && (!booking.customerId || booking.customerId !== session.user.id)) {
         return { ok: false, error: "Geen toegang tot deze boeking." }
       }
 
-      // Idempotency: if already fully paid
+      // Check valid lifecycle status
+      if (booking.status !== "accepted" && booking.status !== "completed") {
+        return { ok: false, error: "Deze boeking is niet in een geldige status voor restbetaling." }
+      }
+
+      // Check payment status: deposit must be paid first
       if (booking.paymentStatus === "paid") {
         return { ok: true, alreadyPaid: true, bookingId }
+      }
+      if (booking.paymentStatus !== "deposit_paid") {
+        return { ok: false, error: "De aanbetaling van 25% moet eerst voldaan zijn alvorens het restant betaald kan worden." }
       }
 
       const now = new Date()

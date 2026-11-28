@@ -267,7 +267,9 @@ export async function getCustomerInvoiceDocument(bookingId: number) {
     )
     .orderBy(asc(invoices.id))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  // Redact artist private banking details (IBAN) from client-facing invoice
+  return { ...row, profile: { ...row.profile, iban: null } };
 }
 
 export async function getFavoriteKeys() {

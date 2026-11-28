@@ -318,54 +318,48 @@ export function BookingPayment({
                   </Button>
                 </div>
               </div>
-            ) : bank ? (
-              <dl className="flex flex-col gap-4">
+            ) : (
+              <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-3 pb-2">
                   <Button asChild size="lg" className="bg-red-700 hover:bg-red-600 text-white font-semibold shadow-sm">
                     <Link href={`/checkout/test-pay?bookingId=${b.id}&part=balance`}>
-                      {nl ? `Betaal restant direct online (${euro(s.due.cents, nl)})` : `Pay balance online (${euro(s.due.cents, nl)})`}
+                      {nl ? `Betaal restbedrag direct online (${euro(s.due.cents, nl)})` : `Pay balance online (${euro(s.due.cents, nl)})`}
                     </Link>
                   </Button>
                 </div>
-                <div className="relative my-1">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">{nl ? "Of per bankoverboeking" : "Or via bank transfer"}</span>
-                  </div>
-                </div>
-                <CopyRow
-                  label={nl ? "Bedrag" : "Amount"}
-                  value={euro(s.due.cents, nl)}
-                  copyValue={(s.due.cents / 100).toFixed(2).replace(".", ",")}
-                  nl={nl}
-                />
-                <CopyRow label="IBAN" value={bank.iban} nl={nl} />
-                <CopyRow
-                  label={nl ? "Ten name van" : "Account name"}
-                  value={bank.accountName}
-                  nl={nl}
-                />
-                <CopyRow
-                  label={nl ? "Betaalkenmerk" : "Payment reference"}
-                  value={paymentReference(b.id, s.due.part)}
-                  nl={nl}
-                />
-              </dl>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <Row
-                  label={nl ? "Te betalen" : "Amount due"}
-                  value={euro(s.due.cents, nl)}
-                  strong
-                />
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {nl
-                    ? "De betaalgegevens staan hier nog niet. Neem contact op met ARSI Events om te betalen."
-                    : "The payment details are not available here yet. Contact ARSI Events to pay."}
-                </p>
-                <MessageButton variant="brand" label={supportLabel} />
+                {bank ? (
+                  <>
+                    <div className="relative my-1">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">{nl ? "Of per bankoverboeking" : "Or via bank transfer"}</span>
+                      </div>
+                    </div>
+                    <dl className="flex flex-col gap-4">
+                      <CopyRow
+                        label={nl ? "Bedrag" : "Amount"}
+                        value={euro(s.due.cents, nl)}
+                        copyValue={(s.due.cents / 100).toFixed(2).replace(".", ",")}
+                        nl={nl}
+                      />
+                      <CopyRow label="IBAN" value={bank.iban} nl={nl} />
+                      <CopyRow
+                        label={nl ? "Ten name van" : "Account name"}
+                        value={bank.accountName}
+                        nl={nl}
+                      />
+                      <CopyRow
+                        label={nl ? "Betaalkenmerk" : "Payment reference"}
+                        value={paymentReference(b.id, s.due.part)}
+                        nl={nl}
+                      />
+                    </dl>
+                  </>
+                ) : (
+                  <MessageButton variant="brand" label={supportLabel} />
+                )}
               </div>
             )}
           </CardContent>
