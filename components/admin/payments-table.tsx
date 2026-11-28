@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { FileText, Printer } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -74,7 +76,17 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
                     <p className="font-medium">#{row.id} · {row.eventName}</p>
                     <p className="text-muted-foreground">
                       {new Date(row.eventDate).toLocaleDateString(locale, { timeZone: BOOKING_TIME_ZONE })}
-                      {row.invoiceNumber && ` · ${nl ? "factuur" : "invoice"} ${row.invoiceNumber}`}
+                      {row.invoiceNumber && (
+                        <>
+                          {" · "}
+                          <Link
+                            href={`/admin/facturen?q=${encodeURIComponent(row.invoiceNumber)}`}
+                            className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+                          >
+                            {nl ? "factuur" : "invoice"} {row.invoiceNumber}
+                          </Link>
+                        </>
+                      )}
                     </p>
                   </td>
                   <td className="px-4 py-3">{row.customerName}</td>
@@ -98,11 +110,20 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {due && (
-                      <Button size="sm" disabled={pending} onClick={() => receive(row)}>
-                        {busyId === row.id ? (nl ? "Bezig…" : "Saving…") : nl ? "Ontvangen" : "Received"}
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {row.invoiceNumber && (
+                        <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+                          <Link href={`/admin/betalingen/${row.id}/factuur`} target="_blank" title={nl ? "Factuur bekijken" : "View invoice"}>
+                            <Printer className="size-3.5" />
+                          </Link>
+                        </Button>
+                      )}
+                      {due && (
+                        <Button size="sm" disabled={pending} onClick={() => receive(row)}>
+                          {busyId === row.id ? (nl ? "Bezig…" : "Saving…") : nl ? "Ontvangen" : "Received"}
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
@@ -115,13 +136,21 @@ export function PaymentsTable({ rows }: { rows: AdminPaymentRow[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold">{nl ? "Betalingen" : "Payments"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {nl
-            ? "Zet een betaling op ontvangen zodra de overboeking met het betaalkenmerk binnen is."
-            : "Mark a payment as received once the bank transfer with the payment reference has arrived."}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold">{nl ? "Betalingen" : "Payments"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {nl
+              ? "Zet een betaling op ontvangen zodra de overboeking met het betaalkenmerk binnen is."
+              : "Mark a payment as received once the bank transfer with the payment reference has arrived."}
+          </p>
+        </div>
+        <Button variant="outline" asChild className="gap-2 shrink-0">
+          <Link href="/admin/facturen">
+            <FileText className="size-4" />
+            {nl ? "Naar Facturen & KPI's" : "To Invoices & KPIs"}
+          </Link>
+        </Button>
       </div>
       {error && (
         <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">

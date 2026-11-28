@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, Copy } from "lucide-react";
+import { Check, CheckCircle2, Copy, Printer, FileText } from "lucide-react";
 import { useLanguage } from "@/contexts/language-context";
 import {
   Card,
@@ -320,6 +320,21 @@ export function BookingPayment({
               </div>
             ) : bank ? (
               <dl className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-3 pb-2">
+                  <Button asChild size="lg" className="bg-red-700 hover:bg-red-600 text-white font-semibold shadow-sm">
+                    <Link href={`/checkout/test-pay?bookingId=${b.id}&part=balance`}>
+                      {nl ? `Betaal restant direct online (${euro(s.due.cents, nl)})` : `Pay balance online (${euro(s.due.cents, nl)})`}
+                    </Link>
+                  </Button>
+                </div>
+                <div className="relative my-1">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">{nl ? "Of per bankoverboeking" : "Or via bank transfer"}</span>
+                  </div>
+                </div>
                 <CopyRow
                   label={nl ? "Bedrag" : "Amount"}
                   value={euro(s.due.cents, nl)}
@@ -516,6 +531,14 @@ export function BookingPayment({
                   {date(b.paidAt, nl)}
                 </p>
               )}
+              <div className="flex items-center justify-between pt-2">
+                <Button asChild variant="outline" size="sm" className="gap-2">
+                  <Link href={`/account/boekingen/${b.id}/factuur`} target="_blank">
+                    <Printer className="size-4" />
+                    {nl ? "Afdrukweergave / PDF openen" : "Print view / Open PDF"}
+                  </Link>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

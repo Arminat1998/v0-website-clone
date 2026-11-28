@@ -2,6 +2,9 @@ import { getAdminFinancialKpis, listAdminInvoices } from "@/app/actions/admin-in
 import { InvoiceKpis } from "@/components/admin/invoices/invoice-kpis"
 import { InvoicesTable } from "@/components/admin/invoices/invoices-table"
 import { requireAdmin } from "@/lib/session"
+import Link from "next/link"
+import { CreditCard } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
 
@@ -16,11 +19,19 @@ export default async function AdminInvoicesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturen & Financieel Beheer</h1>
-        <p className="text-sm text-muted-foreground">
-          Overzicht van alle gegenereerde self-billing facturen, geüploade artiestfacturen, betalingen en openstaande vorderingen.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Facturen & Financieel Beheer</h1>
+          <p className="text-sm text-muted-foreground">
+            Overzicht van alle gegenereerde self-billing facturen, geüploade artiestfacturen, betalingen en openstaande vorderingen.
+          </p>
+        </div>
+        <Button variant="outline" asChild className="gap-2 shrink-0">
+          <Link href="/admin/betalingen">
+            <CreditCard className="size-4" />
+            Naar Betalingen
+          </Link>
+        </Button>
       </div>
 
       {/* Financial KPIs Overview */}

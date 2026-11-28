@@ -1,7 +1,7 @@
 "use server";
 
 import { withoutValues } from "@/lib/log-error";
-import { and, desc, eq, count, sql } from "drizzle-orm";
+import { and, asc, desc, eq, count, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -10,6 +10,7 @@ import {
   customerProfiles,
   customerFavorites,
   customerNotifications,
+  billingProfiles,
   invoices,
   notifications,
 } from "@/lib/db/schema";
@@ -223,7 +224,6 @@ export async function getCustomerInvoice(
       and(
         eq(invoices.bookingId, bookingId),
         eq(bookings.customerId, account.id),
-        eq(bookings.status, "completed"),
       ),
     )
     .limit(1);
@@ -240,6 +240,34 @@ export async function getCustomerInvoice(
       }),
     ),
   };
+}
+
+export async function getCustomerInvoiceDocument(bookingId: number) {
+  const account = await customerUser();
+  if (!isBookingId(bookingId)) return null;
+  const [row] = await db
+    .select({ booking: bookings, invoice: invoices, profile: billingProfiles })
+    .from(invoices)
+    .innerJoin(
+      bookings,
+      and(
+        eq(bookings.id, invoices.bookingId),
+        eq(bookings.professionalId, invoices.professionalId),
+      ),
+    )
+    .innerJoin(
+      billingProfiles,
+      eq(billingProfiles.professionalId, invoices.professionalId),
+    )
+    .where(
+      and(
+        eq(invoices.bookingId, bookingId),
+        eq(bookings.customerId, account.id),
+      ),
+    )
+    .orderBy(asc(invoices.id))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function getFavoriteKeys() {

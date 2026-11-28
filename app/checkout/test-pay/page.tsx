@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { getCheckoutDetails, confirmDeposit, type CheckoutDetailsResult } from "@/app/actions/payments"
+import { getCheckoutDetails, confirmDeposit, confirmBalance, type CheckoutDetailsResult } from "@/app/actions/payments"
 
 function euro(cents: number) {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(cents / 100)
@@ -26,6 +26,7 @@ function TestCheckoutContent() {
   const searchParams = useSearchParams()
   const bookingIdParam = searchParams.get("bookingId")
   const bookingId = bookingIdParam ? Number.parseInt(bookingIdParam, 10) : null
+  const partParam = searchParams.get("part")
 
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
@@ -46,22 +47,34 @@ function TestCheckoutContent() {
         setError(res.error || "Kon de boekingsgegevens niet ophalen.")
       } else {
         setDetails(res.booking)
-        if (res.booking.paymentStatus === "deposit_paid" || res.booking.paymentStatus === "paid") {
-          setSuccess(true)
+        const isBalance = partParam === "balance" || res.booking.paymentStatus === "deposit_paid"
+        if (isBalance) {
+          if (res.booking.paymentStatus === "paid") {
+            setSuccess(true)
+          }
+        } else {
+          if (res.booking.paymentStatus === "deposit_paid" || res.booking.paymentStatus === "paid") {
+            setSuccess(true)
+          }
         }
       }
     })
-  }, [bookingId])
+  }, [bookingId, partParam])
+
+  const isBalance = Boolean(partParam === "balance" || (details && details.paymentStatus === "deposit_paid"))
+  const amountToPay = details ? (isBalance ? details.balanceCents : details.depositCents) : 0
 
   async function handlePay() {
     if (!bookingId) return
     setPaying(true)
     setError(null)
     try {
-      const res = await confirmDeposit(bookingId, `TEST-SIM-${Date.now()}`)
+      const res = isBalance
+        ? await confirmBalance(bookingId, `TEST-SIM-BALANCE-${Date.now()}`)
+        : await confirmDeposit(bookingId, `TEST-SIM-DEPOSIT-${Date.now()}`)
+
       if (res.ok) {
         setSuccess(true)
-        // Refresh router so back navigation sees the new status
         router.refresh()
       } else {
         setError(res.error || "Betaling mislukt.")
@@ -113,9 +126,13 @@ function TestCheckoutContent() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
               <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
-            <CardTitle className="mt-3 text-2xl font-bold text-foreground">Aanbetaling geslaagd!</CardTitle>
+            <CardTitle className="mt-3 text-2xl font-bold text-foreground">
+              {isBalance ? "Restantbetaling geslaagd!" : "Aanbetaling geslaagd!"}
+            </CardTitle>
             <CardDescription className="text-base">
-              De aanbetaling van {euro(details.depositCents)} voor <strong>{details.eventName}</strong> is succesvol verwerkt.
+              {isBalance
+                ? `De restantbetaling van ${euro(details.balanceCents)} voor ${details.eventName} is succesvol verwerkt. De boeking is nu volledig betaald.`
+                : `De aanbetaling van ${euro(details.depositCents)} voor ${details.eventName} is succesvol verwerkt.`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -123,7 +140,7 @@ function TestCheckoutContent() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status boeking</span>
                 <Badge variant="outline" className="border-transparent bg-green-500/10 text-green-800 dark:text-green-500 font-semibold">
-                  Bevestigd
+                  {isBalance ? "Volledig voldaan" : "Bevestigd"}
                 </Badge>
               </div>
               <div className="flex justify-between">
@@ -132,7 +149,9 @@ function TestCheckoutContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Resterend saldo (75%)</span>
-                <span className="font-semibold text-foreground">{euro(details.balanceCents)}</span>
+                <span className="font-semibold text-foreground">
+                  {isBalance ? `${euro(details.balanceCents)} (voldaan)` : euro(details.balanceCents)}
+                </span>
               </div>
             </div>
             <Button asChild className="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-3">
@@ -164,7 +183,9 @@ function TestCheckoutContent() {
             <ShieldCheck className="h-4 w-4 text-green-600" />
             Veilige Test Checkout · ARSI Events
           </div>
-          <CardTitle className="mt-2 text-xl font-bold">Aanbetaling voldoen</CardTitle>
+          <CardTitle className="mt-2 text-xl font-bold">
+            {isBalance ? "Restantbetaling voldoen (75%)" : "Aanbetaling voldoen (25%)"}
+          </CardTitle>
           <CardDescription>
             Boeking #{details.id.toString().padStart(5, "0")} · {details.professionalName} · {details.eventName}
           </CardDescription>
@@ -185,15 +206,19 @@ function TestCheckoutContent() {
               <Separator />
               <div className="flex items-baseline justify-between pt-1">
                 <div>
-                  <span className="font-semibold text-foreground">Nu te betalen (25% aanbetaling)</span>
-                  <p className="text-xs text-muted-foreground">Maakt je boeking definitief en gelockt</p>
+                  <span className="font-semibold text-foreground">
+                    {isBalance ? "Nu te betalen (75% slotbetaling)" : "Nu te betalen (25% aanbetaling)"}
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    {isBalance ? "Rondt de factuur en boeking definitief af" : "Maakt je boeking definitief en gelockt"}
+                  </p>
                 </div>
-                <span className="text-2xl font-extrabold text-foreground">{euro(details.depositCents)}</span>
+                <span className="text-2xl font-extrabold text-foreground">{euro(amountToPay)}</span>
               </div>
               <Separator />
               <div className="flex justify-between text-xs text-muted-foreground pt-1">
-                <span>Resterend bedrag (na afloop van het evenement)</span>
-                <span>{euro(details.balanceCents)}</span>
+                <span>{isBalance ? "Reeds voldane aanbetaling" : "Resterend bedrag (na afloop van het evenement)"}</span>
+                <span>{euro(isBalance ? details.depositCents : details.balanceCents)}</span>
               </div>
             </div>
           </div>
@@ -224,7 +249,7 @@ function TestCheckoutContent() {
                   Testbetaling verifiëren...
                 </>
               ) : (
-                `Voltooi testbetaling (${euro(details.depositCents)})`
+                `Voltooi testbetaling (${euro(amountToPay)})`
               )}
             </Button>
             <Button
